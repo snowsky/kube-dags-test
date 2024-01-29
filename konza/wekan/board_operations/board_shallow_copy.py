@@ -36,6 +36,8 @@ Notes:
 import asyncio
 from datetime import timedelta
 
+import pendulum
+
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.models import Variable, TaskInstance
@@ -128,7 +130,9 @@ def shallow_copy_board_async(ti: TaskInstance):
 
 with DAG(
     "C-7__Wekan_board_shallow_copy",
-    dagrun_timeout=timedelta(minutes=1),
+    catchup=False,
+    start_date=pendulum.datetime(2024, 1, 29, tz="UTC"),
+    dagrun_timeout=timedelta(minutes=120),
 ):
     login_users_task = PythonOperator(
         task_id="login_users", provide_context=True, python_callable=login_users_async
