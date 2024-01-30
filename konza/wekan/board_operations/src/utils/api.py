@@ -3,7 +3,6 @@ This module contains functions to make API requests to Wekan.
 """
 
 import os
-import httpx
 
 from airflow import AirflowException
 
@@ -20,6 +19,8 @@ async def api_get_request(url: str, headers: dict, timeout: int = 10):
     """
     Function to make an API GET request.
     """
+
+    import httpx
 
     response_status_code = 200
 
@@ -68,6 +69,8 @@ async def api_post_request(
     """
     Function to make an API POST request.
     """
+
+    import httpx
 
     response_status_code = 200
 
@@ -130,6 +133,8 @@ async def api_put_request(
     """
     Function to make an API PUT request.
     """
+
+    import httpx
 
     response_status_code = 200
 

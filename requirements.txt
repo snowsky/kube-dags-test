@@ -1,5 +1,0 @@
-apache-airflow==2.8.1
-httpx==0.26.0
-pandas==2.2.0
-pendulum==3.0.0
-SQLAlchemy==1.4.51
