@@ -1,3 +1,4 @@
+## Discussed this with Bogdan, for security and operational management we need to try to use the same image of requirements as much as possible
 Santiago proposes the DAGs should have independent requirements to avoid issues around required packages having conflicts.
   Proposes using virtual environment operators
 
