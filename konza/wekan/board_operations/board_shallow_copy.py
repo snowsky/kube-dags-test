@@ -33,115 +33,179 @@ Notes:
 - The archived cards are not copied.
 """
 
-import asyncio
-from datetime import timedelta
+from datetime import timedelta, datetime
 
-import pendulum
-
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-from airflow.models import Variable, TaskInstance
-
-from konza.wekan.board_operations.src.controllers.login import login
-from konza.wekan.board_operations.src.controllers.boards import copy_populated_board
+from airflow import DAG, AirflowException
+from airflow.operators.python import PythonVirtualenvOperator
+from airflow.models import Variable
 
 
-async def login_users(ti: TaskInstance):
-    """
-    Function to login a users and return the tokens as a Xcom.
-    """
-
-    source_hostname = str(Variable.get("source_hostname"))
-    target_hostname = str(Variable.get("target_hostname"))
-    source_username = str(Variable.get("source_username"))
-    source_password = str(Variable.get("source_password"))
-    target_username = str(Variable.get("target_username"))
-    target_password = str(Variable.get("target_password"))
-
-    source_response = await login(
-        hostname=source_hostname, username=source_username, password=source_password
-    )
-
-    target_response = await login(
-        hostname=target_hostname, username=target_username, password=target_password
-    )
-
-    error = (
-        source_response.get("error")
-        if isinstance(source_response, dict)
-        else target_response.get("error")
-        if isinstance(target_response, dict)
-        else None
-    )
-
-    if error:
-        raise Exception(status_code=error, detail={source_response, target_response})
-
-    ti.xcom_push(key="source_configuration", value=source_response)
-    ti.xcom_push(key="target_configuration", value=target_response)
-
-
-def login_users_async(ti: TaskInstance):
+def login_users_async(
+    source_hostname,
+    target_hostname,
+    source_username,
+    source_password,
+    target_username,
+    target_password,
+):
     """
     This function is a wrapper to run the login_users function in an asyncio event loop.
     """
+
+    import json
+    import asyncio
+
+    from konza.wekan.board_operations.src.controllers.login import login
+
+    async def login_users(
+        source_hostname,
+        target_hostname,
+        source_username,
+        source_password,
+        target_username,
+        target_password,
+    ):
+        """
+        Function to login a users and return the tokens as a Xcom.
+        """
+
+        source_response = await login(
+            hostname=source_hostname, username=source_username, password=source_password
+        )
+
+        target_response = await login(
+            hostname=target_hostname, username=target_username, password=target_password
+        )
+
+        error = (
+            source_response.get("error")
+            if isinstance(source_response, dict)
+            else target_response.get("error")
+            if isinstance(target_response, dict)
+            else None
+        )
+
+        if error:
+            error_dict = {
+                "status_code": error,
+                "detail": {source_response, target_response},
+            }
+            raise AirflowException(error_dict)
+
+        xcom_output = {
+            "source_configuration": source_response,
+            "target_configuration": target_response,
+        }
+
+        return xcom_output
+
     loop = asyncio.get_event_loop()
-    result = loop.run_until_complete(login_users(ti))
-    return result
-
-
-async def shallow_copy_board(ti: TaskInstance):
-    """
-    Function to copy a board from one wekan server to another.
-    """
-
-    source_hostname = Variable.get("source_hostname")
-    target_hostname = Variable.get("target_hostname")
-    source_board_id = Variable.get("source_board_id")
-    target_board_id = Variable.get("target_board_id")
-
-    source_configuration = ti.xcom_pull(
-        key="source_configuration", task_ids="login_users"
-    )
-    target_configuration = ti.xcom_pull(
-        key="target_configuration", task_ids="login_users"
+    result = loop.run_until_complete(
+        login_users(
+            source_hostname,
+            target_hostname,
+            source_username,
+            source_password,
+            target_username,
+            target_password,
+        )
     )
 
-    copy_response = await copy_populated_board(
+    return json.dumps(result)
+
+
+def shallow_copy_board_async(
+    source_hostname, target_hostname, source_board_id, target_board_id, configuration
+):
+    """
+    This function is a wrapper to run the shallow_copy_board function in an asyncio event loop.
+    """
+
+    import json
+    import asyncio
+
+    from konza.wekan.board_operations.src.controllers.boards import copy_populated_board
+
+    async def shallow_copy_board(
         source_hostname,
         target_hostname,
         source_board_id,
         target_board_id,
-        source_configuration,
-        target_configuration,
-    )
+        configuration,
+    ):
+        """
+        Function to copy a board from one wekan server to another.
+        """
 
-    return copy_response
+        parsed_configuration = json.loads(configuration)
 
+        source_configuration = parsed_configuration.get("source_configuration")
+        target_configuration = parsed_configuration.get("target_configuration")
 
-def shallow_copy_board_async(ti: TaskInstance):
-    """
-    This function is a wrapper to run the shallow_copy_board function in an asyncio event loop.
-    """
+        copy_response = await copy_populated_board(
+            source_hostname,
+            target_hostname,
+            source_board_id,
+            target_board_id,
+            source_configuration,
+            target_configuration,
+        )
+
+        return copy_response
+
     loop = asyncio.get_event_loop()
-    result = loop.run_until_complete(shallow_copy_board(ti))
+    result = loop.run_until_complete(
+        shallow_copy_board(
+            source_hostname,
+            target_hostname,
+            source_board_id,
+            target_board_id,
+            configuration,
+        )
+    )
     return result
 
 
 with DAG(
     "C-7__Wekan_board_shallow_copy",
     catchup=False,
-    start_date=pendulum.datetime(2024, 1, 29, tz="UTC"),
+    start_date=datetime(2024, 1, 29),
     dagrun_timeout=timedelta(minutes=120),
 ):
-    login_users_task = PythonOperator(
-        task_id="login_users", provide_context=True, python_callable=login_users_async
+    login_users_task = PythonVirtualenvOperator(
+        task_id="login_users",
+        python_callable=login_users_async,
+        requirements=["httpx==0.26.0"],
+        system_site_packages=True,
+        python_version="3.11",
+        op_kwargs={
+            "source_hostname": Variable.get("source_hostname"),
+            "target_hostname": Variable.get("target_hostname"),
+            "source_username": Variable.get("source_username"),
+            "source_password": Variable.get("source_password"),
+            "target_username": Variable.get("target_username"),
+            "target_password": Variable.get("target_password"),
+        },
     )
 
-    shallow_copy_board_task = PythonOperator(
+    source_hostname = Variable.get("source_hostname")
+    target_hostname = Variable.get("target_hostname")
+    source_board_id = Variable.get("source_board_id")
+    target_board_id = Variable.get("target_board_id")
+
+    shallow_copy_board_task = PythonVirtualenvOperator(
         task_id="shallow_copy_board",
-        provide_context=True,
         python_callable=shallow_copy_board_async,
+        requirements=["httpx==0.26.0"],
+        system_site_packages=True,
+        python_version="3.11",
+        op_kwargs={
+            "source_hostname": source_hostname,
+            "target_hostname": target_hostname,
+            "source_board_id": source_board_id,
+            "target_board_id": target_board_id,
+            "configuration": '{{ ti.xcom_pull(task_ids="login_users") }}',
+        },
     )
 
     login_users_task >> shallow_copy_board_task

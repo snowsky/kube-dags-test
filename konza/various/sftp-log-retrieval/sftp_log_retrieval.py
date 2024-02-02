@@ -4,13 +4,11 @@ This DAG assumes that the Airflow server allows for file system access on the
 instance where it is running.
 """
 
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from airflow import DAG
 from airflow.operators.python import PythonVirtualenvOperator
 from airflow.models import Variable
-
-import pendulum
 
 
 def copy_db(origin_db_path, destination_db_path):
@@ -72,7 +70,7 @@ with DAG(
     "S-6__SFTP_Log_Retrieval",
     schedule_interval="0 0 * * *",
     catchup=False,
-    start_date=pendulum.datetime(2021, 1, 1, tz="UTC"),
+    start_date=datetime(2024, 1, 1),
     dagrun_timeout=timedelta(minutes=60),
 ):
     origin_db_path = Variable.get("origin_db_path")
@@ -89,7 +87,6 @@ with DAG(
             "destination_db_path": destination_db_path,
         },
     )
-    # copy_db_task = PythonOperator(task_id="copy_db", python_callable=copy_db)
 
     db_path = Variable.get("destination_db_path")
     db_table_name = Variable.get("origin_db_table_name")
@@ -102,9 +99,6 @@ with DAG(
         python_version="3.11",
         op_kwargs={"db_path": db_path, "db_table_name": db_table_name},
     )
-    """ select_from_db_task = PythonOperator(
-        task_id="select_from_db", python_callable=select_from_db
-    ) """
 
     user = Variable.get("user")
     password = Variable.get("password")
@@ -131,10 +125,5 @@ with DAG(
             "db_table_name": db_table_name,
         },
     )
-    """
-    insert_into_db_task = PythonOperator(
-        task_id="insert_into_db", python_callable=insert_into_db
-    )
-    """
 
     copy_db_task >> select_from_db_task >> insert_into_db_task
