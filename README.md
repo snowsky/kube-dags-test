@@ -1,9 +1,4 @@
-## Discussed this with Bogdan, for security and operational management we need to try to use the same image of requirements as much as possible
-Santiago proposes the DAGs should have independent requirements to avoid issues around required packages having conflicts.
-  Proposes using virtual environment operators
+## Primary Image for python requirements: https://github.com/konzainc/konza-kube/blob/main/docker/airflow/Dockerfile
+## Virtual Environment image to be used as minimally as possible and may be rejected in code reviews
 
-Also proposes using a naming convension and independence between tasks between DAGs
-
-
----------------------------------------------
-2/2/2024 - Santiago proposes using the virtual environment operator built in to airflow - Eric: it is not clear how this strategy of maintenance and package monitoring would work
+Best practice is to test DAGs locally without pushing to production [Bogdan to put in sequence]
