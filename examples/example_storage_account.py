@@ -42,7 +42,7 @@ with DAG(
     # [START howto_operator_bash]
     run_this = BashOperator(
         task_id="run_after_loop",
-        bash_command="cat /source/test_file",
+        bash_command="echo 'New test contents' >> /source/test_file",
     )
     # [END howto_operator_bash]
 
