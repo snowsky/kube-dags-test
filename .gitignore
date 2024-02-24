@@ -1,7 +1,27 @@
+*.py[cod]
 
-venv
+# OS Junk
+._*
+.DS_Store
+Thumbs.db
+settings.json
+
+### Python Ignores
 __pycache__
 
+# pyenv
+.python-version
 
-*.py[cod]
-.DS_Store
+# virtualenv
+.venv
+env/
+ENV/
+venv/
+
+
+# IDE
+.idea/
+.spyproject/
+.vscode/
+*.swp
+*.swo

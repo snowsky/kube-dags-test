@@ -1,4 +1,4 @@
-from konza.wekan.board_operations.src.utils.strings import (
+from lib.wekan.utils.strings import (
     convert_string_to_html_entities,
 )
 

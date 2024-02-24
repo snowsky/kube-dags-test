@@ -1,4 +1,4 @@
-""" 
+"""
 This module contains functions for string operations.
 """
 

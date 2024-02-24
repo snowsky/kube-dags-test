@@ -1,15 +1,15 @@
-""" 
+"""
 This module contains all the functions related to the boards cards.
 """
 
-from konza.wekan.board_operations.src.utils.api import (
+from lib.wekan.utils.api import (
     api_get_request,
     api_post_request,
     api_put_request,
 )
 
 
-async def create_card(
+def create_card(
     hostname: str, token: str, board_id: str, list_id: str, card_payload: dict
 ):
     """
@@ -17,10 +17,7 @@ async def create_card(
     """
 
     if not hostname or not token or not board_id or not list_id or not card_payload:
-        raise Exception(
-            status_code=400,
-            detail="Missing hostname, token, board_id, list_id or card_payload.",
-        )
+        raise Exception("Missing hostname, token, board_id, list_id or card_payload.")
 
     url = f"{hostname}/api/boards/{board_id}/lists/{list_id}/cards"
     headers = {
@@ -28,12 +25,10 @@ async def create_card(
         "Authorization": f"Bearer {token}",
     }
 
-    return await api_post_request(url, headers, card_payload)
+    return api_post_request(url, headers, card_payload)
 
 
-async def get_card(
-    hostname: str, token: str, board_id: str, list_id: str, card_id: str
-):
+def get_card(hostname: str, token: str, board_id: str, list_id: str, card_id: str):
     """
     Function to get a board card.
     """
@@ -44,10 +39,10 @@ async def get_card(
         "Authorization": f"Bearer {token}",
     }
 
-    return await api_get_request(url, headers)
+    return api_get_request(url, headers)
 
 
-async def create_card_comment(
+def create_card_comment(
     hostname: str, token: str, board_id: str, card_id: str, comment_payload: dict
 ):
     """
@@ -56,8 +51,7 @@ async def create_card_comment(
 
     if not hostname or not token or not board_id or not card_id or not comment_payload:
         raise Exception(
-            status_code=400,
-            detail="Missing hostname, token, board_id, card_id or comment_payload.",
+            "Missing hostname, token, board_id, card_id or comment_payload."
         )
 
     url = f"{hostname}/api/boards/{board_id}/cards/{card_id}/comments"
@@ -66,10 +60,10 @@ async def create_card_comment(
         "Authorization": f"Bearer {token}",
     }
 
-    return await api_post_request(url, headers, comment_payload)
+    return api_post_request(url, headers, comment_payload)
 
 
-async def get_card_comment(
+def get_card_comment(
     hostname: str, token: str, board_id: str, card_id: str, comment_id: str
 ):
     """
@@ -82,10 +76,10 @@ async def get_card_comment(
         "Authorization": f"Bearer {token}",
     }
 
-    return await api_get_request(url, headers)
+    return api_get_request(url, headers)
 
 
-async def get_card_comments(hostname: str, token: str, board_id: str, card_id: str):
+def get_card_comments(hostname: str, token: str, board_id: str, card_id: str):
     """
     Function to get all available card comments of a given card.
     """
@@ -97,13 +91,13 @@ async def get_card_comments(hostname: str, token: str, board_id: str, card_id: s
         "Authorization": f"Bearer {token}",
     }
 
-    card_comments = await api_get_request(url, headers)
+    card_comments = api_get_request(url, headers)
     final_card_comments = []
 
     for comment in card_comments:
         comment_id = comment.get("_id")
 
-        comment_record = await get_card_comment(
+        comment_record = get_card_comment(
             hostname, token, board_id, card_id, comment_id
         )
 
@@ -117,7 +111,7 @@ async def get_card_comments(hostname: str, token: str, board_id: str, card_id: s
     return final_card_comments
 
 
-async def create_checklist(
+def create_checklist(
     hostname: str, token: str, board_id: str, card_id: str, checklist_payload: dict
 ):
     """
@@ -132,8 +126,7 @@ async def create_checklist(
         or not checklist_payload
     ):
         raise Exception(
-            status_code=400,
-            detail="Missing hostname, token, board_id, card_id or checklist_payload.",
+            "Missing hostname, token, board_id, card_id or checklist_payload."
         )
 
     url = f"{hostname}/api/boards/{board_id}/cards/{card_id}/checklists"
@@ -142,10 +135,10 @@ async def create_checklist(
         "Authorization": f"Bearer {token}",
     }
 
-    return await api_post_request(url, headers, checklist_payload)
+    return api_post_request(url, headers, checklist_payload)
 
 
-async def edit_checklist_item(
+def edit_checklist_item(
     hostname: str,
     token: str,
     board_id: str,
@@ -168,8 +161,7 @@ async def edit_checklist_item(
         or not checklist_item_payload
     ):
         raise Exception(
-            status_code=400,
-            detail="Missing hostname, token, board_id, card_id, checklist_id, checklist_item_id or checklist_item_payload.",
+            "Missing hostname, token, board_id, card_id, checklist_id, checklist_item_id or checklist_item_payload."
         )
 
     url = f"{hostname}/api/boards/{board_id}/cards/{card_id}/checklists/{checklist_id}/items/{checklist_item_id}"
@@ -178,10 +170,10 @@ async def edit_checklist_item(
         "Authorization": f"Bearer {token}",
     }
 
-    return await api_put_request(url, headers, checklist_item_payload)
+    return api_put_request(url, headers, checklist_item_payload)
 
 
-async def get_checklist_items(
+def get_checklist_items(
     hostname: str, token: str, board_id: str, card_id: str, checklist_id: str
 ):
     """
@@ -189,10 +181,7 @@ async def get_checklist_items(
     """
 
     if not hostname or not token or not board_id or not card_id or not checklist_id:
-        raise Exception(
-            status_code=400,
-            detail="Missing hostname, token, board_id, card_id or checklist_id.",
-        )
+        raise Exception("Missing hostname, token, board_id, card_id or checklist_id.")
 
     url = f"{hostname}/api/boards/{board_id}/cards/{card_id}/checklists/{checklist_id}"
 
@@ -201,12 +190,12 @@ async def get_checklist_items(
         "Authorization": f"Bearer {token}",
     }
 
-    response = await api_get_request(url, headers)
+    response = api_get_request(url, headers)
 
     return response
 
 
-async def get_populated_card_checklists(
+def get_populated_card_checklists(
     hostname: str, token: str, board_id: str, card_id: str
 ):
     """
@@ -220,12 +209,12 @@ async def get_populated_card_checklists(
         "Authorization": f"Bearer {token}",
     }
 
-    card_checklists = await api_get_request(url, headers)
+    card_checklists = api_get_request(url, headers)
 
     for checklist in card_checklists:
         checklist_id = checklist.get("_id")
 
-        checklist_items_record = await get_checklist_items(
+        checklist_items_record = get_checklist_items(
             hostname, token, board_id, card_id, checklist_id
         )
 

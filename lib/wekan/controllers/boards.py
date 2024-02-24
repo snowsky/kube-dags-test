@@ -1,28 +1,73 @@
-""" 
+"""
 This module contains all the functions related to the boards.
 """
 
-from airflow import AirflowException
+from typing import TypedDict
+import typing
 
-from konza.wekan.board_operations.src.controllers.swimlanes import (
+from airflow import XComArg
+
+from lib.wekan.controllers.swimlanes import (
     create_swimlane,
     get_populated_board_swimlanes,
 )
-from konza.wekan.board_operations.src.controllers.cards import (
+from lib.wekan.controllers.cards import (
     create_card,
     create_card_comment,
     create_checklist,
     edit_checklist_item,
     get_checklist_items,
 )
+from lib.wekan.controllers.users import User
 
-from konza.wekan.board_operations.src.utils.api import api_get_request, api_post_request
-from konza.wekan.board_operations.src.utils.wekan import (
+from lib.wekan.utils.api import api_get_request, api_post_request
+from lib.wekan.utils.wekan import (
     get_user_mapping,
 )
 
 
-async def get_user_boards(hostname: str, user_id: str, token: str):
+class WekanConfiguration(TypedDict):
+    id: str
+    token: str
+    tokenExpires: str
+    users: list[User]
+
+
+class WekanList(TypedDict):
+    _id: str
+    title: str
+
+
+class WekanComments(TypedDict):
+    _id: str
+    text: str
+    comment: str
+    authorId: str
+    createdAt: str
+    modifiedAt: str
+    boardId: str
+    cardId: str
+    userId: str
+
+
+class WekanCard(TypedDict):
+    _id: str
+    title: str
+    comments: list[WekanComments]
+
+
+class WekanSwimlane(TypedDict):
+    _id: str
+    title: str
+    cards: list[WekanCard]
+
+
+class PopulatedBoard(TypedDict):
+    _id: str
+    lists: list[WekanList]
+
+
+def get_user_boards(hostname: str, user_id: str, token: str):
     """
     Function to get all the boards the user has access to.
     """
@@ -33,10 +78,10 @@ async def get_user_boards(hostname: str, user_id: str, token: str):
         "Authorization": f"Bearer {token}",
     }
 
-    return await api_get_request(url, headers)
+    return api_get_request(url, headers)
 
 
-async def get_active_user_boards(hostname: str, token: str, boards: list):
+def get_active_user_boards(hostname: str, token: str, boards: list):
     """
     Function to get all the active boards the user has access to.
     """
@@ -44,7 +89,7 @@ async def get_active_user_boards(hostname: str, token: str, boards: list):
     try:
         active_boards = []
         for board in boards:
-            populated_board = await get_board_details(hostname, token, board.get("_id"))
+            populated_board = get_board_details(hostname, token, board.get("_id"))
 
             board_archived = populated_board.get("archived")
 
@@ -58,17 +103,13 @@ async def get_active_user_boards(hostname: str, token: str, boards: list):
         return error.message if hasattr(error, "message") else error_dict if error_dict else str(error)  # type: ignore
 
 
-async def create_board_list(hostname: str, token: str, board_id: str, list_name: str):
+def create_board_list(hostname: str, token: str, board_id: str, list_name: str):
     """
     Function to create a board list.
     """
 
     if not hostname or not token or not board_id or not list_name:
-        error_dict = {
-            "status_code": 400,
-            "detail": "Missing hostname, token, board_id or list_name.",
-        }
-        raise AirflowException(error_dict)
+        raise Exception("Missing hostname, token, board_id or list_name.")
 
     url = f"{hostname}/api/boards/{board_id}/lists"
     headers = {
@@ -76,10 +117,10 @@ async def create_board_list(hostname: str, token: str, board_id: str, list_name:
         "Authorization": f"Bearer {token}",
     }
 
-    return await api_post_request(url, headers, {"title": list_name})
+    return api_post_request(url, headers, {"title": list_name})
 
 
-async def get_board_list(hostname: str, token: str, board_id: str, list_id: str):
+def get_board_list(hostname: str, token: str, board_id: str, list_id: str):
     """
     Function to get a board list.
     """
@@ -91,10 +132,10 @@ async def get_board_list(hostname: str, token: str, board_id: str, list_id: str)
         "Authorization": f"Bearer {token}",
     }
 
-    return await api_get_request(url, headers)
+    return api_get_request(url, headers)
 
 
-async def get_board_lists(hostname: str, token: str, board_id: str):
+def get_board_lists(hostname: str, token: str, board_id: str):
     """
     Function to get all available board lists.
     """
@@ -106,19 +147,19 @@ async def get_board_lists(hostname: str, token: str, board_id: str):
         "Authorization": f"Bearer {token}",
     }
 
-    board_lists = await api_get_request(url, headers)
+    board_lists = api_get_request(url, headers)
 
     for board_list in board_lists:
         list_id = board_list.get("_id")
         board_list = {
             **board_list,
-            **await get_board_list(hostname, token, board_id, list_id),
+            **get_board_list(hostname, token, board_id, list_id),
         }
 
     return board_lists
 
 
-async def get_board_details(hostname: str, token: str, board_id: str):
+def get_board_details(hostname: str, token: str, board_id: str):
     """
     Function to get all available board details.
     """
@@ -130,14 +171,14 @@ async def get_board_details(hostname: str, token: str, board_id: str):
         "Authorization": f"Bearer {token}",
     }
 
-    board_details = await api_get_request(url, headers)
+    board_details = api_get_request(url, headers)
 
-    board_details["lists"] = await get_board_lists(hostname, token, board_id)
+    board_details["lists"] = get_board_lists(hostname, token, board_id)
 
     return board_details
 
 
-async def get_board_export(hostname: str, token: str, board_id: str):
+def get_board_export(hostname: str, token: str, board_id: str):
     """
     Function to get a board export.
     """
@@ -148,16 +189,45 @@ async def get_board_export(hostname: str, token: str, board_id: str):
         "Authorization": f"Bearer {token}",
     }
 
-    return await api_get_request(url, headers)
+    return api_get_request(url, headers)
 
 
-async def copy_populated_board(
+def get_populated_board(
+    hostname: str, board_id: str, configuration: WekanConfiguration
+):
+    """
+    Function to get a populated board including all the cards with their lists, cards, and comments.
+    """
+
+    if not hostname or not board_id or not configuration:
+        raise Exception("Missing hostname, board id or configuration.")
+
+    auth_record = configuration
+
+    token = auth_record.get("token")
+
+    board_details = get_board_details(hostname, token, board_id)
+
+    board_swimlanes = get_populated_board_swimlanes(
+        hostname=hostname, token=token, board_id=board_id
+    )
+
+    populated_board = {
+        **board_details,
+        "swimlanes": board_swimlanes,
+    }
+
+    return populated_board
+
+
+def copy_populated_board(
     source_hostname: str,
     target_hostname: str,
     source_board_id: str,
     target_board_id: str,
-    source_configuration: dict[str, str],
-    target_configuration: dict[str, str],
+    source_configuration: WekanConfiguration,
+    target_configuration: WekanConfiguration,
+    raw_populated_board: XComArg,
 ):
     """
     Function to copy a board from one instance to another. Including all the cards with their lists, cards, and comments.
@@ -171,11 +241,9 @@ async def copy_populated_board(
         or not source_configuration
         or not target_configuration
     ):
-        error_dict = {
-            "status_code": 400,
-            "detail": "Missing source hostname, target hostname, board id, source token or target token.",
-        }
-        raise AirflowException(error_dict)
+        raise Exception(
+            "Missing source hostname, target hostname, board id, source token or target token."
+        )
 
     creator_auth_record = target_configuration
 
@@ -183,25 +251,13 @@ async def copy_populated_board(
 
     source_auth_record = source_configuration
 
-    source_token = source_auth_record.get("token")
     source_users = source_auth_record.get("users")
 
     target_auth_record = target_configuration
 
     target_token = target_auth_record.get("token")
 
-    board_details = await get_board_details(
-        source_hostname, source_token, source_board_id
-    )
-
-    board_swimlanes = await get_populated_board_swimlanes(
-        hostname=source_hostname, token=source_token, board_id=source_board_id
-    )
-
-    populated_board = {
-        **board_details,
-        "swimlanes": board_swimlanes,
-    }
+    populated_board = typing.cast(PopulatedBoard, raw_populated_board)
 
     created_board_lists = []
 
@@ -216,7 +272,7 @@ async def copy_populated_board(
 
         board_list_title = board_list.get("title")
 
-        list_creation = await create_board_list(
+        list_creation = create_board_list(
             target_hostname, target_token, target_board_id, board_list_title
         )
 
@@ -241,7 +297,7 @@ async def copy_populated_board(
 
         swimlane_title = swimlane.get("title")
 
-        target_swimlane = await create_swimlane(
+        target_swimlane = create_swimlane(
             target_hostname, target_token, target_board_id, swimlane_title
         )
 
@@ -273,7 +329,7 @@ async def copy_populated_board(
             # source_card_author_id = card.get("author")
 
             # card_author = (
-            #     await get_user_mapping(source_hostname, "_id", source_card_author_id)
+            #     get_user_mapping(source_hostname, "_id", source_card_author_id)
             #     if source_card_author_id
             #     else False
             # )
@@ -297,7 +353,7 @@ async def copy_populated_board(
                 f"Creating card: {target_hostname} {target_token} {target_board_id} {target_card_list_id} {card_payload}"
             )
 
-            card_creation_response = await create_card(
+            card_creation_response = create_card(
                 target_hostname,
                 target_token,
                 target_board_id,
@@ -322,7 +378,7 @@ async def copy_populated_board(
                 source_comment_created_at = comment.get("createdAt")
                 source_comment_modified_at = comment.get("modifiedAt")
 
-                source_comment_author = await get_user_mapping(
+                source_comment_author = get_user_mapping(
                     source_hostname, "_id", source_comment_author_id, source_users
                 )
 
@@ -345,7 +401,7 @@ async def copy_populated_board(
                     f"Creating comment: {target_hostname} {target_token} {target_board_id} {target_card_id} {comment_payload}"
                 )
 
-                await create_card_comment(
+                create_card_comment(
                     target_hostname,
                     target_token,
                     target_board_id,
@@ -380,7 +436,7 @@ async def copy_populated_board(
                     f"Creating checklist: {target_hostname} {target_token} {target_board_id} {target_card_id} {checklist_payload}"
                 )
 
-                target_checklist = await create_checklist(
+                target_checklist = create_checklist(
                     target_hostname,
                     target_token,
                     target_board_id,
@@ -388,7 +444,7 @@ async def copy_populated_board(
                     checklist_payload,
                 )
 
-                populated_checklist = await get_checklist_items(
+                populated_checklist = get_checklist_items(
                     target_hostname,
                     target_token,
                     target_board_id,
@@ -403,7 +459,7 @@ async def copy_populated_board(
                     populated_checklist_item = populated_checklist.get("items")[index]
 
                     if checklist_item_is_checked is True:
-                        await edit_checklist_item(
+                        edit_checklist_item(
                             target_hostname,
                             target_token,
                             target_board_id,
