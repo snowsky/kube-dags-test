@@ -15,7 +15,7 @@ from airflow.providers.sftp.hooks.sftp import SFTPHook
     catchup=False,
     dagrun_timeout=timedelta(minutes=60),
     params={
-        "ssh_conn_id": "prd-az1-log2-airlfowconnection",
+        "ssh_conn_id": "prd-az1-log2-airflowconnection",
         "origin_paths": "/var/log/syslog|/var/log/falcon-sensor.log",
         "destination_paths": "/source/|/source/",
     },
