@@ -86,3 +86,6 @@ def sftp_log_retrieval():
 
 
 sftp_log_retrieval_dag = sftp_log_retrieval()
+
+if __name__ == "__main__":
+    sftp_log_retrieval_dag.test()

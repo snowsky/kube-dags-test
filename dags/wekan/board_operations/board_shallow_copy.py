@@ -202,3 +202,6 @@ def board_shallow_copy():
 
 
 board_shallow_copy_dag = board_shallow_copy()
+
+if __name__ == "__main__":
+    board_shallow_copy_dag.test()
