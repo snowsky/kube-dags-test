@@ -40,20 +40,20 @@ with DAG(
     # [START howto_operator_bash_template]
     also_run_this_1 = BashOperator(
         task_id="also_run_this_1",
-        bash_command="echo 'Hello from the container, also_run_this!' >> /source-s3-konzaandssigrouppipelines/test.txt",
+        bash_command="mkdir /source/s3-konzaandssigrouppipelines-logging; cp /source-s3-konzaandssigrouppipelines/* /source/s3-konzaandssigrouppipelines-logging/",
     )
     # [END howto_operator_bash_template]
     also_run_this_1 >> run_this_last
 
     also_run_this_2 = BashOperator(
         task_id="also_run_this_2",
-        bash_command="echo 'Hello from the container, also_run_this!' >> /source-s3-konzaandssigroupqa/test.txt",
+        bash_command="mkdir /source/s3-konzaandssigroupqa-logging; cp /source-s3-konzaandssigroupqa/* /source/s3-konzaandssigroupqa-logging/",
     )
     also_run_this_2 >> run_this_last
 
     also_run_this_3 = BashOperator(
         task_id="also_run_this_3",
-        bash_command="echo 'Hello from the container, also_run_this!' >> /source-s3-konzaandssigroup/test.txt",
+        bash_command="mkdir /source/s3-konzaandssigroup; cp /source-s3-konzaandssigroup/* /source/s3-konzaandssigroup/",
     )
     also_run_this_3 >> run_this_last
 
