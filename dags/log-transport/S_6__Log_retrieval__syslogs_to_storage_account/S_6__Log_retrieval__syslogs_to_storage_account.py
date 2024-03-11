@@ -1,5 +1,11 @@
 """
 This DAG copys a log file from ssh server to a storage account.
+#These settings need to be set in Airflow application under Admin > Connections
+Connection ID will need to match: prd-az1-log2-airflowconnection
+Conection Type: SSH
+Host: PRD-AZ1-LOG2 private IP address
+Username and password: provided by admin of the machine
+Port: 22
 """
 
 import calendar
