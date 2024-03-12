@@ -24,7 +24,7 @@ from airflow.operators.python import get_current_context
         "quality_check_delivery": "1",
         "script_name": "ARCHIVE_DELIVERY__L_68",
         "days_offset": 0,  # Set to -13 for example to start 13 days ago
-        "error_file_location": "\\\\prd-az1-sqlw2.ad.konza.org\\output\\Run_Errors.txt",
+        "error_file_location": "\source\C-11\Run_Errors.txt",
     },
 )
 def c_11_archive_delivery():
@@ -86,7 +86,7 @@ def c_11_archive_delivery():
     def get_overlap_check(script_name: str) -> pd.DataFrame:
         hook = PostgresHook(postgres_conn_id="prd-az1-ops1-airflowconnection")
         overlap_check = hook.get_pandas_df(
-            f"SELECT * FROM job_triggers where associated_table = '{script_name.lower()}';"
+            f"SELECT * FROM job_triggers_airflow where associated_table = '{script_name.lower()}';"
         )
         return overlap_check
 
@@ -120,7 +120,7 @@ def c_11_archive_delivery():
 
         hook = PostgresHook(postgres_conn_id="prd-az1-ops1-airflowconnection")
         hook.run(
-            f"UPDATE job_triggers SET trigger_status = '{trigger_status}' WHERE associated_table = '{script_name.lower()}';"
+            f"UPDATE job_triggers_airflow SET trigger_status = '{trigger_status}' WHERE associated_table = '{script_name.lower()}';"
         )
 
         print("Updated table as state of running")
