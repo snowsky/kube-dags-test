@@ -98,7 +98,7 @@ def c_11_archive_delivery():
         localtime = str(time.asctime(time.localtime(time.time())))
         titleString = os.path.basename(sys.argv[0])
         errorFileLocation = error_file_location
-
+        print(f"Error File Location: {errorFileLocation}, Title String {titleString}, Local Time: {localtime}")
         f = open(errorFileLocation, "a")
         f.write(
             "Time: "
@@ -110,6 +110,7 @@ def c_11_archive_delivery():
             + " | Last HSQL Query: "
             + "\n"
         )
+        print(f"Filename: {f}")
         f.close()
 
     @task
