@@ -36,13 +36,13 @@ def c_11_archive_delivery():
 
     @task
     def get_restart_trigger() -> pd.DataFrame:
-        hook = PostgresHook(postgres_conn_id="c_11_archive_delivery_postgres")
+        hook = PostgresHook(postgres_conn_id="prd-az1-ops1-airflowconnection")
         restart_trigger = hook.get_pandas_df("SELECT * FROM restart_trigger;")
         return restart_trigger
 
     @task
     def get_schedule_jobs() -> pd.DataFrame:
-        hook = PostgresHook(postgres_conn_id="c_11_archive_delivery_postgres")
+        hook = PostgresHook(postgres_conn_id="prd-az1-ops1-airflowconnection")
         schedule_jobs = hook.get_pandas_df("SELECT * FROM schedule_jobs;")
         return schedule_jobs
 
@@ -84,7 +84,7 @@ def c_11_archive_delivery():
 
     @task
     def get_overlap_check(script_name: str) -> pd.DataFrame:
-        hook = PostgresHook(postgres_conn_id="c_11_archive_delivery_postgres")
+        hook = PostgresHook(postgres_conn_id="prd-az1-ops1-airflowconnection")
         overlap_check = hook.get_pandas_df(
             f"SELECT * FROM job_triggers where associated_table = '{script_name.lower()}';"
         )
@@ -118,7 +118,7 @@ def c_11_archive_delivery():
         This function updates the trigger status.
         """
 
-        hook = PostgresHook(postgres_conn_id="c_11_archive_delivery_postgres")
+        hook = PostgresHook(postgres_conn_id="prd-az1-ops1-airflowconnection")
         hook.run(
             f"UPDATE job_triggers SET trigger_status = '{trigger_status}' WHERE associated_table = '{script_name.lower()}';"
         )
@@ -128,7 +128,7 @@ def c_11_archive_delivery():
     @task(retries=5, retry_delay=timedelta(minutes=1))
     def get_parser_check() -> pd.DataFrame:
         try:
-            hook = MySqlHook(mysql_conn_id="c_11_archive_delivery_mysql")
+            hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
             parser_check = hook.get_pandas_df(
                 "SELECT * FROM _dashboard_maintenance.parser_controller;"
             )
@@ -273,7 +273,7 @@ def c_11_archive_delivery():
 
     @task
     def get_authorized_destination(day: str) -> pd.DataFrame:
-        hook = PostgresHook(postgres_conn_id="c_11_archive_delivery_postgres")
+        hook = PostgresHook(postgres_conn_id="prd-az1-ops1-airflowconnection")
         authorized_destination = hook.get_pandas_df(
             """select authorized_identifier_oid
             , delivery_paused
