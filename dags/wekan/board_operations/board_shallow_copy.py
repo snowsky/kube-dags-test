@@ -56,7 +56,7 @@ class WekanConfigurations(TypedDict):
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    dagrun_timeout=timedelta(minutes=1),
+    dagrun_timeout=timedelta(minutes=10),
     params={
         "source_hostname": "https://source.wekan.server",
         "target_hostname": "https://target.wekan.server",
