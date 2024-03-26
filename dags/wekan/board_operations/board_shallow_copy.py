@@ -59,7 +59,7 @@ class WekanConfigurations(TypedDict):
     dagrun_timeout=timedelta(minutes=240),
     params={
         "source_hostname": "https://boards.ertanalytics.com",
-        "target_hostname": "wekan.wekan.svc:8080",
+        "target_hostname": "http://wekan.wekan.svc:8080",
         "source_username": "source_username",
         "source_password": "source_password",
         "target_username": "target_username",
