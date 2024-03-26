@@ -56,7 +56,7 @@ class WekanConfigurations(TypedDict):
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    dagrun_timeout=timedelta(minutes=10),
+    dagrun_timeout=timedelta(minutes=240),
     params={
         "source_hostname": "https://boards.ertanalytics.com",
         "target_hostname": "wekan.wekan.svc:8080",
