@@ -30,7 +30,7 @@ def generate_dag():
         logging.info(os.listdir('/source-reportwriterstorage/lib/ccd-parse-main'))
         sys.path.insert(0,'/source-reportwriterstorage/lib/ccd-parse-main')
         from konza.parser import read_clinical_document_from_xml_path
-        from konza.extract import KonzaExtract
+        from konza.extracts.extract import KonzaExtract
         for xml_file_name in os.listdir(CCDA_DIR):
             xml_path = os.path.join(sys.argv[1], xml_file_name)
             try:
