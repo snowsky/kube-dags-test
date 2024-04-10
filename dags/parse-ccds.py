@@ -27,5 +27,7 @@ def generate_dag():
                 print(extract.model_dump_json())
             except ValueError as e:
                 raise ValueError(f"Problem with {xml_path}: {e}")
-
+    start = EmptyOperator()
+    end = EmptyOperator()
+    start >> parse_xmls() >> end
 DAG = generate_dag()
