@@ -31,7 +31,7 @@ def generate_dag():
         sys.path.insert(0,'/source-reportwriterstorage/lib/ccd-parse-main')
         from konza.parser import read_clinical_document_from_xml_path
         from konza.extracts.extract import KonzaExtract
-        CCDA_DIR = "/source-reportwriterstorage/raw_ccds/HL7v3In/"
+        CCDA_DIR = "/source-reportwriterstorage/raw_ccds/HL7v3In/1/2.16.840.1.113883.3.432.0.16.0.361.3/2.16.840.1.113883.3.432.0.16.0.361.3/"
         for xml_file_name in os.listdir(CCDA_DIR):
             xml_path = os.path.join(CCDA_DIR, xml_file_name)
             try:
