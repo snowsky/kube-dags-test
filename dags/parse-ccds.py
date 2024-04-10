@@ -6,7 +6,7 @@ from airflow.operators.empty import EmptyOperator
 
 from airflow.decorators import dag, task
 
-CCDA_DIR = "/data/reportwriterstorage/content/raw_ccds/HL7v3In/"
+CCDA_DIR = "/source-reportwriterstorage/content/raw_ccds/HL7v3In/"
 
 @dag(
      dag_id="parse_ccds",
@@ -19,9 +19,8 @@ def generate_dag():
     def parse_xmls():
         import os
         import logging
-        logging.info(os.listdir('/data/'))
-        logging.info(os.listdir('/data/reportwriterstorage/lib/ccd-parse-main'))
-        sys.path.insert(0,'/data/reportwriterstorage/lib/ccd-parse-main')
+        logging.info(os.listdir('/source-reportwriterstorage/lib/ccd-parse-main'))
+        sys.path.insert(0,'/source-reportwriterstorage/lib/ccd-parse-main')
         from konza.parser import read_clinical_document_from_xml_path
         from konza.extract import KonzaExtract
         for xml_file_name in os.listdir(CCDA_DIR):
