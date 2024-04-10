@@ -15,7 +15,15 @@ CCDA_DIR = "/source-reportwriterstorage/content/raw_ccds/HL7v3In/"
 )
 def generate_dag():
      
-    @task
+    @task.virtualenv(
+        task_id='parse_xmls',
+        requirements=['lxml',
+                      'pandas',
+                      'pyarrow',
+                      'pydantic>2.0',
+                      'pydantic-xml',
+                      'pytest']
+    )
     def parse_xmls():
         import os
         import logging
