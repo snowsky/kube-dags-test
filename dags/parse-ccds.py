@@ -19,6 +19,7 @@ def generate_dag():
     def parse_xmls():
         import os
         import logging
+        logging.info(os.listdir('/data/'))
         logging.info(os.listdir('/data/reportwriterstorage/lib/ccd-parse-main'))
         sys.path.insert(0,'/data/reportwriterstorage/lib/ccd-parse-main')
         from konza.parser import read_clinical_document_from_xml_path
