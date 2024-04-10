@@ -10,7 +10,7 @@ CCDA_DIR = "/data/reportwriterstorage/content/raw_ccds/HL7v3In/"
 
 @dag(
      dag_id="parse_ccds",
-     #start_date=datetime.datetime(2021, 1, 1),
+     start_date=datetime.datetime(2021, 1, 1),
      schedule=None,
 )
 def generate_dag():
