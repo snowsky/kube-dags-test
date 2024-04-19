@@ -43,7 +43,7 @@ def optout_load():
     #print(get_opt_out_list)
     @task
     def get_local_dirs():
-        dirs = os.listdir('/data/biakonzasftp/C-9/optout_load/')
+        dirs = os.listdir('/')
         return dirs
     get_local_dirs()
     print(get_local_dirs)
