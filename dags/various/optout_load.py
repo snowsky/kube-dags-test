@@ -23,7 +23,6 @@ from airflow.operators.python import get_current_context
     params={
         "quality_check_delivery": "1",
         "script_name": "OptOut_Load",
-        "days_offset": 0,  # Set to -13 for example to start 13 days ago
         "error_file_location": "\source\Run_Errors.txt",
     },
 )
@@ -39,8 +38,9 @@ def optout_load():
             return opt_out_list
         except:
             raise ValueError("Error in getting opt_out_list ...retrying in 1 minute")
-    get_opt_out_list
+    get_opt_out_list()
 optout_load_dag = optout_load()
+print(optout_load_dag)
 
 if __name__ == "__main__":
     optout_load_dag.test()
