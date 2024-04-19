@@ -39,8 +39,8 @@ def optout_load():
         except:
             raise ValueError("Error in getting opt_out_list ...retrying in 1 minute")
     get_opt_out_list()
+    print(get_opt_out_list)
 optout_load_dag = optout_load()
-print(optout_load_dag)
 
 if __name__ == "__main__":
     optout_load_dag.test()
