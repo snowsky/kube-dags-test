@@ -40,11 +40,11 @@ def optout_load():
             return opt_out_list
         except:
             raise ValueError("Error in getting opt_out_list ...retrying in 1 minute")
-    #get_opt_out_list()
-    #print(get_opt_out_list)
+    get_opt_out_list()
+    print(get_opt_out_list)
     @task
     def get_local_dirs():
-        dirs = os.listdir('/')
+        dirs = os.listdir('.')
         return dirs
     local_dirs = get_local_dirs()
     print(f"Directories: {local_dirs}")
