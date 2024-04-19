@@ -30,15 +30,16 @@ from airflow.operators.python import get_current_context
 def optout_load():
     import pandas as pd
     @task(retries=5, retry_delay=timedelta(minutes=1))
-    def get_parser_check() -> pd.DataFrame:
+    def get_opt_out_list() -> pd.DataFrame:
         try:
             hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
-            parser_check = hook.get_pandas_df(
+            opt_out_list = hook.get_pandas_df(
                 "SELECT * FROM clientresults.opt_out_list;"
             )
-            return parser_check
+            return opt_out_list
         except:
-            raise ValueError("Error in getting parser check...retrying in 1 minute")
+            raise ValueError("Error in getting opt_out_list ...retrying in 1 minute")
+    get_opt_out_list
 optout_load_dag = optout_load()
 
 if __name__ == "__main__":
