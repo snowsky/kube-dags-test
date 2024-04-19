@@ -23,6 +23,7 @@ from airflow.operators.python import get_current_context
     params={
         "quality_check_delivery": "1",
         "script_name": "OptOut_Load",
+        "working_optout": "\data\biakonzasftp\C-9\optout_load\",
         "error_file_location": "\source\Run_Errors.txt",
     },
 )
@@ -38,11 +39,15 @@ def optout_load():
             return opt_out_list
         except:
             raise ValueError("Error in getting opt_out_list ...retrying in 1 minute")
-    get_opt_out_list()
+    #get_opt_out_list()
     #print(get_opt_out_list)
     @task
-    dirs = os.listdir('/data/')
-    print(dirs)
+    def get_local_dirs():
+        dirs = os.listdir('\data\biakonzasftp\C-9\optout_load\')
+        return dirs
+    get_local_dirs()
+    print(get_local_dirs)
+
 optout_load_dag = optout_load()
 
 if __name__ == "__main__":
