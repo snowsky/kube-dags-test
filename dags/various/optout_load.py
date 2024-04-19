@@ -33,6 +33,11 @@ def optout_load():
     #@task(retries=5, retry_delay=timedelta(minutes=1))
     @task
     def get_opt_out_list() -> pd.DataFrame:
+        logging.info(print('/source-biakonzasftp/'))
+        logging.info(os.listdir('/source-biakonzasftp/'))
+        logging.info(print('/source-hqintellectstorage/'))
+        logging.info(os.listdir('/source-hqintellectstorage/'))
+        logging.info(print('/source-reportwriterstorage/'))
         logging.info(os.listdir('/source-reportwriterstorage/'))
         logging.info(print("ALL"))
         logging.info(os.listdir('.'))
