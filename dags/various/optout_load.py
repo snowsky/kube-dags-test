@@ -29,7 +29,8 @@ from airflow.operators.python import get_current_context
 )
 def optout_load():
     import pandas as pd
-    @task(retries=5, retry_delay=timedelta(minutes=1))
+    #@task(retries=5, retry_delay=timedelta(minutes=1))
+    @task
     def get_opt_out_list() -> pd.DataFrame:
         try:
             hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
