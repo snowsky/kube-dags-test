@@ -23,7 +23,7 @@ from airflow.operators.python import get_current_context
     params={
         "quality_check_delivery": "1",
         "script_name": "OptOut_Load",
-        "working_optout": "\data\biakonzasftp\C-9\optout_load\",
+        #"working_optout": "\data\biakonzasftp\C-9\optout_load\",
         "error_file_location": "\source\Run_Errors.txt",
     },
 )
