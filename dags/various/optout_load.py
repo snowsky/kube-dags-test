@@ -44,7 +44,7 @@ def optout_load():
     print(get_opt_out_list)
     @task
     def get_local_dirs():
-        dirs = os.listdir('.')
+        dirs = os.listdir('/airflow/')
         return dirs
     local_dirs = get_local_dirs()
     print(f"Directories: {local_dirs}")
