@@ -39,7 +39,10 @@ def optout_load():
         except:
             raise ValueError("Error in getting opt_out_list ...retrying in 1 minute")
     get_opt_out_list()
-    print(get_opt_out_list)
+    #print(get_opt_out_list)
+    @task
+    dirs = os.listdir('/data/')
+    print(dirs)
 optout_load_dag = optout_load()
 
 if __name__ == "__main__":
