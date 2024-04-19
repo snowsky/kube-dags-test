@@ -49,6 +49,7 @@ def optout_load():
     #local_dirs = get_local_dirs()
     #print(f"Directories: {local_dirs}")
     get_local_dirs()
+    print("Directories: ")
     print(get_local_dirs)
 
 optout_load_dag = optout_load()
