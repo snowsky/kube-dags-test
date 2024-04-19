@@ -25,3 +25,6 @@ venv/
 .vscode/
 *.swp
 *.swo
+
+# Airflow logs from local testing
+logs/

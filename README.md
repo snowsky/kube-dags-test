@@ -28,9 +28,39 @@ Good tests need to reproduce production conditions and this often means interact
 
 ## DAG local testing
 
-A second level of testing involves ascertaining an entire DAG works when run from the Bastion host. This can be done locally, without the need to run an Airflow scheduler if followin [this pattern](https://docs.astronomer.io/learn/testing-airflow?tab=decorator#debug-interactively-with-dagtest) when writing a DAG. DAGs written this way can also be run directly using `python [path to DAG]` from the Bastion host.
+A second level of testing involves ascertaining an entire DAG works when run from the Bastion host. This can be done locally, without the need to run an Airflow scheduler if following [this pattern](https://docs.astronomer.io/learn/testing-airflow?tab=decorator#debug-interactively-with-dagtest) when writing a DAG. DAGs written this way can also be run directly using `python [path to DAG]` from the Bastion host.
 
 It is important to note that the DAG in this case runs as a single Python process, and its resourcing is limited to whatever resources are available on the Bastion host. This does mean that a local DAG test may not look the same as a production DAG run. For instance, the local DAG test could use fewer data. Developers should be encouraged to use [Airflow Params](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/params.html) to set up their DAGs, so as to enable the easy execution of local test runs.
+
+## Local testing using Docker compose
+
+This is a very effective way to test DAGs by setting up a fully-fledged Airflow server on your local machine. 
+
+A few things to note:
+- any DAGs that require access to remote services will need to have that access set up using some mechanism. For instance, if you expect to have access to an Azure Blob Storage account using a mount, that mount will need to be available (1) on the machine on which you run `docker compose` and (2) inside the `airflow-worker` image on `docker-compose`.
+- local airflow uses the `CeleryExecutor`, which is slightly different from `KubernetesExecutor`. This may create issues if testing DAGs which rely on tight integration with Kubernetes, e.g. via `PodOverride`, etc. Task execution via `KubernetesOperator` is not affected by this however.
+- any tasks using regular `PythonOperator`, `BashOperator`, `PythonVirtualEnvOperator` etc. should work the same way in local testing and remotely.
+- this workflow has only been tested on Linux machines, some small changes may be necessary on Windows.
+
+To try out local testing using docker compose:
+- Clone this and the (private) `ccd-parse` repos.
+- Edit the `.env` file included in this repository to reflect the local location of your `ccd-parse` clone and your local `.xml` files.
+- If using the example `.xml` files in the `ccda` directory of the `ccd-parse` repo, you will have to grant airflow read access to this directory, e.g. using `chmod 704` on Linux.
+- Install Docker Engine if not already installed (try `docker compose` in cli): https://docs.docker.com/engine/install/ubuntu/
+- `cd` into the root of this repository and enter `docker compose up`. `sudo` may be neccessary for all docker commands.
+- Wait for necessary services to start (can check with `docker container ps -a` for success).
+- In the browser type in `http://localhost:8080` to access the airflow web UI.
+- Login using username: `airflow`, password: `airflow`.
+>>> NOTE: 2 dags currently fail to import: `sftp_board_log_retrieval` and `board_shallow_copy`. This is expected at this stage.
+
+You should see the following image:
+
+![Airflow DAGs](docs/dags.png)
+
+- Activate (pressing the toggle button next to the DAG) and run the desired DAG from the UI. `test_basic_extract` is provided as an example for CCD parsing.
+![Airflow DAG Run](docs/dag-run.png)
+
+- To stop airflow use `docker compose down`.
 
 ## DAG remote testing
 
