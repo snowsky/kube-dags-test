@@ -29,9 +29,11 @@ from airflow.operators.python import get_current_context
 )
 def optout_load():
     import pandas as pd
+    import logging
     #@task(retries=5, retry_delay=timedelta(minutes=1))
     @task
     def get_opt_out_list() -> pd.DataFrame:
+        logging.info(os.listdir('/source-reportwriterstorage/'))
         try:
             hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
             opt_out_list = hook.get_pandas_df(
@@ -42,15 +44,15 @@ def optout_load():
             raise ValueError("Error in getting opt_out_list ...retrying in 1 minute")
     get_opt_out_list()
     print(get_opt_out_list)
-    @task
-    def get_local_dirs():
-        dirs = os.listdir('/source-reportwriterstorage/')
-        return dirs
-    #local_dirs = get_local_dirs()
-    #print(f"Directories: {local_dirs}")
-    get_local_dirs()
-    print("Directories: ")
-    print(get_local_dirs)
+    #@task
+    #def get_local_dirs() -> pd.DataFrame:
+    #    
+    #    return dirs
+    ##local_dirs = get_local_dirs()
+    ##print(f"Directories: {local_dirs}")
+    #get_local_dirs()
+    #print("Directories: ")
+    #print(get_local_dirs)
 
 optout_load_dag = optout_load()
 
