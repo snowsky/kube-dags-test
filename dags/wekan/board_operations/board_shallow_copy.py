@@ -60,9 +60,9 @@ class WekanConfigurations(TypedDict):
     params={
         "source_hostname": "https://boards.ertanalytics.com",
         "target_hostname": "http://wekan.wekan.svc:8080",
-        "source_username": "source_username",
+        "source_username": "erta_robot",
         "source_password": "source_password",
-        "target_username": "target_username",
+        "target_username": "erta_robot",
         "target_password": "target_password",
         "source_board_id": "source_board_id",
         "target_board_id": "target_board_id",
