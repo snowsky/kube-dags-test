@@ -370,44 +370,49 @@ def copy_populated_board(
             card_comments_length = len(card_comments)
 
             for index, comment in enumerate(card_comments):
-                print(f"Copying comment {index + 1} of {card_comments_length}")
+                for i in range(0,100):
+                    try:
+                        print(f"Copying comment {index + 1} of {card_comments_length}")
 
-                comment_text = comment.get("comment")
+                        comment_text = comment.get("comment")
 
-                source_comment_author_id = comment.get("authorId")
-                source_comment_created_at = comment.get("createdAt")
-                source_comment_modified_at = comment.get("modifiedAt")
+                        source_comment_author_id = comment.get("authorId")
+                        source_comment_created_at = comment.get("createdAt")
+                        source_comment_modified_at = comment.get("modifiedAt")
 
-                source_comment_author = get_user_mapping(
-                    source_hostname, "_id", source_comment_author_id, source_users
-                )
+                        source_comment_author = get_user_mapping(
+                            source_hostname, "_id", source_comment_author_id, source_users
+                        )
 
-                source_comment_author_email = source_comment_author.get("emails")[
-                    0
-                ].get("address")
+                        source_comment_author_email = source_comment_author.get("emails")[
+                            0
+                        ].get("address")
 
-                source_comment_author_name = (
-                    source_comment_author.get("profile").get("fullname") or None
-                )
+                        source_comment_author_name = (
+                            source_comment_author.get("profile").get("fullname") or None
+                        )
 
-                final_comment_text = f"{comment_text}\n\n\nWrote by: {f'{source_comment_author_name} ' if source_comment_author_name else ''} {source_comment_author_email}\nCreated at: {source_comment_created_at}.\nModified at: {source_comment_modified_at}."
+                        final_comment_text = f"{comment_text}\n\n\nWrote by: {f'{source_comment_author_name} ' if source_comment_author_name else ''} {source_comment_author_email}\nCreated at: {source_comment_created_at}.\nModified at: {source_comment_modified_at}."
 
-                comment_payload = {
-                    "comment": final_comment_text,
-                    "authorId": creator_id,
-                }
+                        comment_payload = {
+                            "comment": final_comment_text,
+                            "authorId": creator_id,
+                        }
 
-                print(
-                    f"Creating comment: {target_hostname} {target_token} {target_board_id} {target_card_id} {comment_payload}"
-                )
+                        print(
+                            f"Creating comment: {target_hostname} {target_token} {target_board_id} {target_card_id} {comment_payload}"
+                        )
 
-                create_card_comment(
-                    target_hostname,
-                    target_token,
-                    target_board_id,
-                    target_card_id,
-                    comment_payload,
-                )
+                        create_card_comment(
+                            target_hostname,
+                            target_token,
+                            target_board_id,
+                            target_card_id,
+                            comment_payload,
+                        )
+                    except:
+                        continue
+                    break
 
             card_checklists = card.get("checklists") if card.get("checklists") else []
 
