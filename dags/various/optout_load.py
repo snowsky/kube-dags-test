@@ -37,10 +37,13 @@ def optout_load():
         optOutFiles = os.listdir('/source-biakonzasftp/C-9/optout_load/')
         logging.info(print(optOutFiles))
         for f in optOutFiles:
-            logging.info(print(f))
+            #logging.info(print(f))
             if f == 'OptOutList.csv':
                 logging.info(print('Skipping - OptOutList.csv'))
                 continue
+            optoutDF = pd.read_csv(f)
+            logging.info(print(optoutDF))
+            break
         #logging.info(print('/source-hqintellectstorage/'))
         #logging.info(os.listdir('/source-hqintellectstorage/'))
         #logging.info(print('/source-reportwriterstorage/'))
