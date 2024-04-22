@@ -8,6 +8,7 @@ import time
 from datetime import timedelta, datetime
 import typing
 
+import pymysql
 from airflow import XComArg
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.hooks.base import BaseHook
