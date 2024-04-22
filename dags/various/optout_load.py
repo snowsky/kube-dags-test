@@ -30,18 +30,20 @@ from airflow.operators.python import get_current_context
 def optout_load():
     import pandas as pd
     import logging
+    engine = BaseHook.get_connection('prd-az1-sqlw2-airflowconnection').get_sqlalchemy_engine()  
     #@task(retries=5, retry_delay=timedelta(minutes=1))
     @task
     def get_opt_out_list() -> pd.DataFrame:
         logging.info(print('/source-biakonzasftp/'))
-        optOutFiles = os.listdir('/source-biakonzasftp/C-9/optout_load/')
+        sourceDir = '/source-biakonzasftp/C-9/optout_load/'
+        optOutFiles = os.listdir(sourceDir)
         logging.info(print(optOutFiles))
         for f in optOutFiles:
             #logging.info(print(f))
             if f == 'OptOutList.csv':
                 logging.info(print('Skipping - OptOutList.csv'))
                 continue
-            optoutDF = pd.read_csv(f)
+            optoutDF = pd.read_csv(sourceDir + f)
             logging.info(print(optoutDF))
             break
         #logging.info(print('/source-hqintellectstorage/'))
