@@ -31,7 +31,14 @@ from airflow.operators.python import get_current_context
 def optout_load():
     import pandas as pd
     import logging
-    engine = BaseHook.get_connection('prd-az1-sqlw2-airflowconnection').get_sqlalchemy_engine()  
+    connection = BaseHook.get_connection('prd-az1-sqlw2-airflowconnection')
+    user = connection.login
+    password = connection.password
+    host = connection.host
+    port = connection.port
+    schema = connection.schema
+    engine_url = f'mysql+pymysql://{user}:{password}@{host}:{port}/{schema}'
+    engine = create_engine(engine_url)
     #@task(retries=5, retry_delay=timedelta(minutes=1))
     @task
     def get_opt_out_list() -> pd.DataFrame:
