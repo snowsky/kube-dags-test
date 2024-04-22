@@ -10,6 +10,7 @@ import typing
 
 from airflow import XComArg
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.hooks.base import BaseHook
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from airflow.decorators import dag, task
 from airflow.operators.python import get_current_context
