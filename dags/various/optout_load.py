@@ -34,13 +34,14 @@ def optout_load():
     @task
     def get_opt_out_list() -> pd.DataFrame:
         logging.info(print('/source-biakonzasftp/'))
-        logging.info(os.listdir('/source-biakonzasftp/'))
-        logging.info(print('/source-hqintellectstorage/'))
-        logging.info(os.listdir('/source-hqintellectstorage/'))
-        logging.info(print('/source-reportwriterstorage/'))
-        logging.info(os.listdir('/source-reportwriterstorage/'))
-        logging.info(print("ALL"))
-        logging.info(os.listdir('.'))
+        optOutFiles = os.listdir('/source-biakonzasftp/C-9/optout_load/')
+        logging.info(print(optOutFiles))
+        #logging.info(print('/source-hqintellectstorage/'))
+        #logging.info(os.listdir('/source-hqintellectstorage/'))
+        #logging.info(print('/source-reportwriterstorage/'))
+        #logging.info(os.listdir('/source-reportwriterstorage/'))
+        #logging.info(print("ALL"))
+        #logging.info(os.listdir('.'))
         try:
             hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
             opt_out_list = hook.get_pandas_df(
