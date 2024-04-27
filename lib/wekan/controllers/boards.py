@@ -419,57 +419,65 @@ def copy_populated_board(
             card_checklists_length = len(card_checklists)
 
             for index, checklist in enumerate(card_checklists):
-                print(f"Copying checklist {index + 1} of {card_checklists_length}")
-
-                checklist_title = checklist.get("title")
-
-                checklist_items = checklist.get("items")
-
-                final_checklist_items = []
-
-                for item in checklist_items:
-                    item_title = item.get("title")
-
-                    final_checklist_items.append(item_title)
-
-                checklist_payload = {
-                    "title": checklist_title,
-                    "items": final_checklist_items,
-                }
-
-                print(
-                    f"Creating checklist: {target_hostname} {target_token} {target_board_id} {target_card_id} {checklist_payload}"
-                )
-
-                target_checklist = create_checklist(
-                    target_hostname,
-                    target_token,
-                    target_board_id,
-                    target_card_id,
-                    checklist_payload,
-                )
-
-                populated_checklist = get_checklist_items(
-                    target_hostname,
-                    target_token,
-                    target_board_id,
-                    target_card_id,
-                    target_checklist.get("_id"),
-                )
-
-                for index, checklist_item in enumerate(checklist_items):
-                    checklist_item_title = checklist_item.get("title")
-                    checklist_item_is_checked = checklist_item.get("isFinished")
-
-                    populated_checklist_item = populated_checklist.get("items")[index]
-
-                    if checklist_item_is_checked is True:
-                        edit_checklist_item(
+                for attempt in range(1,5):
+                    try:
+                        print(f"Copying checklist {index + 1} of {card_checklists_length}")
+        
+                        checklist_title = checklist.get("title")
+        
+                        checklist_items = checklist.get("items")
+        
+                        final_checklist_items = []
+        
+                        for item in checklist_items:
+                            item_title = item.get("title")
+        
+                            final_checklist_items.append(item_title)
+        
+                        checklist_payload = {
+                            "title": checklist_title,
+                            "items": final_checklist_items,
+                        }
+        
+                        print(
+                            f"Creating checklist: {target_hostname} {target_token} {target_board_id} {target_card_id} {checklist_payload}"
+                        )
+        
+                        target_checklist = create_checklist(
+                            target_hostname,
+                            target_token,
+                            target_board_id,
+                            target_card_id,
+                            checklist_payload,
+                        )
+        
+                        populated_checklist = get_checklist_items(
                             target_hostname,
                             target_token,
                             target_board_id,
                             target_card_id,
                             target_checklist.get("_id"),
-                            populated_checklist_item.get("_id"),
-                            {"title": checklist_item_title, "isFinished": True},
                         )
+        
+                        for index, checklist_item in enumerate(checklist_items):
+                            checklist_item_title = checklist_item.get("title")
+                            checklist_item_is_checked = checklist_item.get("isFinished")
+        
+                            populated_checklist_item = populated_checklist.get("items")[index]
+        
+                            if checklist_item_is_checked is True:
+                                edit_checklist_item(
+                                    target_hostname,
+                                    target_token,
+                                    target_board_id,
+                                    target_card_id,
+                                    target_checklist.get("_id"),
+                                    populated_checklist_item.get("_id"),
+                                    {"title": checklist_item_title, "isFinished": True},
+                                )
+                        break
+                    except TimeoutError:
+                        print(
+                            f"RETRYING - Creating checklist TIMEOUT: {target_hostname} {target_token} {target_board_id} {target_card_id} {checklist_payload}"
+                        )
+                        
