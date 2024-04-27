@@ -476,7 +476,7 @@ def copy_populated_board(
                                     {"title": checklist_item_title, "isFinished": True},
                                 )
                         break
-                    except TimeoutError:
+                    except:
                         print(
                             f"RETRYING - Creating checklist TIMEOUT: {target_hostname} {target_token} {target_board_id} {target_card_id} {checklist_payload}"
                         )
