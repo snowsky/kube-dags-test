@@ -309,59 +309,63 @@ def copy_populated_board(
 
         for index, card in enumerate(swimlane_cards):
             print(f"Copying card {index + 1} of {swimlane_cards_length}")
-
-            old_card_list_id = card.get("listId")
-
-            target_card_list = next(
-                (
-                    list
-                    for list in created_board_lists
-                    if list.get("old_id") == old_card_list_id
-                ),
-            )
-
-            target_card_list_id = target_card_list.get("_id")
-
-            card_title = card.get("title")
-            card_created_at = card.get("createdAt")
-            card_updated_at = card.get("updatedAt")
-
-            # source_card_author_id = card.get("author")
-
-            # card_author = (
-            #     get_user_mapping(source_hostname, "_id", source_card_author_id)
-            #     if source_card_author_id
-            #     else False
-            # )
-
-            # card_author_id = card_author.get("_id") if card_author else creator_id
-
-            card_author_id = creator_id
-
-            card_description = card.get("description", "")
-
-            final_card_description = f"{card_description}\n\n\nCreated at {card_created_at}.\nUpdated at: {card_updated_at}.\nOriginal card: {source_hostname}/b/{source_board_id}/{populated_board.get('slug')}/{card.get('_id')}."
-
-            card_payload = {
-                "authorId": card_author_id,
-                "title": card_title,
-                "description": final_card_description,
-                "swimlaneId": swimlane_id,
-            }
-
-            print(
-                f"Creating card: {target_hostname} {target_token} {target_board_id} {target_card_list_id} {card_payload}"
-            )
-
-            card_creation_response = create_card(
-                target_hostname,
-                target_token,
-                target_board_id,
-                target_card_list_id,
-                card_payload,
-            )
-
-            target_card_id = card_creation_response.get("_id")
+            for i in range(0,100):
+                try:
+                    old_card_list_id = card.get("listId")
+        
+                    target_card_list = next(
+                        (
+                            list
+                            for list in created_board_lists
+                            if list.get("old_id") == old_card_list_id
+                        ),
+                    )
+        
+                    target_card_list_id = target_card_list.get("_id")
+        
+                    card_title = card.get("title")
+                    card_created_at = card.get("createdAt")
+                    card_updated_at = card.get("updatedAt")
+        
+                    # source_card_author_id = card.get("author")
+        
+                    # card_author = (
+                    #     get_user_mapping(source_hostname, "_id", source_card_author_id)
+                    #     if source_card_author_id
+                    #     else False
+                    # )
+        
+                    # card_author_id = card_author.get("_id") if card_author else creator_id
+        
+                    card_author_id = creator_id
+        
+                    card_description = card.get("description", "")
+        
+                    final_card_description = f"{card_description}\n\n\nCreated at {card_created_at}.\nUpdated at: {card_updated_at}.\nOriginal card: {source_hostname}/b/{source_board_id}/{populated_board.get('slug')}/{card.get('_id')}."
+        
+                    card_payload = {
+                        "authorId": card_author_id,
+                        "title": card_title,
+                        "description": final_card_description,
+                        "swimlaneId": swimlane_id,
+                    }
+        
+                    print(
+                        f"Creating card: {target_hostname} {target_token} {target_board_id} {target_card_list_id} {card_payload}"
+                    )
+        
+                    card_creation_response = create_card(
+                        target_hostname,
+                        target_token,
+                        target_board_id,
+                        target_card_list_id,
+                        card_payload,
+                    )
+        
+                    target_card_id = card_creation_response.get("_id")
+                except:
+                    continue
+                break
 
             card_comments = card.get("comments") if card.get("comments") else []
 
