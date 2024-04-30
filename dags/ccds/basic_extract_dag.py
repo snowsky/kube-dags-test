@@ -7,13 +7,14 @@ import tempfile
 import os
 import logging
 
-def test_basic_extract():
+def basic_extract_print():
     with tempfile.TemporaryDirectory() as td:
         output_path = os.path.join(td, "output.parquet")
         extract_demographic_info_from_xmls_to_parquet("/opt/airflow/ccda/", output_path)
         data = pd.read_parquet(output_path)
         logging.info(data.to_string())
-    
+        return data
+
 default_args = {
     'owner': 'airflow',
     'start_date': datetime(2024, 3, 20),
@@ -30,7 +31,7 @@ dag = DAG(
 
 test_basic_extract_task = PythonOperator(
     task_id='test_basic_extract_dag',
-    python_callable=test_basic_extract,
+    python_callable=basic_extract_print,
     dag=dag,
 )
 

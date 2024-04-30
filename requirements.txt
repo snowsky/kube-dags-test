@@ -12,3 +12,5 @@ py7zr==0.20.8
 pymssql==2.2.11
 SQLAlchemy==1.4.51
 pymysql==1.1.0
+apache-airflow-providers-microsoft-azure
+mock
