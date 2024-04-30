@@ -16,13 +16,17 @@ from airflow.providers.sftp.hooks.sftp import SFTPHook
 def test_connection_dag():
     @task
     def test_connection_task(ssh_conn_id: str):
+        import logging
+        logging.info(print('Starting Connection Test')
         hook = SFTPHook(
             ssh_conn_id=ssh_conn_id,
         )
         conn_success = hook.test_connection()
         if not conn_success:
+            logging.info(print('Connection Unsuccessful')
             raise RuntimeError('Connection Unsuccessful')
         else:
+            logging.info(print('Connection Successful')
             return conn_success
 
 
