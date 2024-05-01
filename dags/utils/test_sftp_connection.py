@@ -25,6 +25,7 @@ def test_connection_dag():
             conn_success = hook.test_connection()
         except Exception as e:
             logging.info(f'Connection Unsuccessful: {e}')
+            assert False
         else:
             logging.info('Connection Successful')
             return conn_success
