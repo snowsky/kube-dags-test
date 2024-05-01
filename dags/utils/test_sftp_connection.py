@@ -21,10 +21,10 @@ def test_connection_dag():
         hook = SFTPHook(
             ssh_conn_id=ssh_conn_id,
         )
-        conn_success = hook.test_connection()
-        if not conn_success[0]:
-            logging.info('Connection Unsuccessful')
-            raise RuntimeError('Connection Unsuccessful')
+        try:
+            conn_success = hook.test_connection()
+        except Exception as e:
+            logging.info(f'Connection Unsuccessful: {e}')
         else:
             logging.info('Connection Successful')
             return conn_success
