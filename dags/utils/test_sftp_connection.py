@@ -26,13 +26,26 @@ def test_connection_dag():
         except Exception as e:
             logging.info(f'Connection Unsuccessful: {e}')
             assert False
-        else:
-            logging.info('Connection Successful')
-            return conn_success
+        return conn_success
 
     test_connection_task(
         ssh_conn_id="{{params.ssh_conn_id}}",
     )
+    @task
+    def connection_list_files(ssh_conn_id: str):
+        logging.info('List Connection Files Test')
+        hook = SFTPHook(
+            ssh_conn_id=ssh_conn_id,
+        )
+        try:
+            files = hook.list_directory()
+        except Exception as e:
+            logging.info(f'Connection Unsuccessful: {e}')
+            assert False
+        for file in files:
+            logging.info(print(file))
+        #return files
+        
 
 test_sftp_connection_dag = test_connection_dag()
 
