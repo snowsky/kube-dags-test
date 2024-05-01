@@ -6,7 +6,7 @@ import logging
 
 
 @dag(
-    schedule="None",
+    schedule=None,
     start_date=datetime(2024, 2, 26),
     catchup=False,
     dagrun_timeout=timedelta(minutes=60),
