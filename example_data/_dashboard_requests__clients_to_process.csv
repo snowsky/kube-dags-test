@@ -1,0 +1,4 @@
+id,folder_name,subgroup_of,active,live,approved_qt_dimensional_insight_sftp_delivery,ending_db,client_name,client_dbs,client_tracts,client_csv,client_state,facility_ids,facility_ids_client_interest,cop_facility_ids,target_population_inc_limits,message_routing,message_routing_unc_destination,frequency,event_timestamp
+1153,"Air Flow Client A",NULL,1,0,0,45,NULL,NULL,NULL,NULL,NULL,123456,123456,NULL,NULL,NULL,NULL,Approved,"2024-05-09 15:54:00"
+1154,"Air Flow Client B",NULL,1,0,0,45,NULL,NULL,NULL,NULL,NULL,789101,789101,NULL,NULL,NULL,NULL,Approved,"2024-05-09 15:54:00"
+1155,"Air Flow Client C",NULL,1,0,0,45,NULL,NULL,NULL,NULL,NULL,121314,121314,NULL,NULL,NULL,NULL,Approved,"2024-05-09 15:54:00"
