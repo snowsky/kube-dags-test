@@ -114,6 +114,8 @@ def optout_load():
         
     dfOptOuts = get_opt_out_list()
     print(dfOptOuts)
+    @task
+    adjustLoad()
     #@task
     #def get_local_dirs() -> pd.DataFrame:
     #    
