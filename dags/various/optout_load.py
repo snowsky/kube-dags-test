@@ -39,7 +39,7 @@ def optout_load():
     #@task(retries=5, retry_delay=timedelta(minutes=1))
     def move_file_to_processed(file_path):
         file_directory = os.path.dirname(file_path)
-        processed_directory = os.path.join(file_directory),'processed')
+        processed_directory = os.path.join(file_directory,'processed')
         if not os.path.exists(processed_directory):
             os.makedirs(processed_directory)
         destination_path = os.path.join(processed_directory, os.path.basename(file_path))
