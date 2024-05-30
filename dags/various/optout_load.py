@@ -99,15 +99,15 @@ def optout_load():
                 set dob = date_format(str_to_date(dob, '%m/%d/%Y'),'%Y-%m-%d')
                 where dob <> 'Unknown'
                 ;""")
-        hook.run(sql="""UPDATE clientresults.opt_out_list_updates
+        hook.run(sql="""UPDATE clientresults.opt_out_list_airflow_load
                     SET ssn = replace(ssn, '-', '')
                     ;
                 """)
-        hook.run(sql="""UPDATE clientresults.opt_out_list_updates
+        hook.run(sql="""UPDATE clientresults.opt_out_list_airflow_load
                     SET ssn = LPAD(ssn, 9, '0')
                     ;
                 """)
-        #hook.run("""UPDATE clientresults.opt_out_list_updates
+        #hook.run("""UPDATE clientresults.opt_out_list_airflow_load
         #            SET ssn = replace(ssn, '-', '')
         #            ;
         #        """)
