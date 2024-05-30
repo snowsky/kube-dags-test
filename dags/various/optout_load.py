@@ -99,19 +99,14 @@ def optout_load():
                 set dob = date_format(str_to_date(dob, '%m/%d/%Y'),'%Y-%m-%d')
                 where dob <> 'Unknown'
                 ;""")
-        @task
         hook.run(sql="""UPDATE clientresults.opt_out_list_updates
                     SET ssn = replace(ssn, '-', '')
                     ;
                 """)
-        
-        @task
         hook.run(sql="""UPDATE clientresults.opt_out_list_updates
                     SET ssn = LPAD(ssn, 9, '0')
                     ;
                 """)
-        
-        #@task
         #hook.run("""UPDATE clientresults.opt_out_list_updates
         #            SET ssn = replace(ssn, '-', '')
         #            ;
