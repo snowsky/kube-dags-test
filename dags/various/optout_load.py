@@ -64,14 +64,14 @@ def optout_load():
         #logging.info(os.listdir('.'))
         try:
             hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
-            opt_out_list = hook.get_pandas_df(
+            dfOptOutList = hook.get_pandas_df(
                 "SELECT * FROM clientresults.opt_out_list;"
             )
-            return opt_out_list
+            return dfOptOutList
         except:
             raise ValueError("Error in getting opt_out_list ...retrying in 1 minute")
-    get_opt_out_list()
-    print(get_opt_out_list)
+    dfOptOuts = get_opt_out_list()
+    print(dfOptOuts)
     #@task
     #def get_local_dirs() -> pd.DataFrame:
     #    
