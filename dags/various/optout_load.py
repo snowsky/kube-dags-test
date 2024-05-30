@@ -65,8 +65,10 @@ def optout_load():
                 ,'user'
                 ,'submitted'
                 ,'completed'
-                ,'last_update_php') VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+                ,'last_update_php') VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
             rows = [tuple(row) for row in optoutDF.to_numpy()]
+            print('Rows:')
+            logging.info(print(rows))
             hook.insert_rows(table='opt_out_list_airflow_load', rows=rows, target_fields=['id'
                 ,'MPI'
                 ,'fname'
