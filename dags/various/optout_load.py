@@ -39,8 +39,8 @@ def optout_load():
     host = connection.host
     port = connection.port
     schema = connection.schema
-    engine_url = f'mysql+pymysql://{user}:{password}@{host}:{port}/{schema}'
-    engine = create_engine(engine_url)
+    #engine_url = f'mysql+pymysql://{user}:{password}@{host}:{port}/{schema}'
+    #engine = create_engine(engine_url)
     #@task(retries=5, retry_delay=timedelta(minutes=1))
     @task
     def get_opt_out_list() -> pd.DataFrame:
