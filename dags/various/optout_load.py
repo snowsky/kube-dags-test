@@ -50,28 +50,10 @@ def optout_load():
             optoutDF = pd.read_csv(sourceDir + f)
             print(f"Loading new list from: {f}")
             logging.info(print(optoutDF))
-            """INSERT INTO clientresults.opt_out_list_airflow_load  ('id'
-                ,'MPI'
-                ,'fname'
-                ,'lname'
-                ,'dob'
-                ,'sex'
-                ,'SSN'
-                ,'respective_vault'
-                ,'respective_mrn'
-                ,'opt_choice'
-                ,'status'
-                ,'username'
-                ,'user'
-                ,'submitted'
-                ,'completed'
-                ,'last_update_php') VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
             rows = [tuple(row) for row in optoutDF.to_numpy()]
             print('Rows:')
             logging.info(print(rows))
-            hook.insert_rows(table='opt_out_list_airflow_load', rows=rows, target_fields=['id'
-                ,'MPI'
-                ,'fname'
+            hook.insert_rows(table='opt_out_list_airflow_load', rows=rows, target_fields=['fname'
                 ,'lname'
                 ,'dob'
                 ,'sex'
@@ -83,8 +65,7 @@ def optout_load():
                 ,'username'
                 ,'user'
                 ,'submitted'
-                ,'completed'
-                ,'last_update_php'], replace=True)
+                ,'completed'], replace=True)
             break
         #logging.info(print('/source-hqintellectstorage/'))
         #logging.info(os.listdir('/source-hqintellectstorage/'))
