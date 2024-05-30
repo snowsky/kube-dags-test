@@ -34,6 +34,7 @@ def optout_load():
     import pandas as pd
     import logging
     connection = BaseHook.get_connection('prd-az1-sqlw2-airflowconnection')
+    hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
     #@task(retries=5, retry_delay=timedelta(minutes=1))
     @task
     def get_opt_out_list() -> pd.DataFrame:
@@ -90,7 +91,6 @@ def optout_load():
         #logging.info(print("ALL"))
         #logging.info(os.listdir('.'))
         try:
-            hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
             dfOptOutList = hook.get_pandas_df(
                 "SELECT * FROM clientresults.opt_out_list;"
             )
