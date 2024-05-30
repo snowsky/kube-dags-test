@@ -16,7 +16,6 @@ from airflow.decorators import dag, task
 from airflow.operators.python import get_current_context
 from airflow.operators.python import PythonOperator
 from sqlalchemy import create_engine
-import mysql.connector
 
 
 @dag(
@@ -55,7 +54,25 @@ def optout_load():
                 logging.info(print('Skipping - OptOutList.csv'))
                 continue
             optoutDF = pd.read_csv(sourceDir + f)
+            print(f"Loading new list from: {f}")
             logging.info(print(optoutDF))
+            rows = [tuple(row) for row in optoutDF.to_numpy()]
+            hook.insert_rows(table='opt_out_list_airflow_load', rows=rows, target_fields=['id'
+                ,'MPI'
+                ,'fname'
+                ,'lname'
+                ,'dob'
+                ,'sex'
+                ,'SSN'
+                ,'respective_vault'
+                ,'respective_mrn'
+                ,'opt_choice'
+                ,'status'
+                ,'username'
+                ,'user'
+                ,'submitted'
+                ,'completed'
+                ,'last_update_php'], replace=True)
             break
         #logging.info(print('/source-hqintellectstorage/'))
         #logging.info(os.listdir('/source-hqintellectstorage/'))
@@ -65,6 +82,14 @@ def optout_load():
         #logging.info(os.listdir('.'))
         try:
             hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
+            dfOptOutList = hook.get_pandas_df(
+                "SELECT * FROM clientresults.opt_out_list;"
+            )
+            return dfOptOutList
+        except:
+            raise ValueError("Error in getting opt_out_list ...retrying in 1 minute")
+        try:
+            insert_query = """INSERT INTO 
             dfOptOutList = hook.get_pandas_df(
                 "SELECT * FROM clientresults.opt_out_list;"
             )
