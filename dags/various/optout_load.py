@@ -57,7 +57,8 @@ def optout_load():
                 logging.info(print('Skipping - OptOutList.csv'))
                 continue
             optoutDF = pd.read_csv(sourceDir + f)
-            optoutDFdedupe = optoutDF.where(pd.notnull(optoutDF),None)
+            #optoutDFdedupe = optoutDF.where(pd.notnull(optoutDF),None)
+            optoutDFdedupe = optoutDF.astype(str)
             print(f"Loading new list from: {f}")
             logging.info(print(optoutDFdedupe))
             rows = [tuple(row) for row in optoutDFdedupe.to_numpy()]
