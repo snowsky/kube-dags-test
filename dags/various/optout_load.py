@@ -34,13 +34,6 @@ def optout_load():
     import pandas as pd
     import logging
     connection = BaseHook.get_connection('prd-az1-sqlw2-airflowconnection')
-    user = connection.login
-    password = connection.password
-    host = connection.host
-    port = connection.port
-    schema = connection.schema
-    #engine_url = f'mysql+pymysql://{user}:{password}@{host}:{port}/{schema}'
-    #engine = create_engine(engine_url)
     #@task(retries=5, retry_delay=timedelta(minutes=1))
     @task
     def get_opt_out_list() -> pd.DataFrame:
@@ -55,7 +48,7 @@ def optout_load():
                 continue
             optoutDF = pd.read_csv(sourceDir + f)
             print(f"Loading new list from: {f}")
-            logging.info(print(optoutDF.columns))
+            logging.info(print(optoutDF))
             """INSERT INTO clientresults.opt_out_list_airflow_load  ('id'
                 ,'MPI'
                 ,'fname'
@@ -73,7 +66,7 @@ def optout_load():
                 ,'completed'
                 ,'last_update_php') VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
             rows = [tuple(row) for row in optoutDF.to_numpy()]
-            hook.insert_rows(table='opt_out_list_airflow_load', rows=rows, target_fields=['id'
+            connection.insert_rows(table='opt_out_list_airflow_load', rows=rows, target_fields=['id'
                 ,'MPI'
                 ,'fname'
                 ,'lname'
