@@ -59,8 +59,8 @@ def optout_load():
             optoutDF = pd.read_csv(sourceDir + f)
             optoutDFdedupe = optoutDF.where(pd.notnull(optoutDF),None)
             print(f"Loading new list from: {f}")
-            logging.info(print(optoutDF))
-            rows = [tuple(row) for row in optoutDF.to_numpy()]
+            logging.info(print(optoutDFdedupe))
+            rows = [tuple(row) for row in optoutDFdedupe.to_numpy()]
             print('Rows:')
             logging.info(print(rows))
             hook.insert_rows(table='opt_out_list_airflow_load', rows=rows, target_fields=['fname'
