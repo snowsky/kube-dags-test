@@ -33,9 +33,18 @@ from sqlalchemy import create_engine
 def optout_load():
     import pandas as pd
     import logging
+    import shutil as sh
     connection = BaseHook.get_connection('prd-az1-sqlw2-airflowconnection')
     hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
     #@task(retries=5, retry_delay=timedelta(minutes=1))
+    def move_file_to_processed(file_path):
+        file_directory = os.path.dirname(file_path)
+        processed_directory = os.path.join(file_directory),'processed')
+        if not os.path.exists(processed_directory):
+            os.makedirs(processed_directory)
+        destination_path = os.path.join(processed_directory, os.path.basename(file_path))
+        sh.move(file_path, destination_path)
+        print(f"Moved file {file_path} to {destination_path}")
     @task
     def get_opt_out_list() -> pd.DataFrame:
         logging.info(print('/source-biakonzasftp/'))
@@ -66,7 +75,8 @@ def optout_load():
                 ,'user'
                 ,'submitted'
                 ,'completed'], replace=True)
-            break
+            move_file_to_processed(sourceDir + f)
+            #break #stop after one file
         #logging.info(print('/source-hqintellectstorage/'))
         #logging.info(os.listdir('/source-hqintellectstorage/'))
         #logging.info(print('/source-reportwriterstorage/'))
