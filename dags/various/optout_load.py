@@ -92,9 +92,9 @@ def optout_load():
             return dfOptOutList
         except:
             raise ValueError("Error in getting opt_out_list ...retrying in 1 minute")
+    @task
     def adjustLoad():
         hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
-        @task
         hook.run("""update clientresults.opt_out_list_updates
                 set dob = date_format(str_to_date(dob, '%m/%d/%Y'),'%Y-%m-%d')
                 where dob <> 'Unknown'
