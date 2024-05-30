@@ -67,7 +67,7 @@ def optout_load():
                 ,'completed'
                 ,'last_update_php') VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
             rows = [tuple(row) for row in optoutDF.to_numpy()]
-            connection.insert_rows(table='opt_out_list_airflow_load', rows=rows, target_fields=['id'
+            hook.insert_rows(table='opt_out_list_airflow_load', rows=rows, target_fields=['id'
                 ,'MPI'
                 ,'fname'
                 ,'lname'
