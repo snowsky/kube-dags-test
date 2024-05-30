@@ -55,7 +55,23 @@ def optout_load():
                 continue
             optoutDF = pd.read_csv(sourceDir + f)
             print(f"Loading new list from: {f}")
-            logging.info(print(optoutDF))
+            logging.info(print(optoutDF.columns))
+            """INSERT INTO clientresults.opt_out_list_airflow_load  ('id'
+                ,'MPI'
+                ,'fname'
+                ,'lname'
+                ,'dob'
+                ,'sex'
+                ,'SSN'
+                ,'respective_vault'
+                ,'respective_mrn'
+                ,'opt_choice'
+                ,'status'
+                ,'username'
+                ,'user'
+                ,'submitted'
+                ,'completed'
+                ,'last_update_php') VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
             rows = [tuple(row) for row in optoutDF.to_numpy()]
             hook.insert_rows(table='opt_out_list_airflow_load', rows=rows, target_fields=['id'
                 ,'MPI'
@@ -88,14 +104,7 @@ def optout_load():
             return dfOptOutList
         except:
             raise ValueError("Error in getting opt_out_list ...retrying in 1 minute")
-        try:
-            insert_query = """INSERT INTO 
-            dfOptOutList = hook.get_pandas_df(
-                "SELECT * FROM clientresults.opt_out_list;"
-            )
-            return dfOptOutList
-        except:
-            raise ValueError("Error in getting opt_out_list ...retrying in 1 minute")
+       
     dfOptOuts = get_opt_out_list()
     print(dfOptOuts)
     #@task
