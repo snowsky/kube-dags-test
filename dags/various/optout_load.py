@@ -53,7 +53,7 @@ def optout_load():
         logging.info(print(optOutFiles))
         for f in optOutFiles:
             #logging.info(print(f))
-            if f == 'OptOutList.csv':
+            if f == 'OptOutList.csv' || f == 'processed':
                 logging.info(print('Skipping - OptOutList.csv'))
                 continue
             optoutDF = pd.read_csv(sourceDir + f)
@@ -95,23 +95,17 @@ def optout_load():
     @task
     def adjustLoad():
         hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
-        hook.run(sql="""update clientresults.opt_out_list_updates
+        hook.run(sql="""START TRANSACTION; 
+            update clientresults.opt_out_list_airflow_load
                 set dob = date_format(str_to_date(dob, '%m/%d/%Y'),'%Y-%m-%d')
-                where dob <> 'Unknown'
-                ;""")
-        hook.run(sql="""UPDATE clientresults.opt_out_list_airflow_load
+                where dob <> 'Unknown' and dob not like '%-%'; 
+                
+            UPDATE clientresults.opt_out_list_airflow_load
                     SET ssn = replace(ssn, '-', '')
                     ;
+            COMMIT;
                 """)
-        hook.run(sql="""UPDATE clientresults.opt_out_list_airflow_load
-                    SET ssn = LPAD(ssn, 9, '0')
-                    ;
-                """)
-        #hook.run("""UPDATE clientresults.opt_out_list_airflow_load
-        #            SET ssn = replace(ssn, '-', '')
-        #            ;
-        #        """)
-        
+       
     dfOptOuts = get_opt_out_list()
     print(dfOptOuts)
     adjustLoad()
