@@ -105,7 +105,8 @@ def optout_load():
 
             update clientresults.opt_out_list_airflow_load
                 set dob = date_format(str_to_date(dob, '%m/%d/%Y'),'%Y-%m-%d')
-                where dob <> 'Unknown' and dob not like '%-%'; 
+                where dob <> 'Unknown' and dob not like '%-%'
+                ;
                 
             UPDATE clientresults.opt_out_list_airflow_load
                     SET ssn = replace(ssn, '-', '')
@@ -145,31 +146,6 @@ def optout_load():
 
             insert into temp.opt_out_mpi_id_master_lookup
                 select * from person_master._mpi_id_master;
-
-            drop table if exists clientresults.opt_out_list
-                ;
-            create table clientresults.opt_out_list
-                select 
-                Full_OOLU.id
-                ,MPI
-                ,Full_OOLU.fname
-                ,Full_OOLU.lname
-                ,Full_OOLU.dob
-                ,Full_OOLU.sex
-                ,Full_OOLU.SSN
-                ,Full_OOLU.respective_vault
-                ,Full_OOLU.respective_mrn
-                ,Full_OOLU.opt_choice
-                ,Full_OOLU.status
-                ,Full_OOLU.username
-                ,Full_OOLU.user
-                ,Full_OOLU.submitted
-                ,Full_OOLU.completed
-                ,Full_OOLU.last_update_php
-                from clientresults.opt_out_list_airflow_load Full_OOLU
-                ;
-            drop table if exists temp.optouttest_all_related_mpi_by_std
-            ;
 
             create table temp.optouttest_all_related_mpi_by_std
                 SELECT
