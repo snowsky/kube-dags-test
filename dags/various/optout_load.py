@@ -53,7 +53,7 @@ def optout_load():
         logging.info(print(optOutFiles))
         for f in optOutFiles:
             #logging.info(print(f))
-            if f == 'OptOutList.csv' || f == 'processed':
+            if f == 'OptOutList.csv' or f == 'processed':
                 logging.info(print('Skipping - OptOutList.csv'))
                 continue
             optoutDF = pd.read_csv(sourceDir + f)
