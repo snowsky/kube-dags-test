@@ -163,6 +163,11 @@ def optout_load():
             COMMIT;
                 """)
         hook.run(sql="""START TRANSACTION;
+            drop table if exists temp.optouttest_all_related_mpi_by_std
+            ;
+            COMMIT;
+                """)
+        hook.run(sql="""START TRANSACTION;
             create table temp.optouttest_all_related_mpi_by_std
                 SELECT
                 Full_OOLU.id
