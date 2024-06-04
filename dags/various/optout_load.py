@@ -103,9 +103,9 @@ def optout_load():
         hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
         hook.run(sql="""START TRANSACTION; 
             update clientresults.opt_out_list_airflow_load
-                set dob = date_format(str_to_date(dob, '%m/%d/%Y'),'%Y-%m-%d')
-                where dob <> 'Unknown' and dob not like '%-%'
-                ;
+            set dob = date_format(str_to_date(dob, '%m/%d/%Y'),'%Y-%m-%d')
+            where dob <> 'Unknown' and dob not like '%-%'
+            ;
             COMMIT;
                 """)
             hook.run(sql="""START TRANSACTION;
