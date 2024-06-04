@@ -102,18 +102,25 @@ def optout_load():
     def adjustLoad():
         hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
         hook.run(sql="""START TRANSACTION; 
-
             update clientresults.opt_out_list_airflow_load
                 set dob = date_format(str_to_date(dob, '%m/%d/%Y'),'%Y-%m-%d')
                 where dob <> 'Unknown' and dob not like '%-%'
                 ;
-                
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;
             UPDATE clientresults.opt_out_list_airflow_load
                     SET ssn = replace(ssn, '-', '')
                     ;
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;
             UPDATE clientresults.opt_out_list_airflow_load
                 SET ssn = LPAD(ssn, 9, '0')
                 ;
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;
             insert into clientresults.opt_out_list_airflow_load (
                 fname
                 ,lname
@@ -140,13 +147,23 @@ def optout_load():
                 from clientresults.opt_out_list
                 where opt_choice <> 'in'
                 );
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;
             drop table if exists temp.opt_out_mpi_id_master_lookup
             ;
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;
             create table temp.opt_out_mpi_id_master_lookup like person_master._mpi_id_master;
-
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;
             insert into temp.opt_out_mpi_id_master_lookup
                 select * from person_master._mpi_id_master;
-
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;
             create table temp.optouttest_all_related_mpi_by_std
                 SELECT
                 Full_OOLU.id
@@ -182,9 +199,14 @@ def optout_load():
                 and Full_OOLU.sex = MPID.sex)
                 where Full_OOLU.dob is not null and Full_OOLU.lname is not null
                 ;
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;
             drop table if exists temp.optouttest_all_related_mpi_by_special1
             ;
-
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;
             create table temp.optouttest_all_related_mpi_by_special1
                 SELECT
                 Full_OOLU.id
@@ -221,9 +243,14 @@ def optout_load():
                 and right(Full_OOLU.ssn,4) = right(MPID.ssn,4))
                 where Full_OOLU.dob is not null and Full_OOLU.lname is not null
                 ;
-            drop table if exists clientresults.opt_out_list
-                ;
-
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;            
+                drop table if exists clientresults.opt_out_list
+                            ;
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;
             create table clientresults.opt_out_list
                 select
                 Full_OOLU.id
@@ -282,8 +309,14 @@ def optout_load():
                 ,Full_OOLU.last_update_php
                 from temp.optouttest_all_related_mpi_by_special1 Full_OOLU
                 ;
-            drop table if exists temp.optoutshrink_airflow
-                ;
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;            
+                drop table if exists temp.optoutshrink_airflow
+                                ;
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;
             create table temp.optoutshrink_airflow
                 SELECT * FROM clientresults.opt_out_list
                 group by 
@@ -304,7 +337,13 @@ def optout_load():
                 ,last_update_php
                 order by MPI, respective_mrn, last_update_php desc
                 ;
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;
             truncate clientresults.opt_out_list;
+            COMMIT;
+                """)
+            hook.run(sql="""START TRANSACTION;
             insert into clientresults.opt_out_list
                 select * from temp.optoutshrink_airflow
                 group by MPI
