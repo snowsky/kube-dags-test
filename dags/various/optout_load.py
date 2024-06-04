@@ -104,23 +104,22 @@ def optout_load():
         hook.run(sql="""START TRANSACTION; 
             update clientresults.opt_out_list_airflow_load
             set dob = date_format(str_to_date(dob, '%m/%d/%Y'),'%Y-%m-%d')
-            where dob <> 'Unknown' and dob not like '%-%'
-            ;
+            where dob <> 'Unknown' and dob not like '%-%';
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;
+        hook.run(sql="""START TRANSACTION;
             UPDATE clientresults.opt_out_list_airflow_load
                     SET ssn = replace(ssn, '-', '')
                     ;
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;
+        hook.run(sql="""START TRANSACTION;
             UPDATE clientresults.opt_out_list_airflow_load
                 SET ssn = LPAD(ssn, 9, '0')
                 ;
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;
+        hook.run(sql="""START TRANSACTION;
             insert into clientresults.opt_out_list_airflow_load (
                 fname
                 ,lname
@@ -149,21 +148,21 @@ def optout_load():
                 );
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;
+        hook.run(sql="""START TRANSACTION;
             drop table if exists temp.opt_out_mpi_id_master_lookup
             ;
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;
+        hook.run(sql="""START TRANSACTION;
             create table temp.opt_out_mpi_id_master_lookup like person_master._mpi_id_master;
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;
+        hook.run(sql="""START TRANSACTION;
             insert into temp.opt_out_mpi_id_master_lookup
                 select * from person_master._mpi_id_master;
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;
+        hook.run(sql="""START TRANSACTION;
             create table temp.optouttest_all_related_mpi_by_std
                 SELECT
                 Full_OOLU.id
@@ -201,12 +200,12 @@ def optout_load():
                 ;
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;
+        hook.run(sql="""START TRANSACTION;
             drop table if exists temp.optouttest_all_related_mpi_by_special1
             ;
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;
+        hook.run(sql="""START TRANSACTION;
             create table temp.optouttest_all_related_mpi_by_special1
                 SELECT
                 Full_OOLU.id
@@ -245,12 +244,12 @@ def optout_load():
                 ;
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;            
+        hook.run(sql="""START TRANSACTION;            
                 drop table if exists clientresults.opt_out_list
                             ;
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;
+        hook.run(sql="""START TRANSACTION;
             create table clientresults.opt_out_list
                 select
                 Full_OOLU.id
@@ -311,12 +310,12 @@ def optout_load():
                 ;
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;            
+        hook.run(sql="""START TRANSACTION;            
                 drop table if exists temp.optoutshrink_airflow
                                 ;
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;
+        hook.run(sql="""START TRANSACTION;
             create table temp.optoutshrink_airflow
                 SELECT * FROM clientresults.opt_out_list
                 group by 
@@ -339,11 +338,11 @@ def optout_load():
                 ;
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;
+        hook.run(sql="""START TRANSACTION;
             truncate clientresults.opt_out_list;
             COMMIT;
                 """)
-            hook.run(sql="""START TRANSACTION;
+        hook.run(sql="""START TRANSACTION;
             insert into clientresults.opt_out_list
                 select * from temp.optoutshrink_airflow
                 group by MPI
