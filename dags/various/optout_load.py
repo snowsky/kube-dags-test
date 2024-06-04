@@ -22,7 +22,7 @@ from sqlalchemy import create_engine
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    dagrun_timeout=timedelta(minutes=60),
+    dagrun_timeout=timedelta(minutes=600),
     params={
         "quality_check_delivery": "1",
         "script_name": "OptOut_Load",
