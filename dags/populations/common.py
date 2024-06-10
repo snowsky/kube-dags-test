@@ -1,3 +1,2 @@
 CONNECTION_NAME = 'MariaDB'
-EXAMPLE_SCHEMA_NAME = 'examples'
 EXAMPLE_DATA_PATH = 'example_data'

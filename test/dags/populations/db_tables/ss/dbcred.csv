@@ -1,0 +1,2 @@
+dbcred_sftp_root_directory
+/opt/airflow/dags/sftp_mock/pop_data/
