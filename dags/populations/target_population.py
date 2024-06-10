@@ -1,3 +1,5 @@
+import sys
+sys.path.append("/opt/airflow/dags/repo/dags")
 from airflow import DAG
 from airflow.utils.dates import days_ago
 from airflow.operators.python import get_current_context
