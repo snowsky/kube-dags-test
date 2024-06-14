@@ -25,7 +25,7 @@ from airflow.operators.python import get_current_context
         "quality_check_delivery": "1",
         "script_name": "ARCHIVE_DELIVERY__L_68",
         "days_offset": 0,  # Set to -13 for example to start 13 days ago
-        "error_file_location": "/source/C-11/Run_Errors.txt",
+        "error_file_location": "/data/biakonzasftp/C-11/Run_Errors.txt",
     },
 )
 def c_11_archive_delivery():
