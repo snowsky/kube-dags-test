@@ -17,7 +17,7 @@ from airflow.operators.python import get_current_context
 
 
 @dag(
-    schedule=None,
+    schedule="0 0 * * 0",
     start_date=datetime(2024, 1, 1),
     catchup=False,
     dagrun_timeout=timedelta(minutes=60),
