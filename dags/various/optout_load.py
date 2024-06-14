@@ -19,7 +19,7 @@ from sqlalchemy import create_engine
 
 
 @dag(
-    schedule=None,
+    schedule="0 0 * * 0",
     start_date=datetime(2024, 1, 1),
     catchup=False,
     dagrun_timeout=timedelta(minutes=600),
