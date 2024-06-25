@@ -25,7 +25,7 @@ def generate_dag():
                       'pytest']
     )
     def parse_xmls():
-        import os
+        import os #
         import logging
         logging.info(os.listdir('/source-reportwriterstorage/lib/ccd-parse-main'))
         sys.path.insert(0,'/source-reportwriterstorage/lib/ccd-parse-main')
