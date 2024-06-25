@@ -14,3 +14,4 @@ SQLAlchemy
 pymysql
 apache-airflow-providers-microsoft-azure
 mock
+pre-commit

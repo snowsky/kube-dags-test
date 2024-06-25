@@ -2,14 +2,17 @@
 This module contains all the functions related to the boards.
 """
 
-from typing import TypedDict
 import typing
 
 from airflow import XComArg
 
+from lib.wekan.types.boards import PopulatedBoard, WekanConfiguration
+
 from lib.wekan.controllers.swimlanes import (
     create_swimlane,
+    get_board_swimlanes,
     get_populated_board_swimlanes,
+    get_swimlane_cards,
 )
 from lib.wekan.controllers.cards import (
     create_card,
@@ -18,53 +21,11 @@ from lib.wekan.controllers.cards import (
     edit_checklist_item,
     get_checklist_items,
 )
-from lib.wekan.controllers.users import User
 
 from lib.wekan.utils.api import api_get_request, api_post_request
 from lib.wekan.utils.wekan import (
     get_user_mapping,
 )
-
-
-class WekanConfiguration(TypedDict):
-    id: str
-    token: str
-    tokenExpires: str
-    users: list[User]
-
-
-class WekanList(TypedDict):
-    _id: str
-    title: str
-
-
-class WekanComments(TypedDict):
-    _id: str
-    text: str
-    comment: str
-    authorId: str
-    createdAt: str
-    modifiedAt: str
-    boardId: str
-    cardId: str
-    userId: str
-
-
-class WekanCard(TypedDict):
-    _id: str
-    title: str
-    comments: list[WekanComments]
-
-
-class WekanSwimlane(TypedDict):
-    _id: str
-    title: str
-    cards: list[WekanCard]
-
-
-class PopulatedBoard(TypedDict):
-    _id: str
-    lists: list[WekanList]
 
 
 def get_user_boards(hostname: str, user_id: str, token: str):
@@ -173,7 +134,21 @@ def get_board_details(hostname: str, token: str, board_id: str):
 
     board_details = api_get_request(url, headers)
 
+    board_swimlanes = get_board_swimlanes(hostname, token, board_id)
+
+    populated_board_swimlanes = []
+
+    for swimlane in board_swimlanes:
+        swimlane_id = swimlane.get("_id")
+        populated_swimlane = {
+            **swimlane,
+            "cards": get_swimlane_cards(hostname, token, swimlane_id, board_id),
+        }
+
+        populated_board_swimlanes.append(populated_swimlane)
+
     board_details["lists"] = get_board_lists(hostname, token, board_id)
+    board_details["swimlanes"] = populated_board_swimlanes
 
     return board_details
 
@@ -309,10 +284,10 @@ def copy_populated_board(
 
         for index, card in enumerate(swimlane_cards):
             print(f"Copying card {index + 1} of {swimlane_cards_length}")
-            for i in range(0,100):
+            for i in range(0, 100):
                 try:
                     old_card_list_id = card.get("listId")
-        
+
                     target_card_list = next(
                         (
                             list
@@ -320,40 +295,40 @@ def copy_populated_board(
                             if list.get("old_id") == old_card_list_id
                         ),
                     )
-        
+
                     target_card_list_id = target_card_list.get("_id")
-        
+
                     card_title = card.get("title")
                     card_created_at = card.get("createdAt")
                     card_updated_at = card.get("updatedAt")
-        
+
                     # source_card_author_id = card.get("author")
-        
+
                     # card_author = (
                     #     get_user_mapping(source_hostname, "_id", source_card_author_id)
                     #     if source_card_author_id
                     #     else False
                     # )
-        
+
                     # card_author_id = card_author.get("_id") if card_author else creator_id
-        
+
                     card_author_id = creator_id
-        
+
                     card_description = card.get("description", "")
-        
+
                     final_card_description = f"{card_description}\n\n\nCreated at {card_created_at}.\nUpdated at: {card_updated_at}.\nOriginal card: {source_hostname}/b/{source_board_id}/{populated_board.get('slug')}/{card.get('_id')}."
-        
+
                     card_payload = {
                         "authorId": card_author_id,
                         "title": card_title,
                         "description": final_card_description,
                         "swimlaneId": swimlane_id,
                     }
-        
+
                     print(
                         f"Creating card: {target_hostname} {target_token} {target_board_id} {target_card_list_id} {card_payload}"
                     )
-        
+
                     card_creation_response = create_card(
                         target_hostname,
                         target_token,
@@ -361,9 +336,13 @@ def copy_populated_board(
                         target_card_list_id,
                         card_payload,
                     )
-        
+
                     target_card_id = card_creation_response.get("_id")
-                except:
+                except Exception as error:
+                    print(
+                        f"RETRYING - Creating card TIMEOUT: {target_hostname} {target_token} {target_board_id} {target_card_list_id} {card_payload}"
+                    )
+                    print(f"Error: {error}")
                     continue
                 break
 
@@ -374,7 +353,7 @@ def copy_populated_board(
             card_comments_length = len(card_comments)
 
             for index, comment in enumerate(card_comments):
-                for i in range(0,100):
+                for i in range(0, 100):
                     try:
                         print(f"Copying comment {index + 1} of {card_comments_length}")
 
@@ -385,12 +364,15 @@ def copy_populated_board(
                         source_comment_modified_at = comment.get("modifiedAt")
 
                         source_comment_author = get_user_mapping(
-                            source_hostname, "_id", source_comment_author_id, source_users
+                            source_hostname,
+                            "_id",
+                            source_comment_author_id,
+                            source_users,
                         )
 
-                        source_comment_author_email = source_comment_author.get("emails")[
-                            0
-                        ].get("address")
+                        source_comment_author_email = source_comment_author.get(
+                            "emails"
+                        )[0].get("address")
 
                         source_comment_author_name = (
                             source_comment_author.get("profile").get("fullname") or None
@@ -414,7 +396,11 @@ def copy_populated_board(
                             target_card_id,
                             comment_payload,
                         )
-                    except:
+                    except Exception as error:
+                        print(
+                            f"RETRYING - Creating comment TIMEOUT: {target_hostname} {target_token} {target_board_id} {target_card_id} {comment_payload}"
+                        )
+                        print(f"Error: {error}")
                         continue
                     break
 
@@ -423,30 +409,32 @@ def copy_populated_board(
             card_checklists_length = len(card_checklists)
 
             for index, checklist in enumerate(card_checklists):
-                for attempt in range(1,5):
+                for attempt in range(1, 5):
                     try:
-                        print(f"Copying checklist {index + 1} of {card_checklists_length}")
-        
+                        print(
+                            f"Copying checklist {index + 1} of {card_checklists_length}"
+                        )
+
                         checklist_title = checklist.get("title")
-        
+
                         checklist_items = checklist.get("items")
-        
+
                         final_checklist_items = []
-        
+
                         for item in checklist_items:
                             item_title = item.get("title")
-        
+
                             final_checklist_items.append(item_title)
-        
+
                         checklist_payload = {
                             "title": checklist_title,
                             "items": final_checklist_items,
                         }
-        
+
                         print(
                             f"Creating checklist: {target_hostname} {target_token} {target_board_id} {target_card_id} {checklist_payload}"
                         )
-        
+
                         target_checklist = create_checklist(
                             target_hostname,
                             target_token,
@@ -454,7 +442,7 @@ def copy_populated_board(
                             target_card_id,
                             checklist_payload,
                         )
-        
+
                         populated_checklist = get_checklist_items(
                             target_hostname,
                             target_token,
@@ -462,13 +450,15 @@ def copy_populated_board(
                             target_card_id,
                             target_checklist.get("_id"),
                         )
-        
+
                         for index, checklist_item in enumerate(checklist_items):
                             checklist_item_title = checklist_item.get("title")
                             checklist_item_is_checked = checklist_item.get("isFinished")
-        
-                            populated_checklist_item = populated_checklist.get("items")[index]
-        
+
+                            populated_checklist_item = populated_checklist.get("items")[
+                                index
+                            ]
+
                             if checklist_item_is_checked is True:
                                 edit_checklist_item(
                                     target_hostname,
@@ -480,8 +470,9 @@ def copy_populated_board(
                                     {"title": checklist_item_title, "isFinished": True},
                                 )
                         break
-                    except:
+                    except Exception as error:
                         print(
                             f"RETRYING - Creating checklist TIMEOUT: {target_hostname} {target_token} {target_board_id} {target_card_id} {checklist_payload}"
                         )
-                        
+
+                        print(f"Error: {error}")

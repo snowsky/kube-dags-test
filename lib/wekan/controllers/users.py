@@ -1,18 +1,12 @@
 """
 This module contains all the functions related to the users.
 """
+
 import os
-from typing import TypedDict
 from lib.wekan.utils.api import api_get_request
+from lib.wekan.types.users import User
 
 os.environ["no_proxy"] = "*"
-
-
-class User(TypedDict):
-    _id: str
-    createdAt: str
-    username: str
-    emails: list[dict[str, str]]
 
 
 def get_user(hostname: str, token: str, user_id: str):

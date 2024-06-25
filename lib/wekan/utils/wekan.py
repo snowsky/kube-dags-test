@@ -15,7 +15,7 @@ def get_wekan_api_response_status_code(
     """
     response_status_code = (
         json_response.get("statusCode")
-        if type(json_response) == dict and json_response.get("statusCode")
+        if isinstance(json_response, dict) and json_response.get("statusCode")
         else response.status_code
         if response.status_code
         else default_status_code
@@ -99,7 +99,7 @@ def get_user_list_mapping(source_hostname: str, target_hostname: str, user_list:
     Function to get the user list mapping from Redis.
     """
 
-    if not source_hostname or not target_hostname or not type(user_list) == list:
+    if not source_hostname or not target_hostname or not isinstance(user_list, list):
         raise Exception("Missing hostname or user_list.")
 
     final_user_id_list = []

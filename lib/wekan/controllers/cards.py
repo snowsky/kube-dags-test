@@ -2,6 +2,8 @@
 This module contains all the functions related to the boards cards.
 """
 
+from operator import itemgetter
+
 from lib.wekan.utils.api import (
     api_get_request,
     api_post_request,
@@ -26,6 +28,33 @@ def create_card(
     }
 
     return api_post_request(url, headers, card_payload)
+
+
+def edit_card(hostname: str, token: str, payload: dict):
+    """
+    Function to edit a board card.
+    """
+
+    if not hostname or not token or not payload:
+        raise Exception("Missing hostname, token or payload.")
+
+    card, list, board, newBoardId, newSwimlaneId, newListId = itemgetter(
+        "card", "list", "board", "newBoardId", "newSwimlaneId", "newListId"
+    )(payload)
+
+    final_payload = {
+        "newBoardId": newBoardId,
+        "newSwimlaneId": newSwimlaneId,
+        "newListId": newListId,
+    }
+
+    url = f"{hostname}/api/boards/{board}/lists/{list}/cards/{card}"
+    headers = {
+        "Accept": "*/*",
+        "Authorization": f"Bearer {token}",
+    }
+
+    return api_put_request(url, headers, final_payload)
 
 
 def get_card(hostname: str, token: str, board_id: str, list_id: str, card_id: str):
