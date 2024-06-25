@@ -30,10 +30,10 @@ from lib.wekan.types.cards import LostCardDetails
     dagrun_timeout=timedelta(minutes=240),
     params={
         "hostname": "http://wekan.wekan.svc:8080",
-        "username": "erta_robot",
+        "username": "erta_robot", 
         "password": "password",
         "card_id": "GID like SUP #",
-        "target_board_id": "target_board_id",
+        "target_board_id": "ijzp326Etg3EZStWb",
     },
 )
 def board_move_missing_card():
