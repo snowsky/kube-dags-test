@@ -28,3 +28,6 @@ venv/
 
 # Airflow logs from local testing
 logs/
+
+# auto-generated synthetic data
+test/dags/populations/pop_data/C-9/
