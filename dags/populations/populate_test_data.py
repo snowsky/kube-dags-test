@@ -1,9 +1,14 @@
 from airflow import DAG
+from airflow.decorators import task
 from airflow.providers.mysql.operators.mysql import MySqlOperator
 from airflow.utils.dates import days_ago
 
 from populations.common import CONNECTION_NAME, EXAMPLE_DATA_PATH
 
+SYNTHETIC_MPI_TABLE_SCHEMA = "synthetic"
+SYNTHETIC_MPI_TABLE_NAME = "master_patient_index"
+SYNTHETIC_MPI_CONNECTION_ID = "MariaDB"
+SYNTHETIC_MPI_SOURCE_URL = 'https://mitre.box.com/shared/static/aw9po06ypfb9hrau4jamtvtz0e5ziucz.zip'
 default_args = {
     'owner': 'airflow',
 }
@@ -96,8 +101,65 @@ with DAG(
             if_exists='append' if append else 'replace'
         )
 
+    @task
+    def write_synthetic_data_to_mpi_table(
+        source_url,
+        target_connection_id,
+        patients_csv_file_name='csv/patients.csv',
+        firstname_column="FIRST",
+        lastname_column="LAST",
+        gender_column="GENDER",
+        dob_column="BIRTHDATE",
+        mpi_table_schema=SYNTHETIC_MPI_TABLE_SCHEMA,
+        mpi_table_name=SYNTHETIC_MPI_TABLE_NAME,
 
-create_schema_and_tables = upload_csvs_to_db()
-create_udf = create_user_defined_fn()
+    ):
+        import pandas as pd
+        import urllib.request, io, zipfile
+        from sqlalchemy import create_engine, text
 
-create_schema_and_tables >> create_udf
+        try:
+            remotezip = urllib.request.urlopen(source_url)
+            zipinmemory = io.BytesIO(remotezip.read())
+            zipfile = zipfile.ZipFile(zipinmemory)
+            patients_file = zipfile.open(patients_csv_file_name)
+            dt = pd.read_csv(patients_file, engine='c')
+        except urllib.request.HTTPError:
+            raise ValueError(f"Problem reading from {source_url}.")
+
+        dt = pd.DataFrame({
+            'firstname': dt[firstname_column],
+            'lastname': dt[lastname_column],
+            'dob': dt[dob_column],
+            'sex': dt[gender_column],
+        })
+        dt.set_index(['firstname', 'lastname', 'dob', 'sex'], inplace=True)
+        engine = create_engine(
+            f'mysql://root:example@{target_connection_id.lower()}/{mpi_table_schema}'
+        )
+
+        dt.to_sql(
+            name=mpi_table_name,
+            schema=mpi_table_schema,
+            con=engine,
+            if_exists='replace'
+        )
+
+    mpi_schema = MySqlOperator(
+        task_id=f'create_mpi_schema',
+        mysql_conn_id=SYNTHETIC_MPI_CONNECTION_ID,
+        sql=f"""
+        CREATE SCHEMA IF NOT EXISTS {SYNTHETIC_MPI_TABLE_SCHEMA};
+        """,
+        dag=dag
+    )
+    synthetic_mpi_table = write_synthetic_data_to_mpi_table(
+        source_url=SYNTHETIC_MPI_SOURCE_URL,
+        target_connection_id=SYNTHETIC_MPI_CONNECTION_ID,
+    )
+    mpi_schema >> synthetic_mpi_table
+
+    create_schema_and_tables = upload_csvs_to_db()
+    create_udf = create_user_defined_fn()
+
+    create_schema_and_tables >> create_udf
