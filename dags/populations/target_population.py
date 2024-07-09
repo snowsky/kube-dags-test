@@ -17,7 +17,7 @@ default_args = {
 with DAG(
     'target_population',
     default_args=default_args,
-    start_date=days_ago(2),
+    schedule=None,
     tags=['example', 'population-definitions'],
 ) as dag:
 
