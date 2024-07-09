@@ -1,10 +1,6 @@
 ## Primary Image for python requirements: https://github.com/konzainc/konza-kube/blob/main/docker/airflow/Dockerfile
 ## Virtual Environment image to be used as minimally as possible and may be rejected in code reviews
 
-Airflow development is best done via Bastion hosts, which should have access to all storage accounts and databases that the prod environment also has access to. This means that any connectivity / security issues are assumed to be resolved for the Bastion host to the same extent as they are used to being resolved for the Airflow Kubernetes workers.
-
-Each developer should be allocated their own Bastion host, which they can use for development. These bastion hosts can be paused when not in use however. Note that bastion hosts can also serve as a remote backend for an IDE, for developers who like to use IDEs rather than vim or emacs.
-
 Testing an Airflow DAG is typically a multi-stage process. What tests will look like for the DAG depend on a number of factors, e.g.:
 - nature of the task at hand
 - characteristics and size of the data
@@ -28,17 +24,59 @@ Good tests need to reproduce production conditions and this often means interact
 
 ## DAG local testing
 
-A second level of testing involves ascertaining an entire DAG works when run from the Bastion host. This can be done locally, without the need to run an Airflow scheduler if following [this pattern](https://docs.astronomer.io/learn/testing-airflow?tab=decorator#debug-interactively-with-dagtest) when writing a DAG. DAGs written this way can also be run directly using `python [path to DAG]` from the Bastion host.
+A second level of testing involves ascertaining an entire DAG works when run locally. This can be done without the need to run an Airflow scheduler following [this pattern](https://docs.astronomer.io/learn/testing-airflow?tab=decorator#debug-interactively-with-dagtest) when writing a DAG. DAGs written this way can also be run directly using `python [path to DAG]`.
 
-It is important to note that the DAG in this case runs as a single Python process, and its resourcing is limited to whatever resources are available on the Bastion host. This does mean that a local DAG test may not look the same as a production DAG run. For instance, the local DAG test could use fewer data. Developers should be encouraged to use [Airflow Params](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/params.html) to set up their DAGs, so as to enable the easy execution of local test runs.
+It is important to note that the DAG in this case runs as a single Python process, and its resourcing is limited to whatever resources are available on the local machine. This does mean that a local DAG test may not look the same as a production DAG run. For instance, the local DAG test could use smaller datasets. Developers should be encouraged to use [Airflow Params](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/params.html) to set up their DAGs, so as to enable the easy execution of local test runs.
 
-## Local testing using Docker compose
+## Pre-production Testing
+
+Eventually in the development process a DAG will need to be tested with a scheduler, or with access to production datasets not available locally. To do this, an individualized test deployment of airflow can be accessed via the Konza Jupyterhub service, or can be spun up locally using docker compose (if you have adequate privileges).
+
+### Airflow testing using the Konza Jupyterhub service
+
+Through the Konza Jupyterhub service it is possible to access an individualized deployment of airflow. This deployment of airflow is specific to you: any changes that you make to dags locally will only effect you, any changes you make to airflow settings locally will only effect you. This deployment of airflow runs remotely on the Konza kubernetes cluster, so there is minimal reliance on the performance of your local machine.
+
+To access the Jupyterhub service:
+- Navigate to `https://jupyter.konza.org` via your web browser.
+- Log in to the Jupyterhub service using your `Azure` account. Access to this service is controlled via OIDC, so if you do not have access contact your local administrator.
+- Upon the first login to the service, a persistent volume will be created for you on the kubernetes cluster. Data stored on this persistent volume will be retained if your server is stopped, though could be at risk if the Jupyterhub namespace on the Konza kubernetes deployment is destroyed. It is therefore advisable to back up important files as required.
+
+To access airflow:
+- From the launcher, select `Desktop`. This will open a virtual linux desktop in your browser.
+- On this virtual desktop, open the web browser via the icon bar at the bottom of the screen.
+- Browse to the airflow web server using `localhost:8080`.
+- Login to your airflow deployment using the username `airflow`, and the password `airflow`. As this airflow instance is running on your personal Jupyterhub service only you will have access to this account.
+
+To set up airflow:
+- Whilst the airflow deployment provided is set up and ready to go, if you want to access any datasets connections have to be set up manually. For external connections you can set these up as you would on the production airflow deployment.
+- If you want to develop or test a dag using synthesized data, a test `mariadb` database has been provided through Jupyterhub. Data loaded into this database is persisted at `/home/jovyan/db_data/airflow-mdb` on your Jupyterhub server. To connect to this database establish the following connection:
+```
+Connection Id: MariaDB
+Connection Type: MySQL
+Host: 127.0.0.1
+Login: root
+Password: example
+Port: 3306
+```
+
+To access DAGs:
+This airflow deployment fetches DAGs from `/home/jovyan/konza-dags` on your Jupyterhub server. This directory is a clone of the `konza-dags` repository. If you wish you access dags you have developed locally, you must push them to a branch on this repository (no need to have them merged into `main`), then checkout that branch onto your jupyter server. Once this has been performed you can edit further develop the DAGs through Jupyterhub.
+To checkout remote branches from the `konza-dags` repository you must login to your github account on your jupyter server:
+- From the launcher, select `Terminal`.
+- In the terminal, use `gh auth login`.
+- Select to login to a `GitHub.com` account, using `HTTPS`, via a web browser.
+- Copy the one-time code, navigate to `https://github.com/login/device` on your local machine, then follow the prompts to complete device activation.
+- After this activation, you will be able to interact with the `konza-dags` directory via the command line as a normal github repository.
+
+
+### Local airflow testing using Docker compose
 
 This is a very effective way to test DAGs by setting up a fully-fledged Airflow server on your local machine. 
 
 A few things to note:
+- running airflow locally requires a certain degree of elevated privilege and can be quite resource intensive. If you do not have the permissions to run docker containers or do not have a reasonable powerful machine, it is recommended to use the Jupyterhub service to access airflow. 
 - any DAGs that require access to remote services will need to have that access set up using some mechanism. For instance, if you expect to have access to an Azure Blob Storage account using a mount, that mount will need to be available (1) on the machine on which you run `docker compose` and (2) inside the `airflow-worker` image on `docker-compose`.
-- local airflow uses the `CeleryExecutor`, which is slightly different from `KubernetesExecutor`. This may create issues if testing DAGs which rely on tight integration with Kubernetes, e.g. via `PodOverride`, etc. Task execution via `KubernetesOperator` is not affected by this however.
+- local airflow uses the `LocalExecutor`, which different from `KubernetesExecutor`. The local executor will run dags inside of the airflow scheduler container rather than spinning up airflow-worker pods. This may create issues if testing DAGs which rely on tight integration with Kubernetes, e.g. via `PodOverride`, etc. Task execution via `KubernetesOperator` is not affected by this however.
 - any tasks using regular `PythonOperator`, `BashOperator`, `PythonVirtualEnvOperator` etc. should work the same way in local testing and remotely.
 - this workflow has only been tested on Linux machines, some small changes may be necessary on Windows.
 
@@ -47,7 +85,7 @@ To try out local testing using docker compose:
 - Edit the `.env` file included in this repository to reflect the local location of your `ccd-parse` clone and your local `.xml` files.
 - If using the example `.xml` files in the `ccda` directory of the `ccd-parse` repo, you will have to grant airflow read access to this directory, e.g. using `chmod 704` on Linux.
 - Install Docker Engine if not already installed (try `docker compose` in cli): https://docs.docker.com/engine/install/ubuntu/
-- `cd` into the root of this repository and enter `docker compose up`. `sudo` may be neccessary for all docker commands.
+- `cd` into the root of this repository and enter `docker compose up`. `sudo` may be necessary for all docker commands.
 - Wait for necessary services to start (can check with `docker container ps -a` for success).
 - In the browser type in `http://localhost:8080` to access the airflow web UI.
 - Login using username: `airflow`, password: `airflow`.
@@ -62,7 +100,7 @@ You should see the following image:
 
 - To stop airflow use `docker compose down`.
 
-## DAG remote testing
+## Production testing
 
 Both library code and DAG local testing can happen independently of the source control process, and it is to be expected that a developer would run tests many times before reaching code they would like to submit for review. A best-practice level of validation for the functionality of the code submitted in the PR involves running the new (or modified) DAG in an environment that is akin to production, but that is decidedly NOT the production environment into which the developer is trying to merge their code (the purpose of the test being to ascertain the code is ready for production).
 
