@@ -78,7 +78,7 @@ with DAG(
 
     also_run_this_email = EmailOperator(
        task_id="also_run_this_email",
-       to='hao.1.wang@gmail.com',
+       to='ethompson@konza.org',
        subject='Alert Mail',
        html_content=""" Mail Test """,
     )
