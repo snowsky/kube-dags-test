@@ -28,7 +28,7 @@ from airflow.operators.empty import EmptyOperator
 from airflow.operators.email import EmailOperator
 
 with DAG(
-    dag_id="example_bash_operator",
+    dag_id="example_email_operator",
     schedule="0 0 * * *",
     start_date=pendulum.datetime(2021, 1, 1, tz="UTC"),
     catchup=False,
