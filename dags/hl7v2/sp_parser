@@ -1,0 +1,1678 @@
+CREATE DEFINER=`etl_runner`@`%` PROCEDURE `hl7_processing_center`.`sp_parser`(in filename varchar(600),in fileStr mediumtext)
+BEGIN
+
+/*
+20191109 filelistID from: 13038185  parsetime: 20190510 11:11pm ct started parsing without mpi lookup
+20190416 17:12 ET filelistID 14853255 - restarted mpi parsing. Also started taking max(id)
+20190610 added  ,@f_facilityId, @accid_ref to all tables
+20190622 verified that OBX, lab_results already being added in latest code
+20190622 immunization added - question about vault id
+20190623 vaccination added - questions  - need to review a buch of data to ensure that the the data is available.
+20190624 added coding method to patient procedure ,@PR1_2_1 #coding method
+20190624 don't look for mpi if  [firstname, lastanem, dob, sex are not null]; insert new record into person_master.mpi_id_master if mpi is not found; 
+		set _mpi.MPI=null if there is not a valid MPI found and good lookup data.
+20190625 modified mpi lookup and insert to improve speed
+20190627 insert _lab_result.accid
+20190627 handle blanks in addition to null in  _mpi table for sx, dob, firstname, lastname 
+		populate insertid.accid_ref
+        tested and fixed some bugs in MPI assignment.  We could match 'M' with 'Male' ??
+        Grant etl_runner insert rights to person_master schema
+20190721 Improved ,RXE,RXA,RXR,RXO Handling
+20190801 fixed dob insert into _mpi and person_master._mpi_id_master
+20190802  verify that the date is a good string and really a good date before checking for mpi or inserting new mpi.
+	removed INSERT INTO `hl7_processing_center`.`zz_trapdata`
+20190820 - integerted fn_manage_provider
+2019087 - populate hl7Procesing_cent._provider for each provider , initiated parsing for  _patient_procedure.provider_id (anasthesiologist, surgeon,  practitioner
+20190919 optimized provider input.
+20190920 sync index with inserts and selects!!						if length(pvprovcode)+length(pvlname)+length(pvfname)+length(pvmname)+length(pvsuffix) >0  then #provider data not empty  ----------------------------------- manage_provider don't change just copy
+						 begin	
+							set my_vault_based_id = (select  max(vault_based_id) from person_master._provider where source=pvf_facilityId and provcode=pvprovcode and lname=pvlname and fname=pvfname and mname=pvmname and suffix=pvsuffix); #lookup provider
+20190922 added debug statements
+20200225 testing and syncronizing prod to dev - pb
+202000226 modified sp_parser_20200107
+		return values are now result, MMPI, CSG_UNC  
+20200313 Improved 
+20200901 - Altered Allowed Account ID definition to allow those without PID18, but with admitted - https://ertanalytics.us/grain/36bosRHKCg7PfSw2PNZYvv/b/sandstorm/libreboard/ndb46hjXxqfazTKyK
+20210202 - Added source_type
+20210702 - Adding Immunization and Vaccination fields
+20210727 - Added more Immunization and Vaccination fields
+20210907 - Adjusted Vaccination field , vaccine status and manufacturer text was swapped v10
+20210907 - Adjusted Vaccination field , vaccine status and lot number was swapped v11
+20220406 - Adding procedure timestamp
+20230516 - remove an underscore in the insert statement SUP-4850
+*/
+
+declare inCSG int(10);
+declare result, MMPI, CSG_UNC  varchar(500);
+declare msgAttr_batchCount INT;
+declare dob_str2date varchar(50);  
+declare dob_date date;  
+declare uuid25 varchar(100);  
+declare my_vault_based_id, pvprovrole,pvprovcode,pvlname, pvfname, pvmname, pvsuffix, pvprov_type ,pvf_facilityId, pvsource_type, pvunitname , ppvservice varchar(100) default null;
+declare insert_providerID bigint;
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('40');
+SET SESSION sql_mode="";
+SET sql_mode = NO_BACKSLASH_ESCAPES;
+set uuid25=SUBSTR(uuid(), 25);
+
+
+set msgAttr_batchCount=200001;
+
+
+set @setUDV2null=`hl7_processing_center`.`setUDV2null`(); 
+
+set @exist_tmp_client_security_group_mpi= 
+	(SELECT count(*)  
+	FROM information_schema.tables
+	WHERE table_schema = 'hl7_processing_center' 
+		AND table_name = 'tmp_client_security_group_mpi');
+	if  @exist_tmp_client_security_group_mpi =0 then	
+  CALL `hl7_processing_center`.`sp_refresh_tmp_client_security_group_mpi`(); 
+end if;
+
+
+set @source_type='KONZA_v13';
+
+SET @message_type ='ADT', @Event_code=null, @hl7_version=null, @filename=filename;
+    
+##INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('64');
+set @filenameformat=if(locate('[',@filename)=0,'1','2') 
+,@f_myName=			if(@filenameformat='1',null,substring_index(@filename,'[',1))								
+,@f_state=			if(@filenameformat='1',null,substring_index(SUBSTRING_INDEX(@filename, ']', 1),'[',-1))	
+,@f_facilityId=		if(@filenameformat='1',null,substring_index(SUBSTRING_INDEX(@filename, ']', 2),'[',-1))	
+,@f_HL7Ptr=			if(@filenameformat='1',null,substring_index(SUBSTRING_INDEX(@filename, '[', 3),']',-1))	
+,@f_HL7PtrValue=	if(@filenameformat='1',null,left(substring_index(SUBSTRING_INDEX(@filename, ']', 3),'[',-1),180))	
+
+,@f_dat=			if(@filenameformat='1',null,substring_index(substring_index(substring_index(@filename,']',-1),'_',-1),'.',1));	
+
+set @fStr=fileStr  ;
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`,`code`) VALUES ('83',@fStr);
+Set @fStr=replace(@fstr,'"','-');
+set @strLen=length(@fStr), @eName=''; 
+
+
+	set result='error - after filename parse';
+	
+	##INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('81');
+	INSERT INTO `hl7_processing_center`.`filelist1`
+	(
+	`filename`,
+	`fileType`,
+	`hl7_version`,
+	`message_type`,
+	`event_code`,
+	`inserted`,
+	`updated`,
+	`_mpi_ID`,
+	`f_myName`,
+	`f_state`,
+	`f_facilityId`,
+	`f_HL7Ptr`,
+	`f_HL7PtrValue`,
+	`f_dateStr`,
+  	`f_fileLen`,
+	`processDT`
+    )
+	VALUES
+	(
+	@filename
+	,result
+	,@MSH_11_1 
+	,@MSH_8_1 
+	,@MSH_8_2 
+	,now()
+	,@updated
+	,@_mpi_ID
+	,@f_myName
+	,@f_state
+	,@f_facilityId
+	,@f_HL7Ptr
+	,@f_HL7PtrValue	
+	,@f_dat
+    ,@strLen
+	,now()
+	);
+     
+	set @filelist1ID=LAST_INSERT_ID();
+	
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('123');
+	set @isFacility_Info=(select max(vault_based_id) from  clientresults.facility_info  where vault_based_id = @f_facilityId) ;
+    if @isFacility_Info is null then
+		begin
+			INSERT INTO clientresults.`facility_info`(`vault_based_id`,`code`,`event_timestamp`, index_update_dt_tm)
+			values(@f_facilityId, @f_HL7PtrValue, now(), now());
+		end;
+        
+	end if;
+#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('143');
+
+
+
+#setup master loop  @fstr='MSH|^~\&|Lab|VCHW|||201902232303||ORU^R01|62463140|P|2.3|62463140 ....
+set @delimEle=substring(@fStr,4,1)	
+	, @delimE2=substring(@fStr,5,1)	
+    , @delimE3=substring(@fStr,6,1)	
+    , @delimE4=substring(@fStr,7,1) 
+    , @delimSeg=char(13); 
+if left(@fStr,3)='MSH' then 
+  Begin
+	set @idx=0, @delimEle=substring(@fStr,4,1), @eleCnt=-1, @e2cnt=1, @e3cnt=-1, @e4cnt=-1, @segCnt=0, @frag='';
+	set @curDelim=@delimEle;
+	while @idx<@strLen do
+	  set @idx=@idx+1;
+	  set @chr=substring(@fstr,@idx,1);
+	  case @chr  
+		when @delimEle then set @delim=2;
+		when @delimSeg then set @delim=1;
+		when @delimE2 then set @delim=3;
+		when @delimE3 then set @delim=4;
+		when @delimE4 then set @delim=5; 
+		else set @frag= convert(concat(@frag,@chr) using utf8) , @delim=0;  
+	  end case;
+	  if @delim>0 then 
+		begin
+			case @curDelim  
+				when @delimEle then 
+				  begin
+					  if @eleCnt=-1 then 
+						set @segName=@frag;  
+					  end if;
+					  set @eleCnt=@eleCnt+1;
+				  end;
+				when @delimSeg then set @eleCnt=@eleCnt+1; 
+				when @delimE2 then set @e2cnt=@e2cnt+1;
+				when @delimE3 then set @e3cnt=@e3cnt+1;
+				when @delimE4 then set @e4cnt=@e4cnt+1;
+				else begin end;  
+			end case;
+			#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('185');
+			#All msg fragmetns extracted to variables with HL7V2 names here
+			
+ 				if FIND_IN_SET(@segname,'MSH,PR1,DG1,RXE,RXA,RXR,RXO,IN1,OBR,OBX,PID,PV1,PV2,EVN,ROL,PD1,AL1')>0 then  
+					begin
+					set @dyn_stmt=concat('set @', @segName,'_',@eleCnt,'_',@e2cnt,' = "', @frag,'"' );
+					prepare dyn_sql from @dyn_stmt; 
+					execute dyn_sql;
+					end;
+                end if;
+		               #INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('195');
+			set @frag= convert('' using utf8);
+            #INSERT INTO `hl7_processing_center`.`et_debug` (`line`,`code`) VALUES ('197',@delim);
+            #handle repeating segments
+			case @delim    
+				when 2 then set 		   @e2Cnt=1,  @e3Cnt= -1, @e4Cnt= -1,@curDelim=@delimEle;
+				#INSERT INTO `hl7_processing_center`.`et_debug` (`line`,`code`) VALUES ('201',@delim);
+                when 1 then 
+					set @eleCnt=-1,@e2Cnt=1, @e3Cnt= -1, @e4Cnt= -1,@curDelim=@delimEle,@segCnt=@segCnt+1; 
+					#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('203');
+					case
+					  when @segName='MSH' then 
+						begin
+                        #INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('206');
+							#build the provcode suffix - this is appended onto the specific provider code
+							set @provcode_suffix=concat(  'MSH3.1|',ifnull(@MSH_3_1,'X')
+														,'^MSH3.2|',ifnull(@MSH_3_2,'X')
+														,'^MSH3.3|',ifnull(@MSH_3_3,'X')
+														,'^MSH4.1|',ifnull(@MSH_4_1,'X')
+														,'^MSH4.2|',ifnull(@MSH_4_2,'X')
+														,'^MSH4.3|',ifnull(@MSH_4_3,'X'));
+ 						end;
+                        
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('215');
+					 ##ET added 20190605 - concatenated accid 
+					  when @segName='PID' then
+                      #INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('221');
+						begin
+							if @accid_ref is null then
+							begin
+								if length(@PID_18_1)>1  or length(@PV1_44_1)then
+									set @accid_ref = concat(if(length(@PID_18_1)>1,@PID_18_1,UNIX_TIMESTAMP(dateStr_to_datetime(@PV1_44_1))) ,@PID_3_1,@f_facilityId);
+								else 
+									set @accid_ref = concat(sha(@filename),@f_facilityId);
+                                    #INSTEAD USE NEW UPDATE on 9/1/2020 - concat(left(MSH7_1,8), PID3_1, KONZAID) - Remove if statement around line 1030 - if length(@PID_18_1)>1  or length(@PID_19_1)then
+								end if;
+								end;
+							end if;
+						end; 
+                   #INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('230');
+                      when @segName='PR1' then
+						begin
+#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('234');
+#debug
+#INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state)
+#VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'anesthesiologist, top',@accid_ref); #debug
+
+ 						set  pvprovrole='anesthesiologist',pvprovcode=trim(ifnull(@pr1_8_1,'')), pvlname=trim(ifnull(@pr1_8_2,'')), pvfname=trim(ifnull(@pr1_8_3,''))
+                        , pvmname=trim(ifnull(@pr1_8_4,'')), pvsuffix=trim(ifnull(@pr1_8_5,'')), pvprov_type=trim(ifnull(@pr1_8_7,'')) 
+                        ,pvf_facilityId=trim(ifnull(@f_facilityId,'')), pvsource_type=trim(ifnull(@pv1_3_9,'')), pvunitname=trim(ifnull(@pv1_1_1,'')), ppvservice=trim(ifnull(@pv1_1_1s,'')); #set nulls to empty strings
+
+						if length(pvprovcode)+length(pvlname)+length(pvfname)+length(pvmname)+length(pvsuffix) >0  then #provider data not empty  ----------------------------------- manage_provider don't change just copy
+						 begin	
+							set my_vault_based_id = (select  max(vault_based_id) from person_master._provider where source=pvf_facilityId and provcode=pvprovcode and lname=pvlname and fname=pvfname and mname=pvmname and suffix=pvsuffix); #lookup provider
+							set @sha_provider = my_vault_based_id;
+                            if my_vault_based_id is null then # insert new provider
+
+                              begin
+								set @sha_provider = concat(sha(concat(pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix)),'-',pvprovcode) ;
+								REPLACE INTO person_master.`_provider`(`index_update_dt_tm`,`source`,`source_type`,`vault_based_id`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`)
+								VALUES (now(),pvf_facilityId ,pvsource_type ,@sha_provider,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix );
+								#set insert_providerID=LAST_INSERT_ID();
+								#set my_vault_based_id=concat(utc_timestamp()+0,'-',lpad(right(insert_providerID,6),6,'0'),'-',uuid25) ;
+							  end;
+							end if; #provider not found
+						  end;
+                        else #provider data empty
+						  begin set my_vault_based_id=null;  end;
+						end if; #------------------------------------------------------------------------------------------------------------------- manage_provider don't change just copy                        
+                        set my_vault_based_id=my_vault_based_id;
+#debug
+#INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state)
+#VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'surgeon, top',@accid_ref); #debug
+#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('252');
+ 						set  pvprovrole='surgeon',pvprovcode=trim(ifnull(@pr1_11,'')), pvlname=trim(ifnull(@pr1_11_2,'')), pvfname=trim(ifnull(@pr1_11_3,''))
+                        , pvmname=trim(ifnull(@pr1_11_4,'')), pvsuffix=trim(ifnull(@pr1_11_5,'')), pvprov_type=trim(ifnull(@pr1_11_7,'')) 
+                        ,pvf_facilityId=trim(ifnull(@f_facilityId,'')), pvsource_type=trim(ifnull(@pv1_3_9,'')), pvunitname=trim(ifnull(@pv1_1_1,'')), ppvservice=trim(ifnull(@pv1_1_1s,'')); #set nulls to empty strings
+
+#debug
+#INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state)
+#VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'surgeon, 2',@accid_ref); #debug
+						if length(pvprovcode)+length(pvlname)+length(pvfname)+length(pvmname)+length(pvsuffix) >0  then #provider data not empty  ----------------------------------- manage_provider don't change just copy
+						 begin	
+							set my_vault_based_id = (select  max(vault_based_id) from person_master._provider where source=pvf_facilityId and provcode=pvprovcode and lname=pvlname and fname=pvfname and mname=pvmname and suffix=pvsuffix); #lookup provider
+							set @sha_provider = my_vault_based_id;
+                            if my_vault_based_id is null then # insert new provider
+
+                              begin
+								set @sha_provider = concat(sha(concat(pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix)),'-',pvprovcode) ;
+								REPLACE INTO person_master.`_provider`(`index_update_dt_tm`,`source`,`source_type`,`vault_based_id`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`)
+								VALUES (now(),pvf_facilityId ,pvsource_type ,@sha_provider,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix );
+								#set insert_providerID=LAST_INSERT_ID();
+								#set my_vault_based_id=concat(utc_timestamp()+0,'-',lpad(right(insert_providerID,6),6,'0'),'-',uuid25) ;
+							  end;
+							end if; #provider not found
+						  end;
+                        else #provider data empty
+						  begin set my_vault_based_id=null;  end;
+						end if; #------------------------------------------------------------------------------------------------------------------- manage_provider don't change just copy                        
+                        set my_vault_based_id=my_vault_based_id;
+#debug
+#INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state)
+#VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'practitioner, top',@accid_ref); #debug
+#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('282');
+						set  pvprovrole='practitioner',pvprovcode=trim(ifnull(@pr1_12,'')), pvlname=trim(ifnull(@pr1_12_2,'')), pvfname=trim(ifnull(@pr1_12_3,''))
+                        , pvmname=trim(ifnull(@pr1_12_4,'')), pvsuffix=trim(ifnull(@pr1_12_5,'')), pvprov_type=trim(ifnull(@pr1_12_7,'')) 
+                        ,pvf_facilityId=trim(ifnull(@f_facilityId,'')), pvsource_type=trim(ifnull(@pv1_3_9,'')), pvunitname=trim(ifnull(@pv1_1_1,'')), ppvservice=trim(ifnull(@pv1_1_1s,'')); #set nulls to empty strings
+
+						if length(pvprovcode)+length(pvlname)+length(pvfname)+length(pvmname)+length(pvsuffix) >0  then #provider data not empty  ----------------------------------- manage_provider don't change just copy
+						 begin	
+							set my_vault_based_id = (select  max(vault_based_id) from person_master._provider where source=pvf_facilityId and provcode=pvprovcode and lname=pvlname and fname=pvfname and mname=pvmname and suffix=pvsuffix); #lookup provider
+							set @sha_provider = my_vault_based_id;
+                            if my_vault_based_id is null then # insert new provider
+
+                              begin
+								set @sha_provider = concat(sha(concat(pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix)),'-',pvprovcode) ;
+								REPLACE INTO person_master.`_provider`(`index_update_dt_tm`,`source`,`source_type`,`vault_based_id`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`)
+								VALUES (now(),pvf_facilityId ,pvsource_type ,@sha_provider,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix );
+								#set insert_providerID=LAST_INSERT_ID();
+								#set my_vault_based_id=concat(utc_timestamp()+0,'-',lpad(right(insert_providerID,6),6,'0'),'-',uuid25) ;
+							  end;
+							end if; #provider not found
+						  end;
+                        else #provider data empty
+						  begin set my_vault_based_id=null;  end;
+						end if; #------------------------------------------------------------------------------------------------------------------- manage_provider don't change just copy                        
+                        set my_vault_based_id=my_vault_based_id;
+#debug
+#INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state)
+#VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'practitioner, after',@accid_ref); #debug
+
+							INSERT   INTO hl7_processing_center._patient_procedure
+							(`source`
+							,`code` 
+                            ,provider_id
+							,coding_method 
+							,description 
+							,event_timestamp 
+							,procedure_priority 
+                            ,procedure_timestamp
+							,procedure_type
+                            ,patient_account_id) 
+							values(
+							@f_facilityId
+							,@PR1_3_1 
+                            ,@sha_provider #provider_id
+							,@PR1_2_1 #coding method
+							,@PR1_4_1 
+							,dateStr_to_datetime(@EVN_2_1) 
+							,@PR1_14_1 
+							,dateStr_to_datetime(@PR1_5_1)
+							,@PR1_6_1
+                            ,@accid_ref
+							) ;
+							
+							set @_patient_procedureID=LAST_INSERT_ID();
+	                            
+                                
+							INSERT INTO `hl7_processing_center`.`insertid_repeat`(`filelist1ID`,`repeatTableName`,`repeatTableID`,`seq`)
+                            VALUES(@filelist1ID,'_patient_procedure',@_patient_procedureID,@PR1_1_1+0);
+                            set @_patient_procedureID=null, @PR1_1_1=null,@PR1_3_1=null,@PR1_4_1=null,@PR1_14_1=null,@PR1_6_1=null; 
+						end;
+#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('339');
+#debug
+#INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state)
+#VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'_patient_procedure, bottom',@accid_ref); #debug
+
+					  when @segName='DG1' then
+						begin 
+							#diagnosing-----------------------------------------------------
+						set  pvprovrole='diagnosing',pvprovcode=trim(ifnull(@dg1_16_1,'')), pvlname=trim(ifnull(@dg1_16_2,'')), pvfname=trim(ifnull(@dg1_16_3,''))
+                        , pvmname=trim(ifnull(@dg1_16_4,'')), pvsuffix=trim(ifnull(@dg1_16_5,'')), pvprov_type=trim(ifnull(@dg1_16_7,'')) 
+                        ,pvf_facilityId=trim(ifnull(@f_facilityId,'')), pvsource_type=trim(ifnull(@pv1_3_9,'')), pvunitname=trim(ifnull(@pv1_1_1,'')), ppvservice=trim(ifnull(@pv1_1_1s,'')); #set nulls to empty strings
+
+						if length(pvprovcode)+length(pvlname)+length(pvfname)+length(pvmname)+length(pvsuffix) >0  then #provider data not empty  ----------------------------------- manage_provider don't change just copy
+						 begin	
+							set my_vault_based_id = (select  max(vault_based_id) from person_master._provider where source=pvf_facilityId and provcode=pvprovcode and lname=pvlname and fname=pvfname and mname=pvmname and suffix=pvsuffix); #lookup provider
+							set @sha_provider = my_vault_based_id;
+                            if my_vault_based_id is null then # insert new provider
+                              begin
+								set @sha_provider = concat(sha(concat(pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix)),'-',pvprovcode) ;
+								REPLACE INTO person_master.`_provider`(`index_update_dt_tm`,`source`,`source_type`,`vault_based_id`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`)
+								VALUES (now(),pvf_facilityId ,pvsource_type ,@sha_provider,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix );
+								#set insert_providerID=LAST_INSERT_ID();
+								#set my_vault_based_id=concat(utc_timestamp()+0,'-',lpad(right(insert_providerID,6),6,'0'),'-',uuid25) ;
+							  end;
+							end if; #provider not found
+						  end;
+                        else #provider data empty
+						  begin set my_vault_based_id=null;  end;
+						end if; #------------------------------------------------------------------------------------------------------------------- manage_provider don't change just copy
+                        set @dg1_provID=@sha_provider;
+                          
+						INSERT INTO `hl7_processing_center`.`_patient_diagnosis`
+						(
+						`source`,
+						`source_type`,
+						`MPI`,
+						`code`,
+						`provider_id`,
+						`description`,
+						`coding_method`,
+						`diagnosis_priority`,
+						`diagnosis_timestamp`,
+						`event_timestamp`,
+                        patient_account_id)
+						VALUES
+						(
+						@f_facilityId
+						,null 
+						,null 
+						,@DG1_3_1 
+						,@dg1_provID
+						,@DG1_4_1 
+						,null 
+						,@DG1_15_1 
+						,dateStr_to_datetime(@DG1_5_1)  
+						,dateStr_to_datetime(@EVN_2_1) 
+						,@accid_ref
+						);
+						set @_patient_diagnosisID=LAST_INSERT_ID();
+						
+							INSERT INTO `hl7_processing_center`.`insertid_repeat`  
+							(
+							`filelist1ID`,
+							`repeatTableName`,
+							`repeatTableID`,
+							`seq`
+							
+							)
+							VALUES
+							( 
+							@filelist1ID 
+							,'_patient_diagnosis' 
+							,@_patient_diagnosisID 
+							,@DG1_1_1+0 
+							
+							);
+							set @_patient_diagnosisID=null, @DG1_3_1=null,@DG1_4_1=null,@DG1_15_1=null,@DG1_5_1=null; 
+
+						end;
+                        
+					  when @segName='RXE' then 
+						begin
+
+ 						set  pvprovrole='med_pharm',pvprovcode=trim(ifnull(@rxe_14_1,'')), pvlname=trim(ifnull(@rxe_14_2,'')), pvfname=trim(ifnull(@rxe_14_3,''))
+                        , pvmname=trim(ifnull(@rxe_14_4,'')), pvsuffix=trim(ifnull(@rxe_14_5,'')), pvprov_type=trim(ifnull(@rxe_14_7,'')) 
+                        ,pvf_facilityId=trim(ifnull(@f_facilityId,'')), pvsource_type=trim(ifnull(@pv1_3_9,'')), pvunitname=trim(ifnull(@pv1_1_1,'')), ppvservice=trim(ifnull(@pv1_1_1s,'')); #set nulls to empty strings
+						if length(pvprovcode)+length(pvlname)+length(pvfname)+length(pvmname)+length(pvsuffix) >0  then #provider data not empty  ----------------------------------- manage_provider don't change just copy
+						 begin	
+							set my_vault_based_id = (select  max(vault_based_id) from person_master._provider where source=pvf_facilityId and provcode=pvprovcode and lname=pvlname and fname=pvfname and mname=pvmname and suffix=pvsuffix); #lookup provider
+							set @sha_provider = my_vault_based_id;
+                            if my_vault_based_id is null then # insert new provider
+                              begin
+								set @sha_provider = concat(sha(concat(pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix)),'-',pvprovcode) ;
+								REPLACE INTO person_master.`_provider`(`index_update_dt_tm`,`source`,`source_type`,`vault_based_id`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`)
+								VALUES (now(),pvf_facilityId ,pvsource_type ,@sha_provider,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix );
+								#set insert_providerID=LAST_INSERT_ID();
+								#set my_vault_based_id=concat(utc_timestamp()+0,'-',lpad(right(insert_providerID,6),6,'0'),'-',uuid25) ;
+							  end;
+							end if; #provider not found
+						  end;
+                        else #provider data empty
+						  begin set my_vault_based_id=null;  end;
+						end if; #------------------------------------------------------------------------------------------------------------------- manage_provider don't change just copy
+                        set @rxe_medpharmID=my_vault_based_id;
+
+
+ 						set  pvprovrole='med_ord',pvprovcode=trim(ifnull(@rxe_13_1,'')), pvlname=trim(ifnull(@rxe_13_2,'')), pvfname=trim(ifnull(@rxe_13_3,''))
+                        , pvmname=trim(ifnull(@rxe_13_4,'')), pvsuffix=trim(ifnull(@rxe_13_5,'')), pvprov_type=trim(ifnull(@rxe_13_7,'')) 
+                        ,pvf_facilityId=trim(ifnull(@f_facilityId,'')), pvsource_type=trim(ifnull(@pv1_3_9,'')), pvunitname=trim(ifnull(@pv1_1_1,'')), ppvservice=trim(ifnull(@pv1_1_1s,'')); #set nulls to empty strings
+						if length(pvprovcode)+length(pvlname)+length(pvfname)+length(pvmname)+length(pvsuffix) >0  then #provider data not empty  ----------------------------------- manage_provider don't change just copy
+						 begin	
+							set my_vault_based_id = (select  max(vault_based_id) from person_master._provider where source=pvf_facilityId and provcode=pvprovcode and lname=pvlname and fname=pvfname and mname=pvmname and suffix=pvsuffix); #lookup provider
+							set @sha_provider = my_vault_based_id;
+                            if my_vault_based_id is null then # insert new provider
+                              begin
+								set @sha_provider = concat(sha(concat(pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix)),'-',pvprovcode) ;
+								REPLACE INTO person_master.`_provider`(`index_update_dt_tm`,`source`,`source_type`,`vault_based_id`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`)
+								VALUES (now(),pvf_facilityId ,pvsource_type ,@sha_provider,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix );
+								#set insert_providerID=LAST_INSERT_ID();
+								#set my_vault_based_id=concat(utc_timestamp()+0,'-',lpad(right(insert_providerID,6),6,'0'),'-',uuid25) ;
+							  end;
+							end if; #provider not found
+						  end;
+                        else #provider data empty
+						  begin set my_vault_based_id=null;  end;
+						end if; #------------------------------------------------------------------------------------------------------------------- manage_provider don't change just copy
+                        set @rxe_medordID=@sha_provider;
+
+
+					  
+						INSERT INTO `hl7_processing_center`.`_medication` 
+						(
+						
+						`source`,
+						`source_type`,
+						`MPI`,
+						`vault_based_id`,
+						`patient_id`,
+						`patient_account_id`,
+						`start_date`,
+						`stop_date`,
+						`code`,
+						`code_system`,
+						`name`,
+						`provider_id`,
+						`route`,
+						`sig`,
+						`strength`,
+						`packaging`,
+						`dosage`)
+						VALUES
+						(
+						
+						@f_facilityId
+						,null 
+						,null 
+						,null 
+						,null 
+						,@accid_ref
+						,dateStr_to_datetime(@RXE_1_4) 
+						,dateStr_to_datetime(@RXE_1_5) 
+						,@RXE_2_1 
+						,@RXE_2_3 
+						,@RXE_2_2 
+						,@rxe_medordID 
+						,@RXO_10_1 
+						,null 
+						,@RXE_10_1 
+						,@RXE_11_1 
+						,@RXE_1_2 
+						); 
+						
+						set @_medicationID=LAST_INSERT_ID();
+							INSERT INTO `hl7_processing_center`.`insertid_repeat`  
+							(
+							`filelist1ID`,
+							`repeatTableName`,
+							`repeatTableID`,
+							`seq`
+							
+							)
+							VALUES
+							( 
+							@filelist1ID 
+							,'_medication' 
+							,@_medicationID 
+							,null 
+							
+							);
+						set @_medicationID=null, @RXE_2_1=null ,@RXE_2_3=null ,@RXE_2_2=null,@RXE_13_1=null ,@RXO_10_1=null ,@RXE_10_1=null ,@RXE_11_1=null,@RXE_1_2=null ; 
+
+						end;
+                        
+
+ 					  when @segName = ('AL1') then
+						begin
+ 
+						if length(@AL1_1_1)>0  then
+						begin
+
+						INSERT IGNORE  INTO `hl7_processing_center`.`_patient_allergy`
+						(
+						index_update_dt_tm
+						,`source`
+						,`source_type`
+						,`description`
+						,`code`
+						,`code_type`
+						,`description_type`
+						,`code_sev` 
+						,`description_sev` 
+						,`reaction`
+						,`reported_date`
+						,`onset_date`
+						,`onset_date_text`
+						,`code_relationship`
+						,`description_relationship`
+						,`code_status`
+						,`description_status`
+						,`status_reporter`
+						,`reporter_organization`
+						,`status_date`
+						,`allergen_group`
+						,`patient_account_id`
+						,`event_timestamp`) 
+						VALUES(
+                        dateStr_to_datetime(@EVN_2_1) 
+						,@f_facilityId  #			,concat(@MSH_3_1,@source_type,@PID_11_5 ) 
+						,@source_type 
+						,if(length(@AL1_3_2) > 0,@AL1_3_2,@IAM_3_2)
+						,@AL1_1_1
+						,if(length(@AL1_2_1) > 0 , @AL1_2_1 ,@IAM_2_1 )
+						,if(length(@AL1_2_2) > 0 , @AL1_2_2 , @IAM_2_2 )
+						,if(length(@AL1_4_1) > 0 , @AL1_4_1 , @IAM_4_1 )
+						,if(length(@AL1_4_2) > 0 , @AL1_4_2 , @IAM_4_2 )
+						,if(length(@AL1_5_1) > 0 , @AL1_5_1 , @IAM_5_1 )
+						,if(length(@AL1_6_1) > 0 , @AL1_6_1 , @IAM_13_1 )
+						,@IAM_11_1
+						,@IAM_12_1
+						,@IAM_15_1
+						,@IAM_15_2
+						,@IAM_17_1
+						,@IAM_17_2
+						,concat(@IAM_14_2,', ', @IAM_14_3,' ', @IAM_14_4)
+						,@IAM_19_1
+						,@IAM_20_1
+						,@IAM_10_1
+						,@accid_ref 
+						,@MSH_7_1);
+
+						   set @_patient_allergyID=LAST_INSERT_ID();
+						   
+							INSERT INTO `hl7_processing_center`.`insertid_repeat`  
+							(
+							`filelist1ID`,
+							`repeatTableName`,
+							`repeatTableID`,
+							`seq`
+							
+							)
+							VALUES
+							( 
+							@filelist1ID 
+							,'_patient_allergy' 
+							,@_patient_allergyID 
+							,if(length(@AL1_1_1) > 0 , @AL1_1_1 ,@IAM_1_1 ) 
+							
+							);
+
+						set @AL1_1_1=null,@AL1_2_1=null,@AL1_2_2=null,@AL1_3_2=null,@AL1_4_1=null,@AL1_4_2=null,@AL1_5_1=null,@AL1_6_1=null
+                        ,@IAM_10_1=null,@IAM_11_1=null,@IAM_12_1=null,@IAM_13_1=null,@IAM_15_1=null,@IAM_15_2=null,@IAM_17_1=null,@IAM_19_1=null
+                        ,@IAM_20_1=null,@IAM_2_1=null,@IAM_3_2=null,@IAM_4_1=null,@IAM_5_1=null;
+
+   
+   
+							end;
+ 
+						end if;
+					end;
+                    
+#----------------- Immunization -----------------                   
+  					  when @segName = ('RXA') then
+						begin
+ 
+						#if length(@RXA_2_1)>0  then
+						#begin
+						
+							INSERT ignore INTO `hl7_processing_center`.`_immunization`
+							(`index_update_dt_tm`,
+							`source`,
+							`MPI`,
+							`vault_based_id`,
+							#`id`,
+							`patient_id`,
+							`patient_account_id`,
+							`performing_provider_id`,
+							`series_number`
+                            ,`administered_date`
+                            ,`administered_code_id`
+							,`event_timestamp`)
+							VALUES
+							(dateStr_to_datetime(@EVN_2_1) #<{index_update_dt_tm: }>,
+							,@f_facilityId  #<{source: }>,
+							,@_mpi_id_masterID #MPI: }>,
+							,null #<{vault_based_id: }>,
+							#<{id: }>,
+							,@accid_ref #<{patient_id: }>,
+							,@accid_ref #<{patient_account_id: }>,
+							,@RXA_10_1 #<{performing_provider_id: }>,
+							,@RXA_2_1 #<{series_number: }>,
+                            ,@RXA_3_1 #<{administered_date: }>,
+                            ,@RXA_5_1 #<{Administered Code - Identifier: }>,
+							,@MSH_7_1 #{event_timestamp: }>
+							);
+                          
+						   set @_immunizationID=LAST_INSERT_ID();
+						   
+							INSERT INTO `hl7_processing_center`.`insertid_repeat`  
+							(
+							`filelist1ID`,
+							`repeatTableName`,
+							`repeatTableID`,
+							`seq`
+							
+							)
+							VALUES
+							( 
+							@filelist1ID 
+							,'_immunization' 
+							,@_immunizationID 
+							,@RXA_2_1
+							
+							);
+
+						
+
+   
+   
+							#end;
+ 
+						#end if;
+					#end;
+						 
+  
+#-------------------end Immunization -------------
+
+#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('679');
+                           
+#----------------- _Vaccination -----------------                   
+  					  #when @segName = ('RXA') then
+						#begin
+ 
+						#if length(@RXR_1_1)>0  then
+						#begin
+							INSERT Ignore INTO `hl7_processing_center`.`_vaccination`
+							(`index_update_dt_tm`,
+							#`id`,
+							`source`,
+							`MPI`,
+							`vault_based_id`,
+							`immunization_id`,
+							`vaccine_id`,
+							`vaccine_manufacturer_id`,
+							`lot_number`,
+							`vaccination_status_id`,
+							`manufacturer_text`,
+							`dosage`,
+							`measure_unit_id`,
+                            `accid`)
+							VALUES
+							(
+                            dateStr_to_datetime(@EVN_2_1) #<{index_update_dt_tm: }>
+							#,null #<{id: }>,
+							,@f_facilityId  #<{source: }>,
+							,@_mpi_id_masterID #MPI: }>,
+							,null #<{vault_based_id: }>,
+							,@RXA_5_4 #<{immunization_id: }>,
+							,@RXA_5_5 #<{vaccine_id: }>,
+							,@RXA_17_1# #<{vaccine_manufacturer_id: }>,
+							,@RXA_14_2 #<{lot_number: }>,
+                            ,@RXA_9_2 #<{vaccination_status_id: }>,
+                            ,@RXA_17_2# #<{manufacturer_text: }>,
+							,@RXA_6_1 #<{dosage: }>,
+							,@RXA_7_1 #<{measure_unit_id: }>
+                            ,@accid_ref #<{patient_account_id: }>,
+                            );
+
+						   set @_vaccinationID=LAST_INSERT_ID();
+						   
+							INSERT INTO `hl7_processing_center`.`insertid_repeat`  
+							(
+							`filelist1ID`,
+							`repeatTableName`,
+							`repeatTableID`,
+							`seq`
+							
+							)
+							VALUES
+							( 
+							@filelist1ID 
+							,'_vaccination' 
+							,@_vaccinationID 
+							,@RXA_2_1 
+							
+							);
+
+						set @RXA_10_1=null,@RXA_2_1=null,@RXA_6_1=null,@RXA_5_1=null,@RXA_5_4=null,@RXA_5_5=null,@RXA_17_1=null,@RXA_14_2=null,@RXA_9_2=null,@RXA_7_1=null,@RXA_17_2=null;
+
+   
+   
+						#	end;
+ 
+						#end if;
+					end;
+						 
+  
+#-------------------end _Vaccination -------------
+#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('749');
+                    
+                    
+								#INSERT INTO `hl7_processing_center`.`et_latency` (`line`,`code`) VALUES ('767', @filename); 		
+					  when @segName='IN1' then 
+						begin
+							INSERT IGNORE INTO `hl7_processing_center`.`_patient_insurance`
+							( 
+							`source`,
+							`source_type`,
+							`MPI`,
+							
+							`accid`,
+							`seqnum`,
+							`planid`,
+							`plan_name`,
+							`insurer`,
+							`co_addr1`,
+							`co_addr2`,
+							`co_city`,
+							`co_state`,
+							`co_zip`,
+							`co_country`,
+							`contact_name`,
+							`co_phone`,
+							`grpid`,
+							`grpname`,
+							`emplid`,
+							`emplname`,
+							`eff_date`,
+							`exp_date`,
+							`auth_info`,
+							`plan_type`,
+							`policy_id`,
+							`ins_prefix`,
+							`ins_fname`,
+							`ins_mname`,
+							`ins_lname`,
+							`ins_suffix`,
+							`ins_dob`,
+							`ins_ssn`,
+							`relationship`,
+							`ins_addr1`,
+							`ins_addr2`,
+							`ins_city`,
+							`ins_state`,
+							`ins_zip`,
+							`ins_country`,
+							`ins_email`,
+							`event_timestamp`,
+							`home_phone_number_id`,
+							`business_phone_number_id`,
+							`mpi_ssn`)
+							VALUES
+							( 
+							
+							@f_facilityId 
+							,null 
+							,null 
+							
+							,@accid_ref 
+							,@IN1_1_1+0 
+							,@IN1_2_1 
+							,@IN1_2_2 
+							,@IN1_4_1 
+							,@IN1_5_1 
+							,@IN1_5_2 
+							,@IN1_5_3 
+							,@IN1_5_4 
+							,@IN1_5_5 
+							,@IN1_5_6 
+							,@IN1_6_1 
+							,@IN1_7_1 
+							,@IN1_9_3 
+							,@IN1_9_1 
+							,@IN1_10_1 
+							,@IN1_11_1 
+							,convert(@IN1_12_1,date) 
+							,convert(@IN1_13_1,date) 
+							,@IN1_14_1 
+							,@IN1_15_1 
+							,@IN1_36_1 
+							,@IN1_16_5 
+							,@IN1_16_2 
+							,@IN1_16_3 
+							,@IN1_16_1 
+							,@IN1_16_4 
+							,convert(@IN1_18_1,date) 
+							,@PID_19_1 
+							,@IN1_17_1 
+							,@IN1_19_1 
+							,@IN1_19_2 
+							,@IN1_19_3 
+							,@IN1_19_4 
+							,@IN1_19_5 
+							,@IN1_19_6 
+							,@IN1_7_4 
+							,dateStr_to_datetime(@EVN_2_1) 
+							,@PID_13_1 
+							,@PID_14_1 
+							,null 
+							);
+
+							set @_patient_insuranceID=LAST_INSERT_ID();
+							
+							INSERT INTO `hl7_processing_center`.`insertid_repeat`  
+							(
+							`filelist1ID`,
+							`repeatTableName`,
+							`repeatTableID`,
+							`seq`
+							
+							)
+							VALUES
+							( 
+							@filelist1ID 
+							,'_patient_insurance' 
+							,@_patient_insuranceID 
+							,@IN1_1_1+0 
+							
+							);
+                           set @IN1_10_1=null,@IN1_11_1=null,@IN1_12_1=null,@IN1_13_1=null,@IN1_14_1=null,@IN1_15_1=null,@IN1_16_1=null,@IN1_16_2=null,@IN1_16_3=null,
+								@IN1_16_4=null,@IN1_16_5=null,@IN1_17_1=null,@IN1_18_1=null,@IN1_19_1=null,@IN1_19_2=null,@IN1_19_3=null,@IN1_19_4=null,@IN1_19_5=null,
+                                @IN1_19_6=null,@IN1_1_1=null,@IN1_2_1=null,@IN1_2_2=null,@IN1_36_1=null,@IN1_3_1=null,@IN1_4_1=null,@IN1_5_1=null,@IN1_5_2=null,
+                                @IN1_5_3=null,@IN1_5_4=null,@IN1_5_5=null,@IN1_5_6=null,@IN1_6_1=null,@IN1_7_1=null,@IN1_7_4=null,@IN1_9_1=null,@IN1_9_3=null;
+
+
+						end;
+
+#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('879');
+ 					  when @segName='OBR' and length(@OBR_4_1)>1  then 
+                       
+							begin
+							INSERT INTO `hl7_processing_center`.`_lab_test`
+							(
+							`index_update_dt_tm`,
+							`source`,
+							`source_type`,
+							`vault_based_id`,
+							`hl7_code`,
+							`name`,
+							`description`,
+							`category_id`,
+							`sequence`,
+                            accid)
+							VALUES
+							(
+							@OBR_7_1
+							,@f_facilityId 
+							,NULL 
+							,concat(@MSH_4_1,@OBR_7_1,@MSH_10_1)
+							,@OBR_2_1 
+							,@OBR_4_1 
+							,@OBR_4_2 
+							,@OBR_4_1 
+							,@OBR_1_1 
+                            ,@accid_ref);
+
+							set @_lab_testID=LAST_INSERT_ID();
+
+							
+						
+                            
+                            
+							INSERT INTO `hl7_processing_center`.`insertid_repeat`  
+							(
+							`filelist1ID`,
+							`repeatTableName`,
+							`repeatTableID`,
+							`seq`
+							
+							)
+							VALUES
+							( 
+							@filelist1ID 
+							,'_lab_test' 
+							,@_lab_testID 
+							,@OBR_1_1+0 
+							
+							);
+                            
+                            #don't null @OBR_7_1 needed to link to obx
+						    set @OBR_2_1=null,@OBR_4_1=null,@OBR_4_2=null ,@OBR_1_1=NULL; 
+
+                            end;
+
+					  when @segName='OBX'  then 
+							begin
+ 								INSERT INTO `hl7_processing_center`.`_lab_result`
+								(`index_update_dt_tm`,
+								`source`,
+								`source_type`,
+								`MPI`,
+								#`id`,
+								`lab_id`,
+                                `OBX_2_1`,
+								`accession_id`,
+								`laboratory_id`,
+								`OBX_3_2`,
+								`OBX_3_3`,
+								`OBX_3_4`,
+								`OBX_3_5`,
+								`OBX_3_6`,
+								`OBX_23_1`,
+								`unit`,
+								`range`,
+								`value`,
+								`abnormal`,
+								`status`,
+								`time`,
+								`comment`,
+								`accid`
+                                )
+								VALUES
+								(@OBR_7_1 #index_update_dt_tm: }>,
+								,@f_facilityId # source: }>,
+								,null #<{source_type: }>,
+								,null #{MPI: }>,
+								#{id: }>,
+								,concat(@MSH_4_1,@OBR_7_1,@MSH_10_1)#vault_based_id 20201103 - ursvGH9xkiL6CubaC
+								,@OBX_2_1#{WAS lab_id: }>,
+								,@OBX_1_1 #<{accession_id: }>,
+								,@OBX_3_1 #<{laboratory_id: }>,
+								,@OBX_3_2 #first_look Code name
+								,@OBX_3_3 #first location to look to determine if the value being sent in OBX3.4 is a LOINC Code
+								,@OBX_3_4 #LOINC code.
+								,@OBX_3_5 #Alternative Display name
+								,@OBX_3_6 #Coding system ID 
+								,@OBX_23_1 #Coding system ID 
+								,@OBX_6_1  #<{unit: }>,
+								,@OBX_7_1 #<{range: }>,
+								,@OBX_5_1 #<{value: }>,
+								,@OBX_8_1 #<{abnormal: }>,
+								,@OBX_11_1 #<{status: }>,
+								,dateStr_to_datetime(@OBX_14_1) #<{time: }>,
+								,null
+                                ,@accid_ref); #<{comment: }>);
+
+								set @_lab_resultID=LAST_INSERT_ID();
+#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('976');
+								INSERT INTO `hl7_processing_center`.`insertid_repeat`  #link the repeating row with the rest of the message data
+								(#`id`,
+								`filelist1ID`,
+								`repeatTableName`,
+								`repeatTableID`,
+								`seq`
+								#`processDT`
+								)
+								VALUES
+								( #<{id: }>,
+								@filelist1ID #<{filelist1ID: }>,
+								,'_lab_result' #<{repeatTableName: }>,
+								,@_lab_resultID #<{repeatTableID: }>,
+								,@OBX_1_1+0 #<{seq: }>,
+								#<{processDT: CURRENT_TIMESTAMP}>
+								);
+								set @OBX_2_1=NULL,@OBX_1_1=NULL,@OBX_3_1=NULL,@OBX_6_1=NULL,@OBX_7_1=NULL ,@OBX_5_1=NULL ,@OBX_8_1=NULL ,@OBX_11_1=NULL, @OBX_14_1 =NULL;#RESET VARIABLES BTW SEGMENTS
+
+								set @_lab_resultID=null, @OBX_2_1=NULL,@OBX_1_1=NULL,@OBX_3_1=NULL,@OBX_6_1=NULL,@OBX_7_1=NULL ,@OBX_5_1=NULL ,@OBX_8_1=NULL ,@OBX_11_1=NULL, @OBX_14_1 =NULL;
+  
+                                #RESET VARIABLES BTW SEGMENTS
+  
+                            end;
+                           
+ 					  else begin end;
+					end case;
+					
+				  
+				when 3 then set             @e3Cnt= -1, @e4Cnt= -1,@curDelim=@delimE2;
+				when 4 then set                         @e4Cnt= -1,@curDelim=@delimE3;
+				else begin end; 
+			end case;
+			set @delim=0;
+			
+		end;
+	  end if; 
+	end while ;
+	
+  
+  end;
+else
+  set result='Error: HL7 msg missing MSH seg';
+end if; 
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`,`code`) VALUES ('1049',@filename);
+
+if length(@PID_18_1)>1  or length(@PV1_44_1) then
+begin
+	#admitting-----------------------------------------------------
+	#attending-----------------------------------------------------
+	#referring-----------------------------------------------------
+	#related-----------------------------------------------------
+
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1029');#et_debug
+#INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state)
+#VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'admitting, top',@accid_ref); #debug
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1061'); 
+ 						set  pvprovrole='admitting',pvprovcode=trim(ifnull(@PV1_17_1,'')), pvlname=trim(ifnull(@PV1_17_2,'')), pvfname=trim(ifnull(@PV1_17_3,''))
+                        , pvmname=trim(ifnull(@PV1_17_4,'')), pvsuffix=trim(ifnull(@PV1_17_5,'')), pvprov_type=trim(ifnull(@PV1_17_7,'')) 
+                        ,pvf_facilityId=trim(ifnull(@f_facilityId,'')), pvsource_type=trim(ifnull(@pv1_3_9,'')), pvunitname=trim(ifnull(@pv1_1_1,'')), ppvservice=trim(ifnull(@pv1_1_1s,'')); #set nulls to empty strings
+				#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1035');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+						if length(pvprovcode)+length(pvlname)+length(pvfname)+length(pvmname)+length(pvsuffix) > 0  then #provider data not empty  ----------------------------------- manage_provider don't change just copy
+						 begin	#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1038');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+							set my_vault_based_id = (select  max(vault_based_id) from person_master._provider where source=pvf_facilityId and provcode=pvprovcode and lname=pvlname and fname=pvfname and mname=pvmname and suffix=pvsuffix); #lookup provider
+                            set @sha_provider = my_vault_based_id;
+							#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1040');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+                            if my_vault_based_id is null then # insert new provider 
+                            #INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1042');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+                              begin
+								set @sha_provider = concat(sha(concat(pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix)),'-',pvprovcode) ;
+								REPLACE INTO person_master.`_provider`(`index_update_dt_tm`,`source`,`source_type`,`vault_based_id`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`)
+								VALUES (now(),pvf_facilityId ,pvsource_type ,@sha_provider,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix );
+								#set insert_providerID=LAST_INSERT_ID();
+								#set my_vault_based_id=concat(utc_timestamp()+0,'-',lpad(right(insert_providerID,6),6,'0'),'-',uuid25) ;
+                                #INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1048');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+							  end; #INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1050');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+							end if; #provider not found
+						  end;#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1052');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+                        else #provider data empty
+						  begin set my_vault_based_id=null;  end; #INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1054');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+						end if; #------------------------------------------------------------------------------------------------------------------- manage_provider don't change just copy
+						set @adm_provID=@sha_provider;
+                        #INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1087'); 
+#debug
+#INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state)
+#VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'admitting, after',@accid_ref); #debug
+#et_debug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1060');
+						set  pvprovrole='attending',pvprovcode=trim(ifnull(@PV1_7_1,'')), pvlname=trim(ifnull(@PV1_7_2,'')), pvfname=trim(ifnull(@PV1_7_3,''))
+                        , pvmname=trim(ifnull(@PV1_7_4,'')), pvsuffix=trim(ifnull(@PV1_7_5,'')), pvprov_type=trim(ifnull(@PV1_7_7,'')) 
+                        ,pvf_facilityId=trim(ifnull(@f_facilityId,'')), pvsource_type=trim(ifnull(@pv1_3_9,'')), pvunitname=trim(ifnull(@pv1_1_1,'')), ppvservice=trim(ifnull(@pv1_1_1s,'')); #set nulls to empty strings
+#et_debug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1065');
+#debug
+#INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state)
+#VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, before provider data empty check',@accid_ref); #debug
+				
+						if length(pvprovcode)+length(pvlname)+length(pvfname)+length(pvmname)+length(pvsuffix) >0  then #provider data not empty  ----------------------------------- manage_provider don't change just copy
+						 begin	
+
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1074');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+#debug
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1107'); 
+#INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, before pmp insert',@accid_ref); #debug
+							set my_vault_based_id = (select  max(vault_based_id) from person_master._provider where source=pvf_facilityId and provcode=pvprovcode and lname=pvlname and fname=pvfname and mname=pvmname and suffix=pvsuffix); #INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1078');#et_debug #lookup provider
+                            set @sha_provider = my_vault_based_id;
+							if my_vault_based_id is null then # insert new provider
+                              begin #INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1080');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+								set @sha_provider = concat(sha(concat(pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix)),'-',pvprovcode) ;
+								REPLACE INTO person_master.`_provider`(`index_update_dt_tm`,`source`,`source_type`,`vault_based_id`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`)
+								VALUES (now(),pvf_facilityId ,pvsource_type ,@sha_provider,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix );
+								#set insert_providerID=LAST_INSERT_ID();
+								#set my_vault_based_id=concat(utc_timestamp()+0,'-',lpad(right(insert_providerID,6),6,'0'),'-',uuid25) ;
+							  end;
+							end if; #provider not found
+						  end;
+                        else #provider data empty
+						  begin set my_vault_based_id=null;  end;
+						end if; #------------------------------------------------------------------------------------------------------------------- manage_provider don't change just copy
+						set @att_provID=@sha_provider;
+#et_debug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1091');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+#debug
+#INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+#debug
+						set  pvprovrole='referring',pvprovcode=trim(ifnull(@PV1_8_1,'')), pvlname=trim(ifnull(@PV1_8_2,'')), pvfname=trim(ifnull(@PV1_8_3,''))
+                        , pvmname=trim(ifnull(@PV1_8_4,'')), pvsuffix=trim(ifnull(@PV1_8_5,'')), pvprov_type=trim(ifnull(@PV1_8_7,'')) 
+                        ,pvf_facilityId=trim(ifnull(@f_facilityId,'')), pvsource_type=trim(ifnull(@pv1_3_9,'')), pvunitname=trim(ifnull(@pv1_1_1,'')), ppvservice=trim(ifnull(@pv1_1_1s,'')); #set nulls to empty strings
+
+#et_debug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1101');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1137'); 
+						if length(pvprovcode)+length(pvlname)+length(pvfname)+length(pvmname)+length(pvsuffix) >0  then #provider data not empty  ----------------------------------- manage_provider don't change just copy
+						 begin	
+							set my_vault_based_id = (select  max(vault_based_id) from person_master._provider where source=pvf_facilityId and provcode=pvprovcode and lname=pvlname and fname=pvfname and mname=pvmname and suffix=pvsuffix); #lookup provider
+                            set @sha_provider = my_vault_based_id;
+							if my_vault_based_id is null then # insert new provider
+                              begin
+								set @sha_provider = concat(sha(concat(pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix)),'-',pvprovcode) ;
+								REPLACE INTO person_master.`_provider`(`index_update_dt_tm`,`source`,`source_type`,`vault_based_id`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`)
+								VALUES (now(),pvf_facilityId ,pvsource_type ,@sha_provider,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix );
+								#set insert_providerID=LAST_INSERT_ID();
+								#set my_vault_based_id=concat(utc_timestamp()+0,'-',lpad(right(insert_providerID,6),6,'0'),'-',uuid25) ;
+							  end;
+							end if; #provider not found
+						  end;
+                        else #provider data empty
+						  begin set my_vault_based_id=null;  end;
+						end if; #------------------------------------------------------------------------------------------------------------------- manage_provider don't change just copy
+						set @ref_provID=@sha_provider;
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1020');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+						set  pvprovrole='related',pvprovcode=trim(ifnull(@PV1_4_1,'')), pvlname=trim(ifnull(@PV1_4_2,'')), pvfname=trim(ifnull(@PV1_4_3,''))
+                        , pvmname=trim(ifnull(@PV1_4_4,'')), pvsuffix=trim(ifnull(@PV1_4_5,'')), pvprov_type=trim(ifnull(@PV1_4_7,'')) 
+                        ,pvf_facilityId=trim(ifnull(@f_facilityId,'')), pvsource_type=trim(ifnull(@pv1_3_9,'')), pvunitname=trim(ifnull(@pv1_1_1,'')), ppvservice=trim(ifnull(@pv1_1_1s,'')); #set nulls to empty strings
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1024');INSERT hl7_processing_center._provider_i(`index_update_dt_tm`,`source`,`source_type`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`,vault_based_id,zip,city, state) VALUES (now(),pvf_facilityId ,pvsource_type ,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix, my_vault_based_id,left(filename,100),'attending, after',@accid_ref); 
+						if length(pvprovcode)+length(pvlname)+length(pvfname)+length(pvmname)+length(pvsuffix) >0  then #provider data not empty  ----------------------------------- manage_provider don't change just copy
+						 begin	
+							set my_vault_based_id = (select  max(vault_based_id) from person_master._provider where source=pvf_facilityId and provcode=pvprovcode and lname=pvlname and fname=pvfname and mname=pvmname and suffix=pvsuffix); #lookup provider
+                            set @sha_provider = my_vault_based_id;
+							if my_vault_based_id is null then # insert new provider
+                              begin
+								set @sha_provider = concat(sha(concat(pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix)),'-',pvprovcode) ;
+								REPLACE INTO person_master.`_provider`(`index_update_dt_tm`,`source`,`source_type`,`vault_based_id`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`)
+								VALUES (now(),pvf_facilityId ,pvsource_type ,@sha_provider,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix );
+								#set insert_providerID=LAST_INSERT_ID();
+								#set my_vault_based_id=concat(utc_timestamp()+0,'-',lpad(right(insert_providerID,6),6,'0'),'-',uuid25) ;
+							  end;
+							end if; #provider not found
+						  end;
+                        else #provider data empty
+						  begin set my_vault_based_id=null;  end;
+						end if; #------------------------------------------------------------------------------------------------------------------- manage_provider don't change just copy
+						set @rel_provID=@sha_provider;
+
+	#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1180'); 
+		
+#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1137');
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1184'); 
+	INSERT INTO `hl7_processing_center`.`_patient_account`
+	(`index_update_dt_tm`,
+	`source`,
+	`source_type`,
+	`MPI`,
+	`vault_acc_id`,
+	
+	`accid`,
+	`patient_id`,
+	`patient_type_id`,
+	`service_area_id`,
+	`admitted`,
+	`adm_type`,
+	`complaint`,
+	`unit_id`,
+	`bed_id`,
+	`discharged`,
+	`discharged_to`,
+	`fin_class`,
+	`acc_status`,
+	`vip_flag`,
+	`nka`,
+	`pregnant`,
+	`event_timestamp`,
+	`adm_provider_id`,
+	`att_provider_id`,
+	`ref_provider_id`,
+	`related_provider_id`,
+	`discharge_disposition`,
+	`admit_source`,
+    `visit_number`,
+    `pat_type`)
+	Values
+	(dateStr_to_datetime(@EVN_2_1) 
+	,@f_facilityId #concat(@MSH_3_1,@source_type,@PID_11_5 ) 
+	,@source_type 
+	,@_mpi_id_masterID 
+	,@accid_ref  
+	,@accid_ref 
+	,@accid_ref 
+	,@PV1_2_1  
+	,@PV1_10_1 
+	,dateStr_to_datetime(@PV1_44_1) 
+	,@PV1_14_1  
+	,Concat( ifnull(@PV2_3_1,''), ' : ',ifnull(@PV2_3_2,''), ' : ',ifnull(@PV2_3_3,''), ' : ',ifnull(@PV2_3_4,'')  )
+	,@f_facilityId
+	,@PV1_3_3  
+	,dateStr_to_datetime(@PV1_45_1) 
+	,@PV1_37_1 
+	,@PV1_20_1 
+	,@PV1_41_1 
+	,@PV1_16_1 
+	,null 
+	,null 
+	,dateStr_to_datetime(@EVN_2_1) 
+	,@adm_provID
+	,@att_provID
+	,@ref_provID
+	,@rel_provID
+	,@PV1_36_1 
+	,@PV1_14_1
+    ,@PV1_19_1
+    ,@PV1_18_1
+	);
+
+
+    
+  set @_patient_accountID=LAST_INSERT_ID();
+set @adm_provID=null,@att_provID=null,@ref_provID=null,@rel_provID=null;
+
+end; 
+end if;
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1255'); 
+#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1211');
+#set dob_str2date= concat(left(@PID_7_1,4),'-',substring(@PID_7_1,5,2), '-',substring(@PID_7_1,7,2)); #  format the DOB
+set dob_str2date= STR_TO_DATE(@PID_7_1,'%Y%m%d'); #format as date
+set dob_str2date=if(dayname(dob_str2date) is null,null,dob_str2date) ; #test if proper date
+
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1262'); 
+insert ignore into hl7_processing_center._mpi(source,source_type,MPI,dob ,ethnicity 
+,event_timestamp 
+,firstname ,language ,lastname ,marital_status,deceased ,middlename ,mother_maiden_name ,mrn ,prefix ,race ,religion ,sex ,ssn ,suffix 
+,updated,assigning_authority,accid_ref
+)
+ values(
+ @f_facilityId #concat(@MSH_3_1,@source_type,@PID_11_5 )
+,@source_type
+,null #@_mpi_id_masterID # populated as null if unknown or ithe id column of person_master._mpi_id_master
+,dob_str2date #convert(@PID_7_1, date) #dob
+,@PID_22_1 #ethnicity
+,dateStr_to_datetime(@EVN_2_1) #event_timestamp
+,@PID_5_2 #firstname
+,@PID_15_1 #language
+,@PID_5_1 #lastname
+,@PID_16_2 #marital_status
+,@PID_30_1 #deceased
+,@PID_5_3 #middlename
+,@PID_6_1 #mother_maiden_name
+,@PID_3_1 #mrn
+,@PID_5_5 #prefix
+,@PID_10_1 #race
+,@PID_17_1 #religion
+,left(@PID_8_1,1) #sex
+,@PID_19_1 #ssn
+,@PID_5_4 #suffix
+,@EVN_2_1 #updated
+,@PID_3_4 #assigning_authority
+,@accid_ref #accid_ref
+) ;
+ set @_mpi_id=LAST_INSERT_ID();
+ set @_mpiid=LAST_INSERT_ID();
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1294'); 
+
+#------ Assign MPI --------------------
+#? how about also checking ssn and lastname and sex in other words, still match if the firstname is spelled difleretly. ??
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1298'); 
+if (ifnull(@PID_5_1,'') ='' or ifnull(@PID_5_2,'') = '' or ifnull(dob_str2date,'')='' or ifnull(@PID_8_1,'')= '')  then # all values populated??
+	begin
+		#etdebug
+        #INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES (concat(convert( @filelist1ID,char),':::pat data for mpi not available')); #zzz
+
+        set @_mpi_id_masterID=null; # if not don't check
+    end;
+else 
+	begin
+		#etdebug
+        #INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES (concat(convert( @filelist1ID,char),':::find or insert mpi')); #zzz
+
+		DROP TABLE IF EXISTS temp_mpilookup; #create a temp table fo rfaster _mpi lookup
+		CREATE TEMPORARY TABLE temp_mpilookup  AS (SELECT 
+			convert(@PID_5_2, char) firstname,
+			convert(@PID_5_1,char) lastname,
+			dob_str2date dob,
+			left(convert(@PID_8_1,char),1) sex,
+			convert(@PID_19_1,char) ssn
+			);
+
+		set @_mpi_id_masterID = 
+			(select  max(m.id) 
+			from temp_mpilookup p
+			join person_master._mpi_id_master m on P.lastname = m.lastname
+				and p.firstname = m.firstname  
+				and p.dob = m.dob
+				and p.sex = m.sex
+			#where p.id=@_mpiId  
+			group by p.lastname, p.firstname, p.dob, p.sex);
+
+		if  @_mpi_id_masterID is null then
+			begin
+				INSERT INTO `person_master`.`_mpi_id_master`		#if mpi not found, insert it
+				(`firstname`,`lastname`,`dob`,`sex`,`ssn`)
+				select firstname,lastname,dob, sex, ssn from temp_mpilookup;
+				set @_mpi_id_masterID=LAST_INSERT_ID();		#save the newly created mpi.  it is the id column of `person_master`.`_mpi_id_master` 
+			END;
+		END IF;	
+
+	end;
+end if;
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1341'); 
+#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1324');
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1344'); 
+update hl7_processing_center._mpi 
+set MPI = @_mpi_id_masterID
+where id = @_mpiId;
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1348'); 
+/*    
+insert ignore into hl7_processing_center._mpi(source,MPI,dob ,ethnicity 
+,event_timestamp 
+,firstname ,language ,lastname ,marital_status ,middlename ,mother_maiden_name ,mrn ,prefix ,race ,religion ,sex ,ssn ,suffix 
+,updated,assigning_authority,accid_ref
+)
+ values(
+ @f_facilityId #concat(@MSH_3_1,@source_type,@PID_11_5 )
+,@_mpi_id_masterID # populated as null if unknown or ithe id column of person_master._mpi_id_master
+,convert(@PID_7_1, date) #dob
+,@PID_22_1 #ethnicity
+,dateStr_to_datetime(@EVN_2_1) #event_timestamp
+,@PID_5_2 #firstname
+,@PID_15_1 #language
+,@PID_5_1 #lastname
+,@PID_16_2 #marital_status
+,@PID_5_3 #middlename
+,@PID_6_1 #mother_maiden_name
+,@PID_3_1 #mrn
+,@PID_5_5 #prefix
+,@PID_10_1 #race
+,@PID_17_1 #religion
+,@PID_8_1 #sex
+,@PID_19_1 #ssn
+,@PID_5_4 #suffix
+,@EVN_2_1 #updated
+,@PID_3_4 #assigning_authority
+,@accid_ref #accid_ref
+) ;
+ set @_mpi_id=LAST_INSERT_ID();
+ set @_mpiid=LAST_INSERT_ID();
+*/
+#------------ end Assign MPI -------------------
+
+/* old mpi logic
+ -- put back in 20190516 also started taking max(id)
+set @_mpi_id_masterID=(select max(m.id)
+from hl7_processing_center._mpi P
+left join person_master._mpi_id_master m on P.lastname = m.lastname
+and P.firstname = m.firstname  
+and P.dob = M.dob
+and P.sex = P.sex 
+where p.id=@_mpiId 
+group by p.id);
+
+update hl7_processing_center._mpi P
+set MPI = @_mpi_id_masterID
+where P.id = @_mpiId;
+*/
+#set inCSG=(select mpi_int from `hl7_processing_center`.`tmp_client_security_group_mpi` where mpi_Int=@_mpi_id_masterId limit 1);
+set inCSG= ifnull(inCSG,0);
+#etdebug
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES ('1381');
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1402'); 
+INSERT IGNORE  INTO hl7_processing_center._patient_contact(
+source,source_type
+,patient_id,business_phone_number_id ,cell_phone_number_id ,city ,country ,event_timestamp ,home_phone_number_id ,state ,street1 ,street2 ,zip 
+) values(
+ @f_facilityId #concat(@MSH_3_1,@source_type,@PID_11_5 )
+,@source_type 
+,@accid_ref
+,@PID_14_1 
+,@PID_13_1 
+,@PID_11_3 
+,@PID_11_6 
+,dateStr_to_datetime(@EVN_2_1)  
+,@PID_13_1 
+,@PID_11_4 
+,@PID_11_1 
+,@PID_11_1 
+,@PID_11_5 
+) ;
+   set @_patient_contactID=LAST_INSERT_ID();
+
+		
+
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1425'); 
+ 
+if if(@MSH_11_1='2.5',@ROL_4_1, @PD1_4_1 ) is not null then 
+	begin
+		if @MSH_11_1='2.5' then
+		 BEGIN
+			#pcp v2.5-----------------------------------------------
+						set  pvprovrole='pcp',pvprovcode=trim(ifnull(@ROL_4_1,'')), pvlname=trim(ifnull(@ROL_4_2,'')), pvfname=trim(ifnull(@ROL_4_3,''))
+                        , pvmname=trim(ifnull(@ROL_4_4,'')), pvsuffix=trim(ifnull(@ROL_4_5,'')), pvprov_type=trim(ifnull(@ROL_4_7,'')) 
+                        ,pvf_facilityId=trim(ifnull(@f_facilityId,'')), pvsource_type=trim(ifnull(@pv1_3_9,'')), pvunitname=trim(ifnull(@pv1_1_1,'')), ppvservice=trim(ifnull(@pv1_1_1s,'')); #set nulls to empty strings
+				
+						if length(pvprovcode)+length(pvlname)+length(pvfname)+length(pvmname)+length(pvsuffix) >0  then #provider data not empty  ----------------------------------- manage_provider don't change just copy
+						 begin	
+							set my_vault_based_id = (select  max(vault_based_id) from person_master._provider where source=pvf_facilityId and provcode=pvprovcode and lname=pvlname and fname=pvfname and mname=pvmname and suffix=pvsuffix); #lookup provider
+							set @sha_provider = my_vault_based_id;
+                            if my_vault_based_id is null then # insert new provider
+                              begin
+								set @sha_provider = concat(sha(concat(pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix)),'-',pvprovcode) ;
+								REPLACE INTO person_master.`_provider`(`index_update_dt_tm`,`source`,`source_type`,`vault_based_id`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`)
+								VALUES (now(),pvf_facilityId ,pvsource_type ,@sha_provider,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix );
+								#set insert_providerID=LAST_INSERT_ID();
+								#set my_vault_based_id=concat(utc_timestamp()+0,'-',lpad(right(insert_providerID,6),6,'0'),'-',uuid25) ;
+							  end;
+							end if; #provider not found
+						  end;
+                        else #provider data empty
+						  begin set my_vault_based_id=null;  end;
+						end if; #------------------------------------------------------------------------------------------------------------------- manage_provider don't change just copy
+						set @pcp_provID=@sha_provider;
+		END;
+        else
+        BEGIN
+			#pcp other than v2.5-----------------------------------------------
+						set  pvprovrole='pcp',pvprovcode=trim(ifnull(@PD1_4_1,'')), pvlname=trim(ifnull(@PD1_4_2,'')), pvfname=trim(ifnull(@PD1_4_3,''))
+                        , pvmname=trim(ifnull(@PD1_4_4,'')), pvsuffix=trim(ifnull(@PD1_4_5,'')), pvprov_type=trim(ifnull(@PD1_4_7,'')) 
+                        ,pvf_facilityId=trim(ifnull(@f_facilityId,'')), pvsource_type=trim(ifnull(@pv1_3_9,'')), pvunitname=trim(ifnull(@pv1_1_1,'')), ppvservice=trim(ifnull(@pv1_1_1s,'')); #set nulls to empty strings
+				
+						if length(pvprovcode)+length(pvlname)+length(pvfname) >0  then #provider data not empty  ----------------------------------- manage_provider don't change just copy
+						 begin	
+							set my_vault_based_id = (select  max(vault_based_id) from person_master._provider where source=pvf_facilityId and provcode=pvprovcode and lname=pvlname and fname=pvfname and mname=pvmname limit 1); #lookup provider
+							set @sha_provider = my_vault_based_id;
+                            if my_vault_based_id is null then # insert new provider
+                              begin
+								set @sha_provider = concat(sha(concat(pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix)),'-',pvprovcode) ;
+								REPLACE INTO person_master.`_provider`(`index_update_dt_tm`,`source`,`source_type`,`vault_based_id`,`provcode`,`lname`,`fname`,`mname`,`unitname`,`service`,`prov_type`,`status`,`suffix`)
+								VALUES (now(),pvf_facilityId ,pvsource_type ,@sha_provider,pvprovcode ,pvlname ,pvfname ,pvmname ,pvunitname,ppvservice,pvprov_type ,pvprovrole ,pvsuffix );
+								#set insert_providerID=LAST_INSERT_ID();
+								#set my_vault_based_id=concat(utc_timestamp()+0,'-',lpad(right(insert_providerID,6),6,'0'),'-',uuid25) ;
+							  end;
+							end if; #provider not found
+						  end;
+                        else #provider data empty
+						  begin set my_vault_based_id=null;  end;
+						end if; #------------------------------------------------------------------------------------------------------------------- manage_provider don't change just copy
+						set @pcp_provID=@sha_provider;
+
+
+		END;
+        end if;
+    
+		INSERT INTO `hl7_processing_center`.`_patient_pcp`
+		(`index_update_dt_tm`,
+		`source`,
+        `patient_id`,
+		`provider_id`,
+		`event_timestamp`)
+		VALUES
+		(now()
+        ,@f_facilityId
+		,@accid_ref #@PID_3_1 
+		,@pcp_provID
+		,dateStr_to_datetime(@EVN_2_1)); 
+
+		set @_patient_pcpID=LAST_INSERT_ID();
+	end;
+end if;
+
+
+
+
+
+
+ 
+ 
+
+
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1511'); 
+
+
+INSERT IGNORE  INTO hl7_processing_center._service_area(
+source
+,vault_based_id
+,patient_account_id
+,`code`
+,`description`
+,`point_of_care`
+,`room`
+,`bed`
+,`facility`
+,`location_status`
+,`person_location_type`
+,`building`
+,`floor`) values(
+@f_facilityId
+,@accid_ref
+,@accid_ref
+,@PV1_10_1
+,@PV1_3_9
+,@PV1_3_1
+,@PV1_3_2
+,@PV1_3_3
+,@PV1_3_4
+,@PV1_3_5
+,@PV1_3_6
+,@PV1_3_7
+,@PV1_3_8
+		);
+ 
+	set @_service_areaID=LAST_INSERT_ID();
+ 
+INSERT IGNORE  INTO hl7_processing_center._unit(source, unitcode,facilid,description ) 
+values(@f_facilityId #@filename
+,@PV1_3_1
+,@f_facilityId
+,@PR1_4_1
+ ) ;
+  set @_unitID=LAST_INSERT_ID();
+ 
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1553'); 
+  INSERT INTO `hl7_processing_center`.`insertid`
+(
+`filelist1ID`,
+`_accessionID`,
+`_batteryID`,
+`_documentID`,
+`_document_subtypeID`,
+`_document_typeID`,
+`_document_versionID`,
+`_facilityID`,
+`_immunizationID`,
+`_lab_resultID`,
+`_lab_testID`,
+`_medicationID`,
+`_mpiID`,
+`_mpi_id_masterID`,
+`_patient_accountID`,
+`_patient_allergyID`,
+`_patient_contactID`,
+`_patient_diagnosisID`,
+`_patient_insuranceID`,
+`_patient_pcpID`,
+`_patient_procedureID`,
+`_patient_typeID`,
+`_phone_numberID`,
+`_providerID`,
+`_service_areaID`,
+`_unitID`,
+`_vaccinationID`,
+`_vaccination_statusID`,
+`_vaccineID`,
+`_vitalsignsID`,
+`inCSG`,
+`accid_ref`
+)
+VALUES
+(   @filelist1ID,
+    @_accessionID,
+    @_batteryID,
+    @_documentID,
+    @_document_subtypeID,
+    @_document_typeID,
+    @_document_versionID,
+    @_facilityID,
+    @_immunizationID,
+    @_lab_resultID,
+    @_lab_testID,
+    @_medicationID,
+    @_mpiID,
+    @_mpi_id_masterID,
+    @_patient_accountID,
+    @_patient_allergyID,
+    @_patient_contactID,
+    @_patient_diagnosisID,
+    @_patient_insuranceID,
+    @_patient_pcpID,
+    @_patient_procedureID,
+    @_patient_typeID,
+    @_phone_numberID,
+    @_providerID,
+    @_service_areaID,
+    @_unitID,
+    @_vaccinationID,
+    @_vaccination_statusID,
+    @_vaccineID,
+    @_vitalsignsID,
+    inCSG,
+    @accid_ref
+    );
+    #INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1623'); 
+ #return values
+#set CSG_UNC= (select max(ch.message_routing_unc_destination) 
+#				from clientresults.client_security_groupings csg 
+#				join clientresults.client_hierarchy ch on csg.client=ch.folder_name
+#				where csg.mpi=CAST(@_mpi_id_masterId AS UNSIGNED) and ch.message_routing_unc_destination is not null limit 1);# the mpi is subscribed to ... for testing10001783
+set mmpi=if(@_mpi_id_masterId is null,0,CAST(@_mpi_id_masterId AS UNSIGNED));
+set CSG_UNC=if(CSG_UNC is null, 'noCSG',CSG_UNC) ; #'//prd-az1-ops1.ad.konza.org/SacValleyTest';
+
+ #INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1632'); 
+ 
+set result='Success: all fields parsed';
+UPDATE `hl7_processing_center`.`filelist1`
+SET
+`filelistId` = @filelist1ID 
+,`fileType` = result 
+,`hl7_version` = @MSH_11_1 
+,`message_type` = @MSH_8_1 
+,`event_code` = @MSH_8_2 
+,`updated` = now()
+,`_mpi_ID`=@_mpi_id_masterID
+,`processDT` = now()
+where filelist1.id=@filelist1ID;
+
+#return values
+#select result, inCSG;
+#set @dedugMsg= concat('>>',result,':',mmpi, ',',CSG_UNC );
+#INSERT INTO `hl7_processing_center`.`et_debug` (`line`) VALUES (@dedugMsg); 
+#INSERT INTO `hl7_processing_center`.`et_latency` (`line`) VALUES ('1651'); 
+select result, MMPI ,CSG_UNC;
+
+
+END
