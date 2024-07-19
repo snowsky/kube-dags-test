@@ -1,0 +1,48 @@
+CREATE DEFINER=`etl_runner`@`%` FUNCTION `person_master`.`fn_getmpi`(mlastname varchar(100) ,mfirstname varchar(100),mdob varchar(100),msex varchar(100)) RETURNS bigint(20)
+    DETERMINISTIC
+BEGIN
+declare MMPI, tmp_id bigint;
+declare dob_str2date varchar(50); 
+set MMPI =null;
+set msex=left(msex,1);
+set dob_str2date= STR_TO_DATE(left(mdob,8),'%Y%m%d'); #format as date
+set dob_str2date=if(dayname(dob_str2date) is null,null,dob_str2date) ; #test if proper date
+set mdob=dob_str2date;
+#------ Assign MPI --------------------
+if (ifnull(mlastname,'') ='' or ifnull(mfirstname,'') = '' or ifnull(mdob,'')='' or ifnull(msex,'')= '')  then # all values populated??
+	begin
+        set mmpi=null; # if null don't check
+    end;
+else 
+	begin
+       INSERT INTO `person_master`.`tmp_mpilookup`(`firstname`,`lastname`,`dob`,`sex`) VALUE(mfirstname,mlastname,mdob,msex);
+       set tmp_id=LAST_INSERT_ID();
+
+		set mmpi = 
+			( #lookup existing MPI
+				select  max(m.id) 
+				from `person_master`.`tmp_mpilookup` p
+				join person_master._mpi_id_master m on P.lastname = m.lastname
+					and p.firstname = m.firstname  
+					and p.dob = m.dob
+					and p.sex = m.sex
+				where p.id=tmp_id
+				group by m.lastname, m.firstname, m.dob, m.sex
+            );
+ 
+		if  mmpi is null then
+			begin
+				INSERT INTO `person_master`.`_mpi_id_master`		#if mpi not found, insert it
+				(
+                firstname,lastname,dob,sex
+				) 
+                select firstname,lastname,dob, sex from `person_master`.`tmp_mpilookup`  where id=tmp_id  ;
+ 				set mmpi=LAST_INSERT_ID();		#save the newly created mpi.  it is the id column of `person_master`.`_mpi_id_master` 
+			END;
+		END IF;	
+		delete from `person_master`.`tmp_mpilookup` where id=tmp_id;  
+	end;
+end if;
+
+RETURN ifnull(MMPI,0);
+END
