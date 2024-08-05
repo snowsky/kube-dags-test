@@ -1,6 +1,6 @@
 import sys
-from konza.parser import read_clinical_document_from_xml_path
-from konza.extracts.extract import KonzaExtract
+from lib.konza.parser import read_clinical_document_from_xml_path
+from lib.konza.extracts.extract import KonzaExtract
 import os
 
 if __name__ == "__main__":

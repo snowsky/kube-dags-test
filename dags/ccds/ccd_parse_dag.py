@@ -18,8 +18,8 @@ with DAG(
     tags=['ccd-parsing'],
 ) as dag:
    
-    from konza.parser import read_clinical_document_from_xml_path
-    from konza.extracts.extract import KonzaExtract
+    from lib.konza.parser import read_clinical_document_from_xml_path
+    from lib.konza.extracts.extract import KonzaExtract
 
     @task
     def list_xmls(ccda_dir):

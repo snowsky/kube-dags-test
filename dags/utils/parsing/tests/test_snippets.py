@@ -1,5 +1,5 @@
-from konza.structured_body_component import StructuredBodyComponent
-from konza.section import Section
+from lib.konza.structured_body_component import StructuredBodyComponent
+from lib.konza.section import Section
 
 def hl7_section(file_path: str) -> Section:
     

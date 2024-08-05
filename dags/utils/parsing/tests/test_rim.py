@@ -1,21 +1,21 @@
-from konza.parser import read_clinical_document_from_xml_path
-from konza.extracts.extract import KonzaExtract
+from lib.konza.parser import read_clinical_document_from_xml_path
+from lib.konza.extracts.extract import KonzaExtract
 import os
-from konza.code import Code
-from konza.template_id import TemplateId
-from konza.text import Text
-from konza.effective_time import EffectiveTime
-from konza.value import Value
-from konza.author import Author
-from konza.assigned_entity import AssignedEntity
-from konza.assigned_author import AssignedAuthor
-from konza.addr import Addr
-from konza.telecom import Telecom
-from konza.person import Person
-from konza.name import Name
-from konza.token import Token
-from konza.authoring_device import AuthoringDevice
-from konza.organization import Organization
+from lib.konza.code import Code
+from lib.konza.template_id import TemplateId
+from lib.konza.text import Text
+from lib.konza.effective_time import EffectiveTime
+from lib.konza.value import Value
+from lib.konza.author import Author
+from lib.konza.assigned_entity import AssignedEntity
+from lib.konza.assigned_author import AssignedAuthor
+from lib.konza.addr import Addr
+from lib.konza.telecom import Telecom
+from lib.konza.person import Person
+from lib.konza.name import Name
+from lib.konza.token import Token
+from lib.konza.authoring_device import AuthoringDevice
+from lib.konza.organization import Organization
 
 def test_basic_extract():
     XML_PATH = "ccda/CCD.xml"

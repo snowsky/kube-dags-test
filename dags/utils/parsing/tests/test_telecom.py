@@ -1,9 +1,9 @@
-from konza.parser import (
+from lib.konza.parser import (
     read_clinical_document_from_xml_path, 
     read_clinical_document_base_from_xml_path,
     extract_demographic_info_from_xmls_to_parquet,
 )
-from konza.extracts.extract import KonzaExtract, KonzaExtractBase
+from lib.konza.extracts.extract import KonzaExtractBase
 import os
 import tempfile
 import pandas as pd
