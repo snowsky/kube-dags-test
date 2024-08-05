@@ -7,6 +7,7 @@ CSV_HEADER = {
     'DOB': 'dob',
     'Sex': 'sex',
     'SSN': 'ssn',
+    'Patient SSN': 'ssn',
     'Vault Name': 'respective_vault',
     'MRN': 'respective_mrn',
     'Opt In/Out': 'opt_choice',

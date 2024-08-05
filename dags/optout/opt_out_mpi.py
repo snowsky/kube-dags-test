@@ -10,16 +10,16 @@ import logging
 import os
 from pathlib import Path
 
-MYSQL_CONNECTION_ID = "TBD"
-WORKING_DIR = "TBD"
-SOURCE_FILE_NAME = "TBD"
+MYSQL_CONNECTION_ID = "qa-az1-sqlw2-airflowconnection"
+WORKING_DIR = "/data/biakonzasftp/C-9/optout_load/processed/"
+SOURCE_FILE_NAME = "global_opt_out_report_2024-06-28 thru 07-05.csv"
 
 default_args = {
     'owner': 'airflow',
     'mysql_conn_id': MYSQL_CONNECTION_ID
 }
 with DAG(
-    'process_opt_out_list',
+    'add_mpis_to_database_for_patients_without_mpis',
     default_args=default_args,
     schedule=None,
     tags=['example', 'population-definitions'],
@@ -29,22 +29,22 @@ with DAG(
     def add_mpis_to_database_for_patients_without_mpis(
         working_dir: str,
         source_file_name: str,
-        target_schema: str,
-        target_table: str,
         mysql_conn_id: str,
-        target_file_name: str = f"{Path(source_file_name).stem}_processed.csv",
+        target_file_name: str = f"{Path(SOURCE_FILE_NAME).stem}_processed.csv",
     ):
 
         from pathlib import Path
         from airflow.providers.mysql.hooks.mysql import MySqlHook
         import pandas as pd
+        from sqlalchemy.orm import sessionmaker
         import logging
         import os
 
         hook = MySqlHook(mysql_conn_id=mysql_conn_id)
         engine = _fix_engine_if_invalid_params(hook.get_sqlalchemy_engine())
-        
-        cursorInstance = engine.cursor()    
+        session=sessionmaker(bind= engine)()
+        cursorInstance=session.connection().connection.cursor()
+        #cursorInstance = engine.cursor()    
         
         source_file_path = os.path.join(working_dir, source_file_name)
         target_file_path = os.path.join(working_dir, target_file_name)
@@ -80,5 +80,5 @@ with DAG(
     processed_patients_with_new_mpis_path_in_blob_storage = add_mpis_to_database_for_patients_without_mpis(
         working_dir=WORKING_DIR,
         source_file_name=SOURCE_FILE_NAME,
-        mysql_conn_id=MYSQL_CONN_ID,
+        mysql_conn_id=MYSQL_CONNECTION_ID,
     )
