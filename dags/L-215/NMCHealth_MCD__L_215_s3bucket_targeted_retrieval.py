@@ -28,8 +28,8 @@ dag = DAG(
 # Define the S3 bucket name and subfolder
 BUCKET_NAME = 'konzaandssigroupncqa'
 S3_SUBFOLDER = ''
-LOCAL_DESTINATION = '/data/biakonzasftp/L-215/' #'/source-biakonzasftp/C-9/optout_load/' #'/data/biakonzasftp/L-215/'
-TEMP_DIRECTORY = '/data/biakonzasftp/airflow_temp/'
+LOCAL_DESTINATION = '/source-biakonzasftp/L-215/' #PRD is '/source-biakonzasftp/C-9/optout_load/' #DEV is '/data/biakonzasftp/L-215/'
+TEMP_DIRECTORY = '/source-biakonzasftp/airflow_temp/'
 
 # Task to list files in the S3 subfolder
 def list_files_in_s3(**kwargs):
