@@ -1,0 +1,5 @@
+CONNECTION_NAME = 'qa-az1-sqlw2-airflowconnection'
+EXAMPLE_DATA_PATH = ''
+SOURCE_FILES_DIRECTORY = '/data/biakonzasftp/C-9/SLA-113/'
+TMP_OUTPUT_DIR = '/data/biakonzasftp/C-9/SLA-113-output'
+TARGET_TABLE = 'person_master._mpi'
