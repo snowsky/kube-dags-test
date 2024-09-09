@@ -4,6 +4,10 @@ from airflow.models import Variable
 from airflow.hooks.mysql_hook import MySqlHook
 from airflow.decorators import task
 from airflow.models.param import Param
+
+from sla113.sla_113_dag_impl import get_ids_to_delete_impl
+
+
 from datetime import datetime
 import pandas as pd
 from pathlib import Path
@@ -16,6 +20,10 @@ if test_env:
     from sla113.test_common import SOURCE_FILES_DIRECTORY, CONNECTION_NAME, TMP_OUTPUT_DIR, TARGET_TABLE
 else:
     from sla113.common import SOURCE_FILES_DIRECTORY, CONNECTION_NAME, TMP_OUTPUT_DIR, TARGET_TABLE
+
+
+MAX_DELETE_ROWS = 3
+
 
 class ReturningMySqlOperator(MySqlOperator):
     def execute(self, context):
@@ -33,7 +41,7 @@ default_args = {
     #'retries': 1,
     #'retry_delay': timedelta(minutes=5),
 }
- 
+
 with DAG(
     'SLA-113MySQL',
     default_args=default_args,
@@ -103,13 +111,14 @@ with DAG(
     def delete_intermediate_files(input_file_paths):
         for input_file_path in input_file_paths:
             os.remove(input_file_path)
+
     
-    @task 
+
     def generate_ids_to_delete_file(max_id_output, params: dict):
         output_files_dir = params['output_files_dir_path']
 
         def generate_random_file_name(dir):
-            return os.path.join(output_files_dir, f"merge_file_{randint(100000, 999999)}.ids")
+            return os.path.join(dir, f"merge_file_{randint(100000, 999999)}.ids")
 
         from random import randint
 
@@ -128,30 +137,31 @@ with DAG(
             merge_ids_to_delete_files(paths_to_files_containing_ids_to_delete, merge_file_path)
             delete_intermediate_files(paths_to_files_containing_ids_to_delete)
             return merge_file_path
-        else: 
+
+        else:
             logging.info("No files containing id's to delete found" )
             return None
-    
-    @task
-    def delete_ids_from_tbl(ids_to_delete_file):
 
-        def delete_rows_with_id(ids_to_delete_str):
-            mysql_hook = MySqlHook(mysql_conn_id=CONNECTION_NAME)
-            sql = f"DELETE FROM {TARGET_TABLE} WHERE id IN {ids_to_delete_str};"
-            mysql_hook.run(sql)
-            logging.info(f'Deleted ids: {ids_to_delete_str}')
-        
-        if ids_to_delete_file:
-            with open(ids_to_delete_file) as f:
-                ids_to_delete = json.load(f)
-                delete_rows_with_id(f"({','.join(str(n) for n in ids_to_delete )})")
-        
+
+    @task
+    def get_ids_to_delete(ids_to_delete_file):
+        return get_ids_to_delete_impl(ids_to_delete_file, MAX_DELETE_ROWS)
+
+    @task
+    def delete_ids_from_tbl(ids_to_delete):
+        ids_to_delete_str = f"({','.join(str(n) for n in ids_to_delete )})"
+        mysql_hook = MySqlHook(mysql_conn_id=CONNECTION_NAME)
+        sql = f"DELETE FROM {TARGET_TABLE} WHERE id IN {ids_to_delete_str};"
+        mysql_hook.run(sql)
+        logging.info(f'Deleted ids: {ids_to_delete_str}')
 
     generate_ids_to_delete_file_task = generate_ids_to_delete_file(max_id_output=max_id.output)
-    delete_ids_from_tbl_task = delete_ids_from_tbl(generate_ids_to_delete_file_task)
+    get_ids_to_delete_task = get_ids_to_delete(generate_ids_to_delete_file_task)
+    delete_ids_from_tbl_task = delete_ids_from_tbl.expand(ids_to_delete=get_ids_to_delete_task)
 
     # Set task dependencies
-    max_id >> generate_ids_to_delete_file_task >> delete_ids_from_tbl_task
+    max_id >> generate_ids_to_delete_file_task >> get_ids_to_delete_task >> delete_ids_from_tbl_task
+
 
 if __name__ == "__main__":
     dag.cli()
