@@ -1,3 +1,4 @@
+import logging
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.hooks.base_hook import BaseHook
@@ -8,9 +9,21 @@ def check_mysql_connection():
     try:
         conn = connection.get_hook().get_conn()
         conn.ping()
-        print("Connection successful!")
+        logging.info("Connection successful!")
     except Exception as e:
-        print(f"Connection failed: {e}")
+        logging.error(f"Connection failed: {e}")
+
+def run_mysql_query():
+    connection = BaseHook.get_connection('qa-az1-sqlw3-airflowconnection')
+    try:
+        conn = connection.get_hook().get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM client_hierarchy")
+        results = cursor.fetchall()
+        for row in results:
+            logging.info(row)
+    except Exception as e:
+        logging.error(f"Query failed: {e}")
 
 default_args = {
     'owner': 'airflow',
@@ -28,4 +41,9 @@ with DAG('check_mysql_connection_dag',
         python_callable=check_mysql_connection
     )
 
-    check_connection_task
+    run_query_task = PythonOperator(
+        task_id='run_mysql_query',
+        python_callable=run_mysql_query
+    )
+
+    check_connection_task >> run_query_task
