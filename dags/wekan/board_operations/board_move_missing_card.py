@@ -30,7 +30,7 @@ from lib.wekan.types.cards import LostCardDetails
     dagrun_timeout=timedelta(minutes=240),
     params={
         "hostname": "http://wekan.wekan.svc:8080",
-        "username": "erta_robot", 
+        "username": "c354e7f1-2afc-40e0-b554-7e26c57cbdb4", #User Unique ID from Entra for erta_robot@konzalogin.onmicrosoft.com
         "password": "password",
         "card_id": "GID like SUP #",
         "target_board_id": "ijzp326Etg3EZStWb",
