@@ -3,6 +3,8 @@ from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.operators.python import get_current_context
+from airflow.exceptions import AirflowFailException, AirflowSkipException
 from os import path, makedirs
 from functools import partial
 import math
@@ -14,7 +16,7 @@ DEFAULT_SOURCE_FILES_DIRECTORY = '/data/biakonzasftp/C-126/L-69/source/'
 DEFAULT_DEST_FILES_DIRECTORY = '/data/biakonzasftp/C-126/L-69/dest/'
 DEFAULT_MAX_POOL_WORKERS = 10
 DEFAULT_MAX_TASKS = 10
-PARALLEL_TASK_LIMIT = 5
+PARALLEL_TASK_LIMIT = 5  # Change this to large number of prod to remove parallel task limit
 
 class BucketDetails:
     def __init__(self, aws_conn_id, aws_key_pattern, s3_hook_kwargs):
@@ -47,7 +49,7 @@ with DAG(
         "output_files_dir_path": Param(DEFAULT_DEST_FILES_DIRECTORY, type="string"),
         "max_pool_workers": Param(DEFAULT_MAX_POOL_WORKERS, type="integer", minimum=0),
         "max_mapped_tasks": Param(DEFAULT_MAX_TASKS, type="integer", minimum=0),
-        "transer_to_konzaandssigrouppipelines_bucket": Param(True, type="boolean")
+        "transfer_to_konzaandssigrouppipelines_bucket": Param(True, type="boolean")
     },
 ) as dag:
     @task
@@ -62,8 +64,11 @@ with DAG(
             return []
 
     def _split_list_into_batches(target_list,  max_tasks):
-        chunk_size = math.ceil(len(target_list) / max_tasks)
-        batches = [target_list[i:i + chunk_size] for i in range(0, len(target_list), chunk_size)]
+        if target_list:
+            chunk_size = math.ceil(len(target_list) / max_tasks)
+            batches = [target_list[i:i + chunk_size] for i in range(0, len(target_list), chunk_size)]
+        else:
+            batches = []
         return batches
 
     def _sanitise_input_directories(params):
@@ -85,7 +90,10 @@ with DAG(
         max_workers = params['max_pool_workers']
         with PoolExecutor(max_workers=max_workers) as executor:
             future_file_dict = {executor.submit(partial(_copy_file, params), f): f for f in input_file_list}
-            return _get_results_from_futures(future_file_dict)
+        _, exceptions = _get_results_from_futures(future_file_dict)
+        if exceptions:
+            raise AirflowFailException(f'exceptions raised: {exceptions}')
+
 
     def _copy_file(params, file):
         import shutil
@@ -94,6 +102,13 @@ with DAG(
         makedirs(path.dirname(dest_file_path), exist_ok=True)
         shutil.copy2(input_file_path, dest_file_path)
         return file
+
+    def _push_results_from_futures(future_file_dict):
+        results, exceptions = _get_results_from_futures(future_file_dict)
+        context = get_current_context()
+        context['ti'].xcom_push(key='result', value=results)
+        if exceptions:
+            raise AirflowFailException(f'exceptions raised: {exceptions}')
 
     def _get_results_from_futures(future_file_dict):
         results = []
@@ -104,9 +119,7 @@ with DAG(
                 results.append(future.result())
             except Exception as e:
                 exceptions.append(str(f'{file}: {str(e)})'))
-        if exceptions:
-            raise Exception(f'exceptions raised: {exceptions}')
-        return results
+        return results, exceptions
 
     def create_upload_file_to_s3_task(bucket_name):
         @task(task_id=bucket_name)
@@ -117,7 +130,7 @@ with DAG(
                 future_file_dict = {executor.submit(partial(_upload_file_to_s3, params, aws_key_pattern, aws_conn_id,
                                                             aws_bucket_name, s3_hook_kwargs), f): f for f in
                                     input_file_list}
-                return _get_results_from_futures(future_file_dict)
+                _push_results_from_futures(future_file_dict)
         return upload_file_to_s3_task_def
 
     def _upload_file_to_s3(params, aws_key_pattern, aws_conn_id, aws_bucket_name, s3_hook_kwargs, file):
@@ -136,19 +149,19 @@ with DAG(
         )
         return file
 
-    @task(trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS)
-    def identify_successful_transfers_task(mapped_task_results, params: dict):
+    @task(trigger_rule=TriggerRule.ALL_DONE)
+    def identify_successful_transfers_task(transfer_task_ids, params: dict):
         # A successful transfer is a file that was successfully transferred to ALL target s3 accounts.
-        # mapped task results expected a 3 tier list: 1) All tasks 2) Individual Task 3) Mapped task instances.
-        None in mapped_task_results and mapped_task_results.remove(None)  # Remove skipped tasks.
-        flat_list = [c for a in mapped_task_results for b in a for c in b]
-        successful_transfers = {r for r in flat_list if flat_list.count(r) == len(mapped_task_results)}
+        context = get_current_context()
+        mapped_task_results = context['ti'].xcom_pull(key='result', task_ids=transfer_task_ids)
+        flat_list = [b for a in mapped_task_results for b in a]
+        successful_transfers = {r for r in flat_list if flat_list.count(r) == len(transfer_task_ids)}
         return _split_list_into_batches(list(successful_transfers), params['max_mapped_tasks'])
 
     @task.branch
     def select_buckets_task(params: dict):
         buckets = AWS_BUCKETS
-        if not params['transer_to_konzaandssigrouppipelines_bucket']:
+        if not params['transfer_to_konzaandssigrouppipelines_bucket']:
             buckets.pop('konzaandssigrouppipelines')
         return list(buckets.keys())
 
@@ -163,7 +176,7 @@ with DAG(
                                                             aws_bucket_name=[bucket],
                                                             s3_hook_kwargs=[AWS_BUCKETS[bucket].s3_hook_kwargs])
         transfer_file_to_s3_tasks.append(transfer_file_to_s3)
-    identify_successful_transfers = identify_successful_transfers_task(mapped_task_results=transfer_file_to_s3_tasks)
+    identify_successful_transfers = identify_successful_transfers_task(transfer_task_ids=select_buckets)
     archive_transferred_file = copy_file_task.expand(input_file_list=identify_successful_transfers)
 
     diff_files >> select_buckets >> transfer_file_to_s3_tasks >> identify_successful_transfers >> archive_transferred_file
