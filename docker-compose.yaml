@@ -72,13 +72,12 @@ x-airflow-common:
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/test/dags/populations/db_tables:/opt/airflow/example_data
+    - ${AIRFLOW_PROJ_DIR:-.}/test/dags/sla113/reportwriterstorage:/opt/airflow/reportwriterstorage
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
     - ${XML_MOUNT_PATH}:/opt/airflow/ccda
-    - ${PARSER_MOUNT_PATH}:/opt/airflow/dags/konza
     - ${CCD_UTILS_MOUNT_PATH}:/opt/airflow/dags/ccd-utils
-    - ${AIRFLOW_PROJ_DIR:-.}/lib:/opt/airflow/dags/lib
     - ${AIRFLOW_PROJ_DIR:-.}/test/dags/populations/pop_data:/opt/airflow/dags/sftp_mock/pop_data/
     - ${AIRFLOW_PROJ_DIR:-.}/test/dags/populations/pop_data:/source-biakonzasftp/
   user: "${AIRFLOW_UID:-50000}:0"
