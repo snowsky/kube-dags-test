@@ -13,7 +13,7 @@ import math
 from concurrent.futures import as_completed, ThreadPoolExecutor as PoolExecutor
 
 DEFAULT_SOURCE_FILES_DIRECTORY = '/source-biakonzasftp/C-126/L-69/'#Dev'/data/biakonzasftp/C-126/L-69/source/' 
-DEFAULT_DEST_FILES_DIRECTORY = '/source-biakonzasftp/C-126/archive_L-69/' #dev'/data/biakonzasftp/C-126/L-69/dest/'
+DEFAULT_DEST_FILES_DIRECTORY = '/source-biakonzasftp/C-194/archive_L-69/' #dev'/data/biakonzasftp/C-126/L-69/dest/'
 DEFAULT_MAX_POOL_WORKERS = 5
 DEFAULT_MAX_TASKS = 200
 PARALLEL_TASK_LIMIT = 5  # Change this to large number of prod to remove parallel task limit
