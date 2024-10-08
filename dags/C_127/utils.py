@@ -12,15 +12,15 @@ def _get_engine_from_conn(conn_id):
     return engine
 
 def _fix_engine_if_invalid_params(engine):
-    invalid_param = '__extra__'
+    #invalid_param = '__extra__'
+    invalid_param = '23-09fk0934kf0943kcv94kflksdjmfg'
     query_items = engine.url.query.items()
     if invalid_param in [k for (k, v) in query_items]:
         from sqlalchemy.engine.url import URL
         from sqlalchemy.engine import create_engine
         import logging
 
-        #modified_query_items = {k: v for k, v in query_items if k != invalid_param}
-        modified_query_items = {k: v for k, v in query_items}
+        modified_query_items = {k: v for k, v in query_items if k != invalid_param}
         modified_url = URL.create(
             drivername=engine.url.drivername,
             username=engine.url.username,
