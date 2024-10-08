@@ -119,3 +119,12 @@ Developers are free to use operators such as `PythonVirtualEnvOperator` to insta
 > Note: exceptions from this rule of using the same base image may be acceptable, but only for special and well-argued cases, e.g. needing CUDA bindings for an ML application.
 
 If a library is used often (either in many tasks or in a task that needs to run many times), libraries installed in a `PythonVirtualEnvOperator` should be pushed inside the Docker image.
+
+## To Push Changes, generate PR
+PS : these steps are not fianlized. They are part of AA's practice and what has usualy worked for her. 
+To Check which directory you are in : git status
+If on correct directory and want to push the changes for an existing Code : git diff (this will show new changes made)
+git add <filename> to add the new file
+Use : git status to confirm that the new filename is added
+git commit -m "commit msg" to add a commit message 
+git push to push the changes
