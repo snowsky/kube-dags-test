@@ -19,7 +19,8 @@ def _fix_engine_if_invalid_params(engine):
         from sqlalchemy.engine import create_engine
         import logging
 
-        modified_query_items = {k: v for k, v in query_items if k != invalid_param}
+        #modified_query_items = {k: v for k, v in query_items if k != invalid_param}
+        modified_query_items = {k: v for k, v in query_items}
         modified_url = URL.create(
             drivername=engine.url.drivername,
             username=engine.url.username,
