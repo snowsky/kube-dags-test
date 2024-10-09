@@ -5,7 +5,7 @@ from airflow.hooks.base_hook import BaseHook
 from datetime import datetime
 
 def check_mysql_connection():
-    connection = BaseHook.get_connection('qa-az1-sqlw3-airflowconnection')
+    connection = BaseHook.get_connection('prd-az1-sqlw3-mysql-airflowconnection')
     try:
         conn = connection.get_hook().get_conn()
         conn.ping()
@@ -14,7 +14,7 @@ def check_mysql_connection():
         logging.error(f"Connection failed: {e}")
 
 def run_mysql_query():
-    connection = BaseHook.get_connection('qa-az1-sqlw3-airflowconnection')
+    connection = BaseHook.get_connection('prd-az1-sqlw3-mysql-airflowconnection')
     try:
         conn = connection.get_hook().get_conn()
         cursor = conn.cursor()
