@@ -1,20 +1,18 @@
 from abc import ABC, abstractmethod
 
-
 class ClientProfile(ABC):
     def __init__(self):
         #  Properties look to be the same across all clients
-        self._conn_id = "MariaDB"
+        self._conn_id = "qa-az1-sqlw3-airflowconnection"
         self._schema = "temp"
 
-    @property
     @abstractmethod
-    def client_name(self):
+    def process_population_data(self):
         pass
 
     @property
     @abstractmethod
-    def source_directory(self):
+    def client_name(self):
         pass
 
     @property
@@ -29,7 +27,12 @@ class ClientProfile(ABC):
 
     @property
     @abstractmethod
-    def approved(self):
+    def mpi_crosswalk(self):
+        pass
+
+    @property
+    @abstractmethod
+    def csg(self):
         pass
 
     @property

@@ -32,7 +32,7 @@ with DAG(
     def create_user_defined_fn(schema_name='person_master'):
         from sqlalchemy import create_engine, text
         engine = create_engine(
-            f'mysql://root:example@{CONNECTION_NAME.lower()}/{schema_name}'
+            f'mysql://root:example@127.0.0.1/{schema_name}'
         )
 
         create_udf_sql = """
@@ -97,7 +97,7 @@ with DAG(
         logging.info(f'Creating table: {table_name}, in schema: {schema_name}')
 
         engine = create_engine(
-            f'mysql://root:example@{connection_name.lower()}/{schema_name}'
+            f'mysql://root:example@127.0.0.1/{schema_name}'
         )
 
         df = pd.read_csv(csv_local_file_path)

@@ -1,0 +1,4 @@
+index_update_dt_tm,population_name,source,MPI,id,mrn,first_name,last_name,dob,sex,ssn,provider_first_name,provider_last_name,ins_plan_name,ins_member_id,ins_insured_id,ins_dependent_id,patient_type,admit_date,discharge_date,visit_no,ps,los,age
+,,,,,,,,,,,,provider_last_name_1,,,,,,,,,,,
+,,,,,,,,,,,,provider_last_name_2,,,,,,,,,,,
+,,,,,,,,,,,,provider_last_name_3,,,,,,,,,,,

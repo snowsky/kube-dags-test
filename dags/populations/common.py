@@ -1,5 +1,6 @@
-CONNECTION_NAME = 'MariaDB'
-EXAMPLE_DATA_PATH = 'example_data'
+
+CONNECTION_NAME = 'qa-az1-sqlw3-airflowconnection'
+EXAMPLE_DATA_PATH = '/home/jovyan/konza-dags/test/dags/populations/db_tables'
         
 CSV_HEADER = {
     'First Name': 'fname',

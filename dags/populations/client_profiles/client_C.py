@@ -5,7 +5,7 @@ class ClientC(ClientProfile):
     def __init__(self):
         super().__init__()
         self._client_name = "Air Flow Client C"
-        self._source_directory = "/opt/airflow/dags/sftp_mock/pop_data/client_c"
+        self._source_directory = "/home/jovyan/konza-dags/test/dags/populations/pop_data/client_c"
         self._target_table = "tpairflowclientc"
         self._ending_db = 47
         self._approved = True  # Pull in from DB or another source?

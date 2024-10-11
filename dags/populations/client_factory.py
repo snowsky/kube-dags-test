@@ -1,6 +1,7 @@
 from populations.client_profiles.client_A import ClientA
 from populations.client_profiles.client_B import ClientB
 from populations.client_profiles.client_C import ClientC
+from populations.client_profiles.client_D import ClientD
 
 
 class ClientFactory:
@@ -8,6 +9,7 @@ class ClientFactory:
         'Air Flow Client A': ClientA,
         'Air Flow Client B': ClientB,
         'Air Flow Client C': ClientC,
+        'Air Flow Client D': ClientD
     }
 
     @classmethod
@@ -17,3 +19,7 @@ class ClientFactory:
             return client_class()
         else:
             raise ValueError(f"Unknown client name: {client_name}")
+
+
+def get_client_profile(client_name):
+    return ClientFactory.get_client_profile(client_name)
