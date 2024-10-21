@@ -18,7 +18,7 @@ DEFAULT_MAX_TASKS = 200
 DEFAULT_PAGE_SIZE = 1000 # Splits aws list_keys into batches
 PARALLEL_TASK_LIMIT = 5  # Change this to large number of prod to remove parallel task limit
 #DEFAULT_AWS_TAG = 'CPProcessed'
-DEFAULT_DB_CONN_ID = 'prd-az1-sqlw3-airflowconnection' 
+DEFAULT_DB_CONN_ID = 'prd-az1-sqlw3-mysql-airflowconnection' 
 
 
 class BucketDetails:
