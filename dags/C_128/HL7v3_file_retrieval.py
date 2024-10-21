@@ -40,7 +40,7 @@ default_args = {
     'owner': 'airflow',
 }
 with DAG(
-    dag_id='HL7v3_file_retrieval_AA',
+    dag_id='HL7v3_file_retrieval',
     default_args=default_args,
     schedule=None,
     tags=['C-128'],
