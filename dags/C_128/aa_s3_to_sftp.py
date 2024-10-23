@@ -57,7 +57,7 @@ def transfer_file_to_sftp(file_key):
 
     copy_task = S3ToSFTPOperator(
         task_id=sanitized_task_id,
-        sftp_conn_id='sftp_airflow',
+        sftp_conn_id='biakonzasftp',
         sftp_path=sftp_path,  
         s3_bucket=BUCKET_NAME,
         s3_key=file_key,
