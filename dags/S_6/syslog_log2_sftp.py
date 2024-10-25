@@ -23,7 +23,8 @@ dag = DAG(
 )
 
 # Define network file path
-network_file_path = '/data/biakonzasftp/S-6/firewall_logs/'
+network_file_path = '/source-biakonzasftp/S-6/firewall_logs/'
+#network_file_path = '/data/biakonzasftp/S-6/firewall_logs/'
 file_name = 'syslog'
 
 # Python function to copy files from SFTP to network file path
