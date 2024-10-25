@@ -14,12 +14,12 @@ default_args = {
 }
 
 dag = DAG(
-    'aa_transfer_syslog_to_local_sftp_2',
+    'prd-az1-log2_syslog_to_local_sftp',
     default_args=default_args,
-    description='Retrieve files from SFTP, deliver to network path and S3',
+    description='This DAG retrieves some firewall logs from a VM where the are collected and stores it for future audits with HITRUST implications',
     schedule_interval=None,
     catchup=False,
-    tags=['S-6','AA', 'Test'],
+    tags=['S-6'],
 )
 
 # Define network file path
@@ -44,7 +44,7 @@ copy_to_network_task = PythonOperator(
     task_id='copy_files_to_network',
     python_callable=copy_to_network_path,
     op_kwargs={
-        'sftp_conn_id': 'PRD-AZ1-LOG2-airflow',
+        'sftp_conn_id': 'prd-az1-logs2',
         'sftp_path': '/var/log/',
         'network_path': network_file_path,
     },
