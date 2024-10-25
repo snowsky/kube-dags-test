@@ -16,15 +16,14 @@ default_args = {
 dag = DAG(
     'prd-az1-log2_syslog_to_local_sftp',
     default_args=default_args,
-    description='This DAG retrieves some firewall logs from a VM where the are collected and stores it for future audits with HITRUST implications',
-    schedule_interval=None,
+    description='This DAG retrieves some firewall logs from a VM where they are collected and stores it for future audits with HITRUST implications',
+    schedule_interval='@daily',  # Schedule to run daily
     catchup=False,
     tags=['S-6'],
 )
 
 # Define network file path
 network_file_path = '/source-biakonzasftp/S-6/firewall_logs/'
-#network_file_path = '/data/biakonzasftp/S-6/firewall_logs/'
 file_name = 'syslog'
 
 # Python function to copy files from SFTP to network file path
@@ -32,13 +31,18 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
     sftp_hook = SFTPHook(sftp_conn_id)
     file_names = sftp_hook.list_directory(sftp_path)
 
-    if not os.path.exists(network_path):
-        os.makedirs(network_path)
+    current_date = datetime.now()
+    subfolder = current_date.strftime('%Y%m')
+    day_stamp = current_date.strftime('%d')
+    network_path_with_date = os.path.join(network_path, subfolder)
+
+    if not os.path.exists(network_path_with_date):
+        os.makedirs(network_path_with_date)
 
     if sftp_hook.isfile(os.path.join(sftp_path, file_name)):
-        local_file_path = os.path.join(network_path, file_name)
+        local_file_path = os.path.join(network_path_with_date, f'{file_name}_{day_stamp}')
         sftp_hook.retrieve_file(os.path.join(sftp_path, file_name), local_file_path)
-        print(f'Copied {file_name} to {network_path}')
+        print(f'Copied {file_name} to {network_path_with_date} with day stamp {day_stamp}')
 
 # Task 1: Copy files from SFTP to network file path
 copy_to_network_task = PythonOperator(
