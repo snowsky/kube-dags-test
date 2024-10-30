@@ -18,6 +18,7 @@ DEFAULT_MAX_TASKS = 200
 DEFAULT_PAGE_SIZE = 1000 # Splits aws list_keys into batches
 PARALLEL_TASK_LIMIT = 5  # Change this to large number of prod to remove parallel task limit
 #DEFAULT_AWS_TAG = 'CPProcessed'
+#DEFAULT_DB_CONN_ID = 'qa-az1-sqlw3-airflowconnection' 
 DEFAULT_DB_CONN_ID = 'prd-az1-sqlw3-mysql-airflowconnection' 
 
 
@@ -62,13 +63,40 @@ with DAG(
         else:
             batches = []
         return batches
-
+        
     def _archive_results_from_futures(future_file_dict):
         results, exceptions = _get_results_from_futures(future_file_dict)
-        batch_values = ', '.join([f"('{value}')" for value in results])
-        execute_query(f"INSERT INTO archive.processed_files (file_key) VALUES {batch_values}", DEFAULT_DB_CONN_ID)
+        xml_results = [value for value in results if value.endswith('.xml')]
+        
+        if not xml_results:
+            logging.info("No XML files to process.")
+            return  # Exit the function if there are no XML files
+
+        batch_values = ', '.join([f"('{value}')" for value in xml_results])
+        query = f"INSERT INTO archive.processed_files (file_key) VALUES {batch_values}"
+        logging.info(f"Preparing to execute query: {query}")
+        
+        try:
+            execute_query(query, DEFAULT_DB_CONN_ID)
+            logging.info("Query executed successfully.")
+        except Exception as e:
+            logging.error(f"Failed to execute query: {e}")
+            raise
         if exceptions:
             raise AirflowFailException(f'exceptions raised: {exceptions}')
+
+        
+    #def _archive_results_from_futures(future_file_dict):
+        #results, exceptions = _get_results_from_futures(future_file_dict)
+        #batch_values = ', '.join([f"('{value}')" for value in results]) 
+        ## AA NOTES : create a variable sql and have that query go in the sql statement. Current DAG archive.processed_files has no new entry. 
+        ## Have logging statements that can be monitored to see what where these inserts worked"
+        ## Push to PR with taht change if it works in QA 
+        #execute_query(f"INSERT INTO archive.processed_files (file_key) VALUES {batch_values}", DEFAULT_DB_CONN_ID)
+        #logging.info("here is the query(69 : " + query)
+
+        #if exceptions:
+            #raise AirflowFailException(f'exceptions raised: {exceptions}')
 
     def _get_results_from_futures(future_file_dict):
         results = []
@@ -90,10 +118,13 @@ with DAG(
         bucket = AWS_BUCKETS[bucket_name]
         max_workers = params['max_pool_workers']
         with PoolExecutor(max_workers=max_workers) as executor:
-            future_file_dict = {executor.submit(partial(_retrieve_file_from_s3, params, bucket.aws_conn_id,
-                                                        bucket_name, bucket.s3_hook_kwargs), f): f for f in
-                                key_list}
+            future_file_dict = {executor.submit(partial(_retrieve_file_from_s3, params, bucket.aws_conn_id, bucket_name, bucket.s3_hook_kwargs), f): f for f in key_list if f.endswith('.xml')}
             _archive_results_from_futures(future_file_dict)
+        #with PoolExecutor(max_workers=max_workers) as executor:
+            #future_file_dict = {executor.submit(partial(_retrieve_file_from_s3, params, bucket.aws_conn_id,
+                                                        #bucket_name, bucket.s3_hook_kwargs), f): f for f in
+                                #key_list}
+            #_archive_results_from_futures(future_file_dict)
 
     def _retrieve_file_from_s3(params, aws_conn_id, aws_bucket_name, s3_hook_kwargs, aws_key):
         s3_hook = S3Hook(aws_conn_id=aws_conn_id)
@@ -143,7 +174,7 @@ with DAG(
             #logging.info(f'Skipping {file_key} as it starts with “airflow”')
             logging.info("here is the query(codeline140 : " + query)
         return len(diff_list)
-        
+
 
     @task
     def prep_temp_tables_task():
