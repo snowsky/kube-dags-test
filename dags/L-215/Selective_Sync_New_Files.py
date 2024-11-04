@@ -102,6 +102,13 @@ def move_files_to_local(**kwargs):
             
             # Check if the temporary file exists before moving
             if os.path.exists(temp_file_path):
+                # Modify the file name if it comes from NCQAResults/ and is a .csv file
+                if file_key.startswith('NCQAResults/') and file_key.endswith('.csv'):
+                    base_name = os.path.basename(file_key)
+                    name, ext = os.path.splitext(base_name)
+                    new_name = f"{name}_V20241104_4656{ext}"
+                    local_file_path = os.path.join(local_dir, new_name)
+                
                 # Move the file from the temp directory to the local destination
                 os.rename(temp_file_path, local_file_path)
                 logging.info(f'Successfully moved {file_key} to {local_file_path}')
@@ -125,3 +132,4 @@ list_files_task >> move_files_task
 
 if __name__ == "__main__":
     dag.cli()
+
