@@ -22,7 +22,8 @@ dag = DAG(
     default_args=default_args,
     description='A simple DAG to move new or changed files from an S3 subfolder to a mounted drive location',
     schedule_interval='@hourly',  # Set to run hourly
-    start_date=datetime(2024, 8, 5),
+    start_date=datetime(2024, 11, 4),
+    catchup=False, 
     tags=['L-215'],
 )
 
