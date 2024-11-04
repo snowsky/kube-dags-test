@@ -5,7 +5,7 @@ import boto3
 from airflow.hooks.S3_hook import S3Hook
 from airflow.operators.python import PythonOperator
 from airflow import DAG
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import tempfile
 
 # Define the DAG
@@ -22,8 +22,8 @@ dag = DAG(
     default_args=default_args,
     description='A simple DAG to move new or changed files from an S3 subfolder to a mounted drive location',
     schedule_interval='@hourly',  # Set to run hourly
-    start_date=datetime(2024, 11, 4),
-    catchup=False, 
+    start_date=datetime(2024, 11, 4),  # Set to today
+    catchup=False,  # Disable catchup
     tags=['L-215'],
 )
 
@@ -75,8 +75,8 @@ def move_files_to_local(**kwargs):
         
         # Check if the file already exists in the local destination
         if os.path.exists(local_file_path):
-            # Get the last modified time of the local file
-            local_last_modified = datetime.fromtimestamp(os.path.getmtime(local_file_path))
+            # Get the last modified time of the local file and make it offset-aware
+            local_last_modified = datetime.fromtimestamp(os.path.getmtime(local_file_path), tz=timezone.utc)
             
             # Get the last modified time of the S3 file
             response = s3.head_object(Bucket=BUCKET_NAME, Key=file_key)
