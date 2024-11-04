@@ -24,7 +24,6 @@ dag = DAG(
     schedule_interval='@hourly',  # Set to run hourly
     tags=['L-215'],
     start_date=datetime(2024,8,5),
-    tags=['example'],
 )
 # Define the S3 bucket name and subfolder
 BUCKET_NAME = 'konzaandssigroupncqa'
