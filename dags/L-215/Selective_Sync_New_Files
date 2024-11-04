@@ -25,6 +25,7 @@ dag = DAG(
     start_date=datetime(2024,8,5),
     tags=['example'],
 )
+
 # Define the S3 bucket name and subfolder
 BUCKET_NAME = 'konzaandssigroupncqa'
 S3_SUBFOLDER = ''
@@ -80,6 +81,19 @@ def move_files_to_local(**kwargs):
             os.makedirs(TEMP_DIRECTORY, exist_ok=True)
             
             logging.info(f'Attempting to download {file_key} to {temp_file_path}')
+            
+            # Get the last modified time of the file in S3
+            s3_object = s3.head_object(Bucket=BUCKET_NAME, Key=file_key)
+            s3_last_modified = s3_object['LastModified']
+            
+            # Check if the local file exists and get its last modified time
+            if os.path.exists(local_file_path):
+                local_last_modified = datetime.fromtimestamp(os.path.getmtime(local_file_path))
+                # Skip the file if it hasn't been modified
+                if local_last_modified >= s3_last_modified:
+                    logging.info(f'Skipping {file_key} as it has not been modified')
+                    continue
+            
             # Use Boto3 to download the file
             s3.download_file(BUCKET_NAME, file_key, temp_file_path)
             logging.info(f'Successfully downloaded {file_key} to {temp_file_path}')
