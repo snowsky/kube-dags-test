@@ -5,7 +5,7 @@ import boto3
 from airflow.hooks.S3_hook import S3Hook
 from airflow.operators.python import PythonOperator
 from airflow import DAG
-from datetime import datetime
+from datetime import datetime, timedelta
 import tempfile
 
 # Define the DAG
@@ -20,16 +20,16 @@ default_args = {
 dag = DAG(
     'L_215_s3_selective_sync',
     default_args=default_args,
-    description='A simple DAG to move files from an S3 subfolder to a mounted drive location',
+    description='A simple DAG to move new or changed files from an S3 subfolder to a mounted drive location',
     schedule_interval='@hourly',  # Set to run hourly
+    start_date=datetime(2024, 8, 5),
     tags=['L-215'],
-    start_date=datetime(2024,11,4),
 )
 
 # Define the S3 bucket name and subfolder
 BUCKET_NAME = 'konzaandssigroupncqa'
 S3_SUBFOLDER = ''
-LOCAL_DESTINATION = '/source-biakonzasftp/L-215/' #PRD is '/source-biakonzasftp/C-9/optout_load/' #DEV is '/data/biakonzasftp/L-215/'
+LOCAL_DESTINATION = '/source-biakonzasftp/L-215/'  # PRD is '/source-biakonzasftp/C-9/optout_load/' #DEV is '/data/biakonzasftp/L-215/'
 TEMP_DIRECTORY = '/source-biakonzasftp/airflow_temp/'
 
 # Task to list files in the S3 subfolder
@@ -72,6 +72,20 @@ def move_files_to_local(**kwargs):
         # Ensure the local directory structure exists
         os.makedirs(local_dir, exist_ok=True)
         
+        # Check if the file already exists in the local destination
+        if os.path.exists(local_file_path):
+            # Get the last modified time of the local file
+            local_last_modified = datetime.fromtimestamp(os.path.getmtime(local_file_path))
+            
+            # Get the last modified time of the S3 file
+            response = s3.head_object(Bucket=BUCKET_NAME, Key=file_key)
+            s3_last_modified = response['LastModified']
+            
+            # Compare the last modified times
+            if s3_last_modified <= local_last_modified:
+                logging.info(f'Skipping {file_key} as it has not been modified since the last sync')
+                continue
+        
         # Generate a unique temporary file path
         temp_file_name = next(tempfile._get_candidate_names())
         temp_file_path = os.path.join(TEMP_DIRECTORY, temp_file_name)
@@ -81,19 +95,6 @@ def move_files_to_local(**kwargs):
             os.makedirs(TEMP_DIRECTORY, exist_ok=True)
             
             logging.info(f'Attempting to download {file_key} to {temp_file_path}')
-            
-            # Get the last modified time of the file in S3
-            s3_object = s3.head_object(Bucket=BUCKET_NAME, Key=file_key)
-            s3_last_modified = s3_object['LastModified']
-            
-            # Check if the local file exists and get its last modified time
-            if os.path.exists(local_file_path):
-                local_last_modified = datetime.fromtimestamp(os.path.getmtime(local_file_path))
-                # Skip the file if it hasn't been modified
-                if local_last_modified >= s3_last_modified:
-                    logging.info(f'Skipping {file_key} as it has not been modified')
-                    continue
-            
             # Use Boto3 to download the file
             s3.download_file(BUCKET_NAME, file_key, temp_file_path)
             logging.info(f'Successfully downloaded {file_key} to {temp_file_path}')
