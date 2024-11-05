@@ -11,8 +11,8 @@ import logging
 from concurrent.futures import as_completed, ThreadPoolExecutor as PoolExecutor
 from C_128.utils import execute_query
 
-DEFAULT_DEST_FILES_DIRECTORY = '/data/biakonzasftp/C-128/archive/HL7v3In' #ask eric where he wants the files to go
-DEFAULT_AWS_FOLDER = 'HL7v3In' 
+DEFAULT_DEST_FILES_DIRECTORY = '/data/biakonzasftp/C-128/archive/XCAIn' #Always empty the archive folder for test
+DEFAULT_AWS_FOLDER = 'XCAIn'
 DEFAULT_MAX_POOL_WORKERS = 5
 DEFAULT_MAX_TASKS = 200
 DEFAULT_PAGE_SIZE = 1000 # Splits aws list_keys into batches
@@ -20,7 +20,6 @@ PARALLEL_TASK_LIMIT = 5  # Change this to large number of prod to remove paralle
 #DEFAULT_AWS_TAG = 'CPProcessed'
 #DEFAULT_DB_CONN_ID = 'qa-az1-sqlw3-airflowconnection' 
 DEFAULT_DB_CONN_ID = 'prd-az1-sqlw3-mysql-airflowconnection' 
-
 
 
 class BucketDetails:
@@ -42,7 +41,7 @@ default_args = {
     'owner': 'airflow',
 }
 with DAG(
-    dag_id='HL7v3_file_retrieval_AA',
+    dag_id='XCAIn_file_retrieval',
     default_args=default_args,
     schedule=None,
     tags=['C-128'],
