@@ -128,3 +128,7 @@ git add <filename> to add the new file
 Use : git status to confirm that the new filename is added
 git commit -m "commit msg" to add a commit message 
 git push to push the changes
+
+If pushing the PR via new directory:
+To create new branch : git checkout -b new-branch-name
+To push a PR in the new branch : git push origin new-branch-name
