@@ -23,6 +23,7 @@ DEFAULT_DB_CONN_ID = 'prd-az1-sqlw3-mysql-airflowconnection'
 
 
 
+
 class BucketDetails:
     def __init__(self, aws_conn_id, s3_hook_kwargs):
         self.aws_conn_id = aws_conn_id
