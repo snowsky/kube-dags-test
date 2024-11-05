@@ -29,8 +29,8 @@ dag = DAG(
 
 # Define the S3 bucket name and subfolder
 BUCKET_NAME = 'konzaandssigroupncqa'
-APPROVED_CSQL_VERSION = 'CQL20241104_4656'
-APPROVED_RESULTS_VERSION = 'RESULTS20241104_4656'
+APPROVED_CSQL_VERSION = 'VCQL20241104_4656'
+APPROVED_RESULTS_VERSION = 'VRESULTS20241104_5129'
 S3_SUBFOLDER = ''
 LOCAL_DESTINATION = '/source-biakonzasftp/L-215/'  # PRD is '/source-biakonzasftp/C-9/optout_load/' #DEV is '/data/biakonzasftp/L-215/'
 TEMP_DIRECTORY = '/source-biakonzasftp/airflow_temp/'
