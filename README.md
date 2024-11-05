@@ -121,7 +121,7 @@ Developers are free to use operators such as `PythonVirtualEnvOperator` to insta
 If a library is used often (either in many tasks or in a task that needs to run many times), libraries installed in a `PythonVirtualEnvOperator` should be pushed inside the Docker image.
 
 ## To Push Changes, generate PR
-PS : these steps are not fianlized. They are part of AA's practice and what has usualy worked for her. 
+
 To Check which directory you are in : git status
 If on correct directory and want to push the changes for an existing Code : git diff (this will show new changes made)
 git add <filename> to add the new file
