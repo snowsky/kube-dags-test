@@ -29,7 +29,8 @@ dag = DAG(
 
 # Define the S3 bucket name and subfolder
 BUCKET_NAME = 'konzaandssigroupncqa'
-APPROVED_CSQL_VERSION = '20241104_4656'
+APPROVED_CSQL_VERSION = 'CQL20241104_4656'
+APPROVED_RESULTS_VERSION = 'RESULTS20241104_4656'
 S3_SUBFOLDER = ''
 LOCAL_DESTINATION = '/source-biakonzasftp/L-215/'  # PRD is '/source-biakonzasftp/C-9/optout_load/' #DEV is '/data/biakonzasftp/L-215/'
 TEMP_DIRECTORY = '/source-biakonzasftp/airflow_temp/'
@@ -107,7 +108,15 @@ def move_files_to_local(**kwargs):
                 if file_key.startswith('NCQAResults/') and file_key.endswith('.csv'):
                     base_name = os.path.basename(file_key)
                     name, ext = os.path.splitext(base_name)
-                    new_name = f"{name}_{APPROVED_CSQL_VERSION}{ext}"
+                    
+                    # Check if the file name contains _CQL_ or _Results_
+                    if '_CQL_' in base_name:
+                        new_name = f"{name}_{APPROVED_CSQL_VERSION}{ext}"
+                    elif '_Results_' in base_name:
+                        new_name = f"{name}_{APPROVED_RESULTS_VERSION}{ext}"
+                    else:
+                        new_name = base_name
+                    
                     local_file_path = os.path.join(local_dir, new_name)
                 
                 # Move the file from the temp directory to the local destination
@@ -120,6 +129,7 @@ def move_files_to_local(**kwargs):
             # Ensure that temporary file is removed in case of failure
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
+
 
 move_files_task = PythonOperator(
     task_id='move_files',
