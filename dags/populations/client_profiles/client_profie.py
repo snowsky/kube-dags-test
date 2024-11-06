@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 class ClientProfile(ABC):
     def __init__(self):
         #  Properties look to be the same across all clients
-        self._conn_id = "qa-az1-sqlw3-airflowconnection"
+        self._conn_id = "prd-az1-sqlw2-airflowconnection"
         self._schema = "temp"
 
     @abstractmethod

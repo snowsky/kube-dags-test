@@ -2,14 +2,19 @@ from populations.client_profiles.client_A import ClientA
 from populations.client_profiles.client_B import ClientB
 from populations.client_profiles.client_C import ClientC
 from populations.client_profiles.client_D import ClientD
+from populations.client_profiles.Womens_Health_Connecticut_LLC import Womens_Health_Connecticut_LLC
+
 
 
 class ClientFactory:
     client_mapping = {
         'Air Flow Client A': ClientA,
-        'Air Flow Client B': ClientB,
-        'Air Flow Client C': ClientC,
-        'Air Flow Client D': ClientD
+
+        #'Air Flow Client B': ClientB,
+        #'Air Flow Client C': ClientC,
+        #'Air Flow Client D': ClientD,
+        'Womens Health Connecticut LLC': Womens_Health_Connecticut_LLC
+
     }
 
     @classmethod

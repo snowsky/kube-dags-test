@@ -32,7 +32,8 @@ with DAG(
     def reset_client_frequency_task(**kwargs):
         client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'))
         client_frequency = kwargs['dag_run'].conf.get('frequency')
-        if client_frequency == 'Approved':
+        if client_frequency == 'Approved' or 'Revised':
+
             mysql_op = MySqlOperator(
                 task_id='reset_client_frequency',
                 mysql_conn_id=client_profile.conn_id,
@@ -50,7 +51,10 @@ with DAG(
     @task(map_index_template="{{ client_name }}", trigger_rule=TriggerRule.NONE_FAILED)
     def process_population_data_task(**kwargs):
         client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'))
-        client_profile.process_population_data()
+        client_profile.process_population_data(kwargs['dag_run'].conf.get('facility_ids'))
+        import logging
+        logging.info(kwargs['dag_run'].conf.get('facility_ids'))
+
 
     @task(map_index_template="{{ client_name }}", trigger_rule=TriggerRule.NONE_FAILED)
     def extract_client_security_groupings_task(approved_suffix, **kwargs):

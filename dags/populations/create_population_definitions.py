@@ -37,7 +37,8 @@ with DAG(
         trigger = TriggerDagRunOperator(
             task_id=f"target_pop_{client_name.replace(' ', '_')}",
             trigger_dag_id='target_population',
-            conf={'client_name': client_name, 'frequency': row[1]},
+            conf={'client_name': client_name, 'frequency': row[1], 'facility_ids': row[2]}, 
+
             dag=dag,
         )
         trigger.execute(context=kwargs)
@@ -47,8 +48,9 @@ with DAG(
         task_id='clients_to_process',
         mysql_conn_id=CONNECTION_NAME,
         sql=f"""
-        SELECT folder_name, frequency
-        FROM _dashboard_requests.clients_to_process_pf1447
+        SELECT folder_name, frequency, facility_ids
+        FROM _dashboard_requests.clients_to_process
+
         WHERE folder_name is not null and active = 1
         AND (
             frequency = 'Daily' OR

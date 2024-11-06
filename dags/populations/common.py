@@ -1,5 +1,8 @@
 
-CONNECTION_NAME = 'qa-az1-sqlw3-airflowconnection'
+
+##CONNECTION_NAME = 'qa-az1-sqlw3-airflowconnection'
+CONNECTION_NAME_PROD = 'prd-az1-sqlw2-airflowconnection'
+
 EXAMPLE_DATA_PATH = '/home/jovyan/konza-dags/test/dags/populations/db_tables'
         
 CSV_HEADER = {
