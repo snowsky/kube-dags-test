@@ -25,6 +25,7 @@ default_args = {
 dag = DAG(
     'print_licenses_dag',
     default_args=default_args,
+    tags=['testing'],
     description='A simple DAG to print package licenses',
     schedule_interval=timedelta(days=1),
 )
