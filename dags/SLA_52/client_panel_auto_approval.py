@@ -110,7 +110,7 @@ def csga_panel_auto_approval_data_pull(**kwargs):
 with DAG(
     dag_id="csga_panel_auto_approval",
     start_date=datetime(2024,11,6),
-    schedule_interval='@hourly,
+    schedule_interval='@hourly',
     tags=['csga_approval','sla_52']
 ) as dag:
     task = PythonOperator(
