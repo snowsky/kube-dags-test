@@ -5,6 +5,7 @@ from airflow.operators.python_operator import PythonOperator
 from datetime import datetime
 import os
 import shutil
+import pwd
 
 # Define the DAG
 default_args = {
@@ -41,6 +42,11 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
 
     if sftp_hook.isfile(os.path.join(sftp_path, file_name)):
         local_file_path = os.path.join(network_path_with_date, f'{file_name}_{day_stamp}')
+        
+        # Change ownership to the current user
+        current_user = pwd.getpwuid(os.getuid()).pw_name
+        sftp_hook.execute_command(f'chown {current_user}:{current_user} {os.path.join(sftp_path, file_name)}')
+        
         sftp_hook.retrieve_file(os.path.join(sftp_path, file_name), local_file_path)
         print(f'Copied {file_name} to {network_path_with_date} with day stamp {day_stamp}')
 
