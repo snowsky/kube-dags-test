@@ -6,7 +6,6 @@ from datetime import datetime
 import os
 import shutil
 import pwd
-import paramiko
 
 # Define the DAG
 default_args = {
@@ -31,8 +30,6 @@ file_name = 'syslog'
 # Python function to copy files from SFTP to network file path
 def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
     sftp_hook = SFTPHook(sftp_conn_id)
-    connection = sftp_hook.get_connection(sftp_conn_id)
-    
     file_names = sftp_hook.list_directory(sftp_path)
 
     current_date = datetime.now()
@@ -46,17 +43,15 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
     if sftp_hook.isfile(os.path.join(sftp_path, file_name)):
         local_file_path = os.path.join(network_path_with_date, f'{file_name}_{day_stamp}')
         
-        # Change ownership to the current user using paramiko
-        current_user = pwd.getpwuid(os.getuid()).pw_name
-        transport = paramiko.Transport((connection.host, connection.port))
-        transport.connect(username=connection.login, password=connection.password)
-        sftp = paramiko.SFTPClient.from_transport(transport)
-        sftp.chown(os.path.join(sftp_path, file_name), os.getuid(), os.getgid())
-        sftp.close()
-        transport.close()
+        # Download the file first to a temporary location in the user's home directory
+        home_directory = os.path.expanduser("~")
+        temp_local_file_path = os.path.join(home_directory, f'{file_name}_{day_stamp}')
+        sftp_hook.retrieve_file(os.path.join(sftp_path, file_name), temp_local_file_path)
         
-        sftp_hook.retrieve_file(os.path.join(sftp_path, file_name), local_file_path)
-        print(f'Copied {file_name} to {network_path_with_date} with day stamp {day_stamp}')
+        # Move the file to the network path
+        shutil.move(temp_local_file_path, local_file_path)
+        
+        print(f'Copied {file_name} to {network_path_with_date} with day stamp {day_stamp} via home directory')
 
 # Task 1: Copy files from SFTP to network file path
 copy_to_network_task = PythonOperator(
