@@ -31,6 +31,8 @@ file_name = 'syslog'
 # Python function to copy files from SFTP to network file path
 def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
     sftp_hook = SFTPHook(sftp_conn_id)
+    connection = sftp_hook.get_connection(sftp_conn_id)
+    
     file_names = sftp_hook.list_directory(sftp_path)
 
     current_date = datetime.now()
@@ -46,8 +48,8 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
         
         # Change ownership to the current user using paramiko
         current_user = pwd.getpwuid(os.getuid()).pw_name
-        transport = paramiko.Transport((sftp_hook.host, sftp_hook.port))
-        transport.connect(username=sftp_hook.username, password=sftp_hook.password)
+        transport = paramiko.Transport((connection.host, connection.port))
+        transport.connect(username=connection.login, password=connection.password)
         sftp = paramiko.SFTPClient.from_transport(transport)
         sftp.chown(os.path.join(sftp_path, file_name), os.getuid(), os.getgid())
         sftp.close()
