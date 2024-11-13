@@ -2,16 +2,26 @@ from airflow import DAG
 from airflow.providers.amazon.aws.transfers.sftp_to_s3 import SFTPToS3Operator
 from airflow.providers.sftp.hooks.sftp import SFTPHook
 from airflow.operators.python_operator import PythonOperator
+from airflow.utils.email import send_email
 from datetime import datetime
 import os
 import shutil
 import pwd
+
+# Define the failure callback function
+def failure_callback(context):
+    send_email(
+        to='networksecurity@konza.org',
+        subject='Task Failed',
+        html_content=f"Task {context['task_instance_key_str']} failed. Check the logs for more details."
+    )
 
 # Define the DAG
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
     'start_date': datetime(2024, 10, 15),
+    'on_failure_callback': failure_callback,  # Add the failure callback here
 }
 
 dag = DAG(
@@ -63,4 +73,5 @@ copy_to_network_task = PythonOperator(
         'network_path': network_file_path,
     },
     dag=dag,
+    on_failure_callback=failure_callback,  # Add the failure callback here
 )
