@@ -1,12 +1,10 @@
 from airflow import DAG
-from airflow.providers.amazon.aws.transfers.sftp_to_s3 import SFTPToS3Operator
 from airflow.providers.sftp.hooks.sftp import SFTPHook
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.email import send_email
 from datetime import datetime
 import os
 import shutil
-import pwd
 
 # Define the failure callback function
 def failure_callback(context):
@@ -21,14 +19,14 @@ default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
     'start_date': datetime(2024, 10, 15),
-    'on_failure_callback': failure_callback,  # Add the failure callback here
+    'on_failure_callback': failure_callback,
 }
 
 dag = DAG(
     'prd-az1-log2_syslog_to_local_sftp',
     default_args=default_args,
     description='This DAG retrieves some firewall logs from a VM where they are collected and stores it for future audits with HITRUST implications',
-    schedule_interval='@daily',  # Schedule to run daily
+    schedule_interval='@daily',
     catchup=False,
     tags=['S-6'],
 )
@@ -63,6 +61,11 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
         
         print(f'Copied {file_name} to {network_path_with_date} with day stamp {day_stamp} via home directory')
 
+        # Command to copy the file using cp
+        cp_command = f"cp {temp_local_file_path} {home_directory}"
+        os.system(cp_command)
+        print(f'Copied {temp_local_file_path} to {home_directory} using cp command')
+
 # Task 1: Copy files from SFTP to network file path
 copy_to_network_task = PythonOperator(
     task_id='copy_files_to_network',
@@ -73,5 +76,5 @@ copy_to_network_task = PythonOperator(
         'network_path': network_file_path,
     },
     dag=dag,
-    on_failure_callback=failure_callback,  # Add the failure callback here
+    on_failure_callback=failure_callback,
 )
