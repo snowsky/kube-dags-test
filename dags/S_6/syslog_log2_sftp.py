@@ -76,13 +76,9 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
         os.system(remote_cp_command)
         logger.info(f'Copied {sftp_path}/{file_name} to {temp_local_file_path} on remote SFTP machine using sudo cp command')
 
-        # Download the file from the remote SFTP location to the home directory
-        sftp_hook.retrieve_file(os.path.join(sftp_path, file_name), temp_local_file_path)
-        logger.info(f'Downloaded {file_name} from {sftp_path} to {temp_local_file_path}')
-
         # Move the file to the network path
-        shutil.move(temp_local_file_path, local_file_path)
-        logger.info(f'Moved {temp_local_file_path} to {local_file_path}')
+        #shutil.move(temp_local_file_path, local_file_path)
+        #logger.info(f'Moved {temp_local_file_path} to {local_file_path}')
 
         # Get the username from the SFTP connection ID
         sftp_username = get_sftp_username(sftp_conn_id)
@@ -92,6 +88,10 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
         logger.info(f'Executing command: {chown_command}')
         os.system(chown_command)
         logger.info(f'Changed owner of {os.path.join(home_directory, file_name)} to {sftp_username}')
+
+        # Download the file from the remote SFTP location to the home directory
+        sftp_hook.retrieve_file(os.path.join(sftp_path, file_name), temp_local_file_path)
+        logger.info(f'Downloaded {file_name} from {sftp_path} to {temp_local_file_path}')
 
 # Task 1: Copy files from SFTP to network file path
 copy_to_network_task = PythonOperator(
