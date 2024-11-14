@@ -6,6 +6,11 @@ from datetime import datetime
 import os
 import shutil
 import pwd
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Define the failure callback function
 def failure_callback(context):
@@ -60,18 +65,20 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
         # Move the file to the network path
         shutil.move(temp_local_file_path, local_file_path)
         
-        print(f'Copied {file_name} to {network_path_with_date} with day stamp {day_stamp} via home directory')
+        logger.info(f'Copied {file_name} to {network_path_with_date} with day stamp {day_stamp} via home directory')
 
         # Command to copy the file using sudo cp
         cp_command = f"sudo cp {temp_local_file_path} {home_directory}"
+        logger.info(f'Executing command: {cp_command}')
         os.system(cp_command)
-        print(f'Copied {temp_local_file_path} to {home_directory} using sudo cp command')
+        logger.info(f'Copied {temp_local_file_path} to {home_directory} using sudo cp command')
 
         # Change the owner of the file to the current user
         current_user = pwd.getpwuid(os.getuid()).pw_name
         chown_command = f"sudo chown {current_user}:{current_user} {os.path.join(home_directory, file_name)}"
+        logger.info(f'Executing command: {chown_command}')
         os.system(chown_command)
-        print(f'Changed owner of {os.path.join(home_directory, file_name)} to {current_user}')
+        logger.info(f'Changed owner of {os.path.join(home_directory, file_name)} to {current_user}')
 
 # Task 1: Copy files from SFTP to network file path
 copy_to_network_task = PythonOperator(
