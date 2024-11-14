@@ -24,7 +24,7 @@ def failure_callback(context):
 
 # Define the DAG
 default_args = {
-    'owner': 'airflow',
+    'owner': 'airflow_prod',
     'depends_on_past': False,
     'start_date': datetime(2024, 10, 15),
     'on_failure_callback': failure_callback,
