@@ -54,26 +54,30 @@ def copy_to_network_path(sftp_conn_id, ssh_conn_id, sftp_path, network_path):
     if not os.path.exists(network_path_with_date):
         os.makedirs(network_path_with_date)
 
-    if sftp_hook.isfile(os.path.join(sftp_path, file_name)):
-        local_file_path = os.path.join(network_path_with_date, f'{file_name}_{day_stamp}')
-        
-        # Retrieve the home directory of the airflow_prod user via SSH
-        home_dir_command = "echo ~airflow_prod"
-        home_directory, error = execute_ssh_command(ssh_hook, home_dir_command)
-        if error:
-            logger.error(f'Error retrieving home directory: {error}')
-            return
-        temp_local_file_path = os.path.join(home_directory, f'{file_name}_{day_stamp}')
-        
-        # Ensure the sftp_path does not end with a slash
-        sftp_path = sftp_path.rstrip('/')
-        
-        # Get the username from the SFTP connection ID
-        sftp_username = get_sftp_username(sftp_conn_id)
-        
-        # Download the file from the remote SFTP location to the home directory
-        sftp_hook.retrieve_file(os.path.join(sftp_path, file_name), temp_local_file_path)
-        logger.info(f'Downloaded {file_name} from {sftp_path} to {temp_local_file_path}')
+    for file_name in file_names:
+        if sftp_hook.isfile(os.path.join(sftp_path, file_name)):
+            # Retrieve the home directory of the airflow_prod user via SSH
+            home_dir_command = "echo ~airflow_prod"
+            home_directory, error = execute_ssh_command(ssh_hook, home_dir_command)
+            if error:
+                logger.error(f'Error retrieving home directory: {error}')
+                return
+            temp_local_file_path = os.path.join(home_directory, file_name)
+            
+            # Ensure the sftp_path does not end with a slash
+            sftp_path = sftp_path.rstrip('/')
+            
+            # Get the username from the SFTP connection ID
+            sftp_username = get_sftp_username(sftp_conn_id)
+            
+            # Download the file from the remote SFTP location to the home directory
+            sftp_hook.retrieve_file(os.path.join(sftp_path, file_name), temp_local_file_path)
+            logger.info(f'Downloaded {file_name} from {sftp_path} to {temp_local_file_path}')
+            
+            # Append the date stamp when writing to the network path
+            final_network_file_path = os.path.join(network_path_with_date, f'{file_name}_{day_stamp}')
+            os.rename(temp_local_file_path, final_network_file_path)
+            logger.info(f'Moved {temp_local_file_path} to {final_network_file_path}')
 
 # Define the DAG
 default_args = {
