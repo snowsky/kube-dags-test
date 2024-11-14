@@ -5,6 +5,7 @@ from airflow.utils.email import send_email
 from datetime import datetime
 import os
 import shutil
+import pwd
 
 # Define the failure callback function
 def failure_callback(context):
@@ -65,6 +66,12 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
         cp_command = f"sudo cp {temp_local_file_path} {home_directory}"
         os.system(cp_command)
         print(f'Copied {temp_local_file_path} to {home_directory} using sudo cp command')
+
+        # Change the owner of the file to the current user
+        current_user = pwd.getpwuid(os.getuid()).pw_name
+        chown_command = f"sudo chown {current_user}:{current_user} {os.path.join(home_directory, file_name)}"
+        os.system(chown_command)
+        print(f'Changed owner of {os.path.join(home_directory, file_name)} to {current_user}')
 
 # Task 1: Copy files from SFTP to network file path
 copy_to_network_task = PythonOperator(
