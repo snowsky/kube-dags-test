@@ -61,10 +61,10 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
         
         print(f'Copied {file_name} to {network_path_with_date} with day stamp {day_stamp} via home directory')
 
-        # Command to copy the file using cp
-        cp_command = f"cp {temp_local_file_path} {home_directory}"
+        # Command to copy the file using sudo cp
+        cp_command = f"sudo cp {temp_local_file_path} {home_directory}"
         os.system(cp_command)
-        print(f'Copied {temp_local_file_path} to {home_directory} using cp command')
+        print(f'Copied {temp_local_file_path} to {home_directory} using sudo cp command')
 
 # Task 1: Copy files from SFTP to network file path
 copy_to_network_task = PythonOperator(
