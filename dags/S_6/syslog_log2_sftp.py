@@ -1,12 +1,12 @@
 from airflow import DAG
 from airflow.providers.sftp.hooks.sftp import SFTPHook
+from airflow.providers.ssh.hooks.ssh import SSHHook
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.email import send_email
 from airflow.models import Connection
 from airflow.hooks.base_hook import BaseHook
 from datetime import datetime
 import os
-import paramiko
 import logging
 
 # Configure logging
@@ -23,24 +23,21 @@ def failure_callback(context):
         html_content=f"Task {context['task_instance_key_str']} failed in DAG: {dag_name}. DAG source file: {dag_file_path}. Check the logs for more details."
     )
 
-# Function to execute SSH command
-def execute_ssh_command(hostname, username, key_file, command):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname, username=username, key_filename=key_file)
-    stdin, stdout, stderr = ssh.exec_command(command)
-    output = stdout.read().decode().strip()
-    error = stderr.read().decode().strip()
-    ssh.close()
+# Function to execute SSH command using SSHHook
+def execute_ssh_command(ssh_hook, command):
+    with ssh_hook.get_conn() as ssh_client:
+        stdin, stdout, stderr = ssh_client.exec_command(command)
+        output = stdout.read().decode().strip()
+        error = stderr.read().decode().strip()
     return output, error
 
 # Python function to copy files from SFTP to network file path
-def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
+def copy_to_network_path(sftp_conn_id, ssh_conn_id, sftp_path, network_path):
     sftp_hook = SFTPHook(sftp_conn_id)
+    ssh_hook = SSHHook(ssh_conn_id)
     connection = BaseHook.get_connection(sftp_conn_id)
     hostname = connection.host
     username = connection.login
-    key_file = connection.extra_dejson.get('key_file')  # Assuming the key file path is stored in the connection's extra field
 
     file_names = sftp_hook.list_directory(sftp_path)
 
@@ -57,7 +54,7 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
         
         # Retrieve the home directory of the airflow_prod user via SSH
         home_dir_command = "echo ~airflow_prod"
-        home_directory, error = execute_ssh_command(hostname, username, key_file, home_dir_command)
+        home_directory, error = execute_ssh_command(ssh_hook, home_dir_command)
         if error:
             logger.error(f'Error retrieving home directory: {error}')
             return
@@ -66,7 +63,7 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
         # Command to copy the file using sudo cp on the remote SFTP machine
         remote_cp_command = f"sudo cp {sftp_path}/{file_name} {temp_local_file_path}"
         logger.info(f'Executing command: {remote_cp_command}')
-        output, error = execute_ssh_command(hostname, username, key_file, remote_cp_command)
+        output, error = execute_ssh_command(ssh_hook, remote_cp_command)
         logger.info(f'Output: {output}')
         if error:
             logger.error(f'Error: {error}')
@@ -78,7 +75,7 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
         # Change the owner of the file to the SFTP connection user
         chown_command = f"sudo chown {sftp_username}:{sftp_username} {temp_local_file_path}"
         logger.info(f'Executing command: {chown_command}')
-        output, error = execute_ssh_command(hostname, username, key_file, chown_command)
+        output, error = execute_ssh_command(ssh_hook, chown_command)
         logger.info(f'Output: {output}')
         if error:
             logger.error(f'Error: {error}')
@@ -115,6 +112,7 @@ copy_to_network_task = PythonOperator(
     python_callable=copy_to_network_path,
     op_kwargs={
         'sftp_conn_id': 'prd-az1-logs2',
+        'ssh_conn_id': 'prd-az1-logs2-ssh',
         'sftp_path': '/var/log/',
         'network_path': network_file_path,
     },
