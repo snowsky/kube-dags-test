@@ -24,8 +24,10 @@ def failure_callback(context):
     )
 
 # Function to execute SSH command using SSHHook
-def execute_ssh_command(ssh_hook, command):
+def execute_ssh_command(ssh_hook, command, sudo_password=None):
     with ssh_hook.get_conn() as ssh_client:
+        if sudo_password:
+            command = f"echo {sudo_password} | sudo -S {command}"
         stdin, stdout, stderr = ssh_client.exec_command(command)
         output = stdout.read().decode().strip()
         error = stderr.read().decode().strip()
@@ -37,7 +39,7 @@ def get_sftp_username(sftp_conn_id):
     return connection.login
 
 # Python function to copy files from SFTP to network file path
-def copy_to_network_path(sftp_conn_id, ssh_conn_id, sftp_path, network_path):
+def copy_to_network_path(sftp_conn_id, ssh_conn_id, sftp_path, network_path, sudo_password):
     sftp_hook = SFTPHook(sftp_conn_id)
     ssh_hook = SSHHook(ssh_conn_id)
     connection = BaseHook.get_connection(sftp_conn_id)
@@ -66,9 +68,9 @@ def copy_to_network_path(sftp_conn_id, ssh_conn_id, sftp_path, network_path):
         temp_local_file_path = os.path.join(home_directory, f'{file_name}_{day_stamp}')
         
         # Command to copy the file using sudo cp on the remote SFTP machine
-        remote_cp_command = f"sudo cp {sftp_path}/{file_name} {temp_local_file_path}"
+        remote_cp_command = f"cp {sftp_path}/{file_name} {temp_local_file_path}"
         logger.info(f'Executing command: {remote_cp_command}')
-        output, error = execute_ssh_command(ssh_hook, remote_cp_command)
+        output, error = execute_ssh_command(ssh_hook, remote_cp_command, sudo_password)
         logger.info(f'Output: {output}')
         if error:
             logger.error(f'Error: {error}')
@@ -86,9 +88,9 @@ def copy_to_network_path(sftp_conn_id, ssh_conn_id, sftp_path, network_path):
         sftp_username = get_sftp_username(sftp_conn_id)
         
         # Change the owner of the file to the SFTP connection user
-        chown_command = f"sudo chown {sftp_username}:{sftp_username} {temp_local_file_path}"
+        chown_command = f"chown {sftp_username}:{sftp_username} {temp_local_file_path}"
         logger.info(f'Executing command: {chown_command}')
-        output, error = execute_ssh_command(ssh_hook, chown_command)
+        output, error = execute_ssh_command(ssh_hook, chown_command, sudo_password)
         logger.info(f'Output: {output}')
         if error:
             logger.error(f'Error: {error}')
@@ -128,6 +130,7 @@ copy_to_network_task = PythonOperator(
         'ssh_conn_id': 'prd-az1-logs2-ssh',
         'sftp_path': '/var/log/',
         'network_path': network_file_path,
+        'sudo_password': 'your_sudo_password_here',  # Replace with your actual sudo password
     },
     dag=dag,
     on_failure_callback=failure_callback,
