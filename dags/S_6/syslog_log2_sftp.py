@@ -14,10 +14,12 @@ logger = logging.getLogger(__name__)
 
 # Define the failure callback function
 def failure_callback(context):
+    dag_name = context['dag'].dag_id
+    dag_file_path = context['dag'].fileloc
     send_email(
         to='networksecurity@konza.org',
-        subject='Task Failed',
-        html_content=f"Task {context['task_instance_key_str']} failed. Check the logs for more details."
+        subject=f'Task Failed in DAG: {dag_name}',
+        html_content=f"Task {context['task_instance_key_str']} failed in DAG: {dag_name}. DAG source file: {dag_file_path}. Check the logs for more details."
     )
 
 # Define the DAG
@@ -57,21 +59,23 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
     if sftp_hook.isfile(os.path.join(sftp_path, file_name)):
         local_file_path = os.path.join(network_path_with_date, f'{file_name}_{day_stamp}')
         
-        # Download the file first to a temporary location in the user's home directory
+        # Define paths
         home_directory = os.path.expanduser("~")
         temp_local_file_path = os.path.join(home_directory, f'{file_name}_{day_stamp}')
-        sftp_hook.retrieve_file(os.path.join(sftp_path, file_name), temp_local_file_path)
         
+        # Command to copy the file using sudo cp on the remote SFTP machine
+        remote_cp_command = f"sudo cp {sftp_path}/{file_name} {temp_local_file_path}"
+        logger.info(f'Executing command: {remote_cp_command}')
+        os.system(remote_cp_command)
+        logger.info(f'Copied {sftp_path}/{file_name} to {temp_local_file_path} on remote SFTP machine using sudo cp command')
+
+        # Download the file from the remote SFTP location to the home directory
+        sftp_hook.retrieve_file(os.path.join(sftp_path, file_name), temp_local_file_path)
+        logger.info(f'Downloaded {file_name} from {sftp_path} to {temp_local_file_path}')
+
         # Move the file to the network path
         shutil.move(temp_local_file_path, local_file_path)
-        
-        logger.info(f'Copied {file_name} to {network_path_with_date} with day stamp {day_stamp} via home directory')
-
-        # Command to copy the file using sudo cp
-        cp_command = f"sudo cp {temp_local_file_path} {home_directory}"
-        logger.info(f'Executing command: {cp_command}')
-        os.system(cp_command)
-        logger.info(f'Copied {temp_local_file_path} to {home_directory} using sudo cp command')
+        logger.info(f'Moved {temp_local_file_path} to {local_file_path}')
 
         # Change the owner of the file to the current user
         current_user = pwd.getpwuid(os.getuid()).pw_name
