@@ -31,6 +31,11 @@ def execute_ssh_command(ssh_hook, command):
         error = stderr.read().decode().strip()
     return output, error
 
+# Function to get the username from the SFTP connection ID
+def get_sftp_username(sftp_conn_id):
+    connection = BaseHook.get_connection(sftp_conn_id)
+    return connection.login
+
 # Python function to copy files from SFTP to network file path
 def copy_to_network_path(sftp_conn_id, ssh_conn_id, sftp_path, network_path):
     sftp_hook = SFTPHook(sftp_conn_id)
