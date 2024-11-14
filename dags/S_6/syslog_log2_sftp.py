@@ -2,6 +2,8 @@ from airflow import DAG
 from airflow.providers.sftp.hooks.sftp import SFTPHook
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.email import send_email
+from airflow.models import Connection
+from airflow.hooks.base_hook import BaseHook
 from datetime import datetime
 import os
 import shutil
@@ -24,7 +26,7 @@ def failure_callback(context):
 
 # Define the DAG
 default_args = {
-    'owner': 'airflow_prod',
+    'owner': 'airflow',
     'depends_on_past': False,
     'start_date': datetime(2024, 10, 15),
     'on_failure_callback': failure_callback,
@@ -42,6 +44,11 @@ dag = DAG(
 # Define network file path
 network_file_path = '/source-biakonzasftp/S-6/firewall_logs/'
 file_name = 'syslog'
+
+# Function to get the username from the SFTP connection ID
+def get_sftp_username(sftp_conn_id):
+    connection = BaseHook.get_connection(sftp_conn_id)
+    return connection.login
 
 # Python function to copy files from SFTP to network file path
 def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
@@ -77,12 +84,14 @@ def copy_to_network_path(sftp_conn_id, sftp_path, network_path):
         shutil.move(temp_local_file_path, local_file_path)
         logger.info(f'Moved {temp_local_file_path} to {local_file_path}')
 
-        # Change the owner of the file to the current user
-        current_user = pwd.getpwuid(os.getuid()).pw_name
-        chown_command = f"sudo chown {current_user}:{current_user} {os.path.join(home_directory, file_name)}"
+        # Get the username from the SFTP connection ID
+        sftp_username = get_sftp_username(sftp_conn_id)
+        
+        # Change the owner of the file to the SFTP connection user
+        chown_command = f"sudo chown {sftp_username}:{sftp_username} {os.path.join(home_directory, file_name)}"
         logger.info(f'Executing command: {chown_command}')
         os.system(chown_command)
-        logger.info(f'Changed owner of {os.path.join(home_directory, file_name)} to {current_user}')
+        logger.info(f'Changed owner of {os.path.join(home_directory, file_name)} to {sftp_username}')
 
 # Task 1: Copy files from SFTP to network file path
 copy_to_network_task = PythonOperator(
