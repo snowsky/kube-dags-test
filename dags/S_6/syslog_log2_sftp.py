@@ -74,6 +74,14 @@ def copy_to_network_path(sftp_conn_id, ssh_conn_id, sftp_path, network_path):
             logger.error(f'Error: {error}')
         logger.info(f'Copied {sftp_path}/{file_name} to {temp_local_file_path} on remote SFTP machine using sudo cp command')
 
+        # Verify the file exists at the destination
+        verify_command = f"ls {temp_local_file_path}"
+        output, error = execute_ssh_command(ssh_hook, verify_command)
+        if error:
+            logger.error(f'File not found at destination: {error}')
+            return
+        logger.info(f'File verified at destination: {temp_local_file_path}')
+
         # Get the username from the SFTP connection ID
         sftp_username = get_sftp_username(sftp_conn_id)
         
