@@ -68,13 +68,9 @@ def copy_syslog_to_network_path(sftp_conn_id, ssh_conn_id, sftp_path, network_pa
     sftp_username = get_sftp_username(sftp_conn_id)
     
     # Download the syslog file from the remote SFTP location to the home directory
-    sftp_hook.retrieve_file(os.path.join(sftp_path, file_name), temp_local_file_path)
+    sftp_hook.retrieve_file('/home/airflow_prod/syslog', f'/source-biakonzasftp/S-6/{subfolder}/syslog_{day_stamp}')
     logger.info(f'Downloaded {file_name} from {sftp_path} to {temp_local_file_path}')
     
-    # Append the date stamp when writing to the network path
-    final_network_file_path = os.path.join(network_path_with_date, f'{file_name}_{day_stamp}')
-    os.rename(temp_local_file_path, final_network_file_path)
-    logger.info(f'Moved {temp_local_file_path} to {final_network_file_path}')
 
 # Define the DAG
 default_args = {
