@@ -45,13 +45,13 @@ def transfer_file_to_sftp(file_key):
     sanitized_task_id = re.sub(r'[^a-zA-Z0-9_.-]', '_', f'move_file_{file_key}')
     logging.info(f'Transferring file with ID: {sanitized_task_id}')
     
-    sftp_path = f'C-128/C_128_test_delivery/XCAIn/{file_key.split("/")[-1]}'
+    sftp_path = f'test/inbound/{file_key.split("/")[-1]}'
     logging.info(f'SFTP Path: {sftp_path}')
 
     try:
         copy_task = DebugS3ToSFTPOperator(
             task_id=sanitized_task_id,
-            sftp_conn_id='sftp_airflow',
+            sftp_conn_id='Availity_Diameter_Health__DH_Fusion_Production_SFTP',
             sftp_path=sftp_path,  
             s3_bucket=BUCKET_NAME,
             s3_key=file_key,
