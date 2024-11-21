@@ -19,7 +19,6 @@ class DebugS3ToSFTPOperator(S3ToSFTPOperator):
 default_args = {
     'owner': 'airflow',
     'start_date': datetime(2024, 10, 15),
-    'retries': 3,
 }
 dag = DAG(
     'XCAIn_s3_to_sftp_delete_from_s3',
