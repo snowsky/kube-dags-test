@@ -14,7 +14,7 @@ default_args = {
     'owner': 'airflow',
 }
 dag = DAG(
-    'XCAIn_s3_to_sftp_with_oid_folder_delete_from_s3',
+    'XCAIn_s3_to_sftp_with_oid_folder',
     default_args=default_args,
     description='Retrieve files from S3 and deliver to SFTP',
     schedule_interval=None,
@@ -49,7 +49,7 @@ def ensure_directories_exist(file_key):
 
     transport = None
     sftp = None
-    try:5
+    try:
         # Establish SFTP connection
         transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
         transport.connect(username=sftp_conn.login, password=sftp_conn.password)
@@ -123,33 +123,6 @@ def transfer_file_to_sftp(file_key):
         if transport:
             transport.close()
 
-def delete_files_from_s3(**kwargs):
-    connection = BaseHook.get_connection('konzaandssigrouppipelines')
-    s3 = boto3.client(
-        's3',
-        aws_access_key_id=connection.login,
-        aws_secret_access_key=connection.password,
-        region_name=connection.extra_dejson.get('region_name')
-    )
-    # Pull successful file keys from XCom
-    successful_files = kwargs['ti'].xcom_pull(task_ids='transfer_file_to_sftp')
-    for file_key in successful_files:
-        if file_key:  # Only delete if the file_key is not None
-            try:
-                logging.info(f'Attempting to delete {file_key} from S3')
-                s3.delete_object(Bucket=BUCKET_NAME, Key=file_key)
-                logging.info(f'Successfully deleted {file_key} from S3')
-            except Exception as e:
-                logging.error(f'Error while attempting to delete {file_key}: {e}')
-
-# Define the delete task
-delete_files_task = PythonOperator(
-    task_id='delete_files',
-    python_callable=delete_files_from_s3,
-    provide_context=True,
-    dag=dag,
-)
-
 # Define the workflow
 files = list_files_in_s3()
 xml_files = filter_xml_files(files)
@@ -159,9 +132,6 @@ ensure_directories_exist.expand(file_key=xml_files)
 
 # Transfer files
 transfer_tasks = transfer_file_to_sftp.expand(file_key=xml_files)
-
-# Set dependencies
-transfer_tasks >> delete_files_task  # Ensure delete runs after transfers
 
 if __name__ == "__main__":
     dag.cli()
