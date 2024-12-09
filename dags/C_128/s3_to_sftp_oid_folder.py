@@ -8,6 +8,7 @@ import logging
 import re
 from datetime import datetime
 import boto3
+from typing import List
 
 # Define the DAG
 default_args = {
@@ -38,7 +39,6 @@ def filter_xml_files(files):
     logging.info(f'Filtered XML Files: {xml_files}')
     return xml_files
 
-@task(dag=dag)
 def ensure_directories_exist(file_key):
     parts = file_key.split('/')
     folder1 = parts[-3]  # First folder
@@ -76,7 +76,6 @@ def ensure_directories_exist(file_key):
         if transport:
             transport.close()
 
-@task(dag=dag)
 def transfer_file_to_sftp(file_key):
     logging.info(f'Starting transfer for: {file_key}')
     if not file_key.endswith('.xml'):
@@ -123,15 +122,26 @@ def transfer_file_to_sftp(file_key):
         if transport:
             transport.close()
 
+@task(dag=dag)
+def transfer_batch_to_sftp(batch: List[str]):
+    for file_key in batch:
+        # Ensure directories exist for each file's folder structure
+        ensure_directories_exist(file_key)
+        # Transfer files
+        transfer_file_to_sftp(file_key)
+
+@task(dag=dag):
+def divide_files_into_batches(xml_files: List[str], batch_size=100) -> List[List[str]]:
+    return [
+        xml_files[i: i + batch_size] 
+        for i in range(0, len(xml_files), batch_size)
+    ]
+
 # Define the workflow
 files = list_files_in_s3()
 xml_files = filter_xml_files(files)
-
-# Ensure directories exist for each file's folder structure
-ensure_directories_exist.expand(file_key=xml_files)
-
-# Transfer files
-transfer_tasks = transfer_file_to_sftp.expand(file_key=xml_files)
+batches = divide_files_into_batches(xml_files)
+transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
 
 if __name__ == "__main__":
     dag.cli()
