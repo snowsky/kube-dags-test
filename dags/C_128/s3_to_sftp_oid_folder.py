@@ -10,7 +10,6 @@ from datetime import datetime
 from typing import List
 import boto3
 
-
 # Define the DAG
 default_args = {
     'owner': 'airflow',
@@ -40,14 +39,13 @@ def filter_xml_files(files):
     logging.info(f'Filtered XML Files: {xml_files}')
     return xml_files
 
-
+## @task(dag=dag)
 def ensure_directories_exist(file_key):
     parts = file_key.split('/')
     folder1 = parts[-3]  # First folder
     folder2 = parts[-2]  # Second folder
 
-
-    sftp_conn_id = 'sftp_airflow'
+    sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
 
     transport = None
@@ -58,29 +56,20 @@ def ensure_directories_exist(file_key):
         transport.connect(username=sftp_conn.login, password=sftp_conn.password)
         sftp = paramiko.SFTPClient.from_transport(transport)
 
-
-        # Ensure the first folder exists      sftp_path = f'C-128/C_128_test_delivery/XCAIn/{file_key.split("/")[-1]}'
+        # Ensure the first folder exists  sftp_path = f'C-128/C_128_test_delivery/XCAIn/{file_key.split("/")[-1]}'
 
         try:
-            sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
+            sftp.chdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
         except IOError:
-            sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
-        ## Ensure the first folder exists
-        #try:
-        #    sftp.chdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
-        #except IOError:
-        #    sftp.mkdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
-        #    logging.info(f'Created directory: {folder1}')
+            sftp.mkdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
+            logging.info(f'Created directory: {folder1}')
 
         # Ensure the second folder exists
         try:
-            sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
+            sftp.chdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
         except IOError:
-            sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
-        #    sftp.chdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
-        #except IOError:
-        #    sftp.mkdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
-        #    logging.info(f'Created directory: {folder2}')
+            sftp.mkdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
+            logging.info(f'Created directory: {folder2}')
     except Exception as e:
         logging.error(f'Error ensuring directories exist: {e}')
     finally:
@@ -89,7 +78,7 @@ def ensure_directories_exist(file_key):
         if transport:
             transport.close()
 
-
+##@task(dag=dag)
 def transfer_file_to_sftp(file_key):
     logging.info(f'Starting transfer for: {file_key}')
     if not file_key.endswith('.xml'):
@@ -103,16 +92,11 @@ def transfer_file_to_sftp(file_key):
     file_name = parts[-1]  # File name
 
     # Construct the SFTP path
-
-    sftp_path = f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
+    sftp_path = f'inbound/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
     logging.info(f'SFTP Path: {sftp_path}')
-    # Get SFTP connection details
-    sftp_conn_id = 'sftp_airflow'
-    #sftp_path = f'inbound/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
-    #logging.info(f'SFTP Path: {sftp_path}')
-    # Get SFTP connection details
-    #sftp_conn_id = 'Availity_Diameter_Health__DH_Fusion_Production_SFTP'
 
+    # Get SFTP connection details
+    sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
 
     transport = None
@@ -141,7 +125,6 @@ def transfer_file_to_sftp(file_key):
         if transport:
             transport.close() 
 
-
 @task(dag=dag)
 def transfer_batch_to_sftp(batch: List[str]):
     for file_key in batch:
@@ -150,13 +133,13 @@ def transfer_batch_to_sftp(batch: List[str]):
         # Transfer files
         transfer_file_to_sftp(file_key)
 
-
 @task(dag=dag)
 def divide_files_into_batches(xml_files: List[str], batch_size=100) -> List[List[str]]:
     return [
         xml_files[i: i + batch_size] 
         for i in range(0, len(xml_files), batch_size)
     ]
+
 
 # Define the workflow
 files = list_files_in_s3()
@@ -172,4 +155,3 @@ transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
 
 if __name__ == "__main__":
     dag.cli()
-
