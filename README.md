@@ -122,13 +122,27 @@ If a library is used often (either in many tasks or in a task that needs to run 
 
 ## To Push Changes, generate PR
 
-To Check which directory you are in : git status
-If on correct directory and want to push the changes for an existing Code : git diff (this will show new changes made)
-git add <filename> to add the new file
-Use : git status to confirm that the new filename is added
-git commit -m "commit msg" to add a commit message 
-git push to push the changes
+- To Check which directory you are in : git status
+- If on correct directory and want to push the changes for an existing Code : git diff (this will show new changes made)
+- git add <filename> to add the new file
+- Use : git status to confirm that the new filename is added
+- git commit -m "commit msg" to add a commit message 
+- git push to push the changes
 
-If pushing the PR via new directory:
-To create new branch : git checkout -b new-branch-name
-To push a PR in the new branch : git push origin new-branch-name
+## If pushing the PR via new directory:
+- To create new branch : git checkout -b new-branch-name
+- To push a PR in the new branch : git push origin new-branch-name
+- To add the file user wantys to push : git add filename
+- Commit message for the push : git commit -m "msg"
+- to push the change : git push origin new-branch-name
+
+## To switch to the main branch from your current branch and ensure you’re tracking the remote origin/main, you can follow these steps:
+
+-Fetch the latest changes from the remote repository to ensure you have the most up-to-date version:git fetch origin
+
+-Switch to the main branch:git checkout main
+
+-Pull the latest changes from the remote main branch:git pull origin main
+
+-In case a hard reset is required : git reset --hard origin/main
+ 
