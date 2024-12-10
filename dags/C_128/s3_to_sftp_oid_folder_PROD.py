@@ -15,14 +15,14 @@ default_args = {
     'owner': 'airflow',
 }
 dag = DAG(
-    'XCAIn_s3_to_sftp_with_oid_folder',
+    'PROD_XCAIn_s3_to_sftp_with_oid_folder',
     default_args=default_args,
     description='Retrieve files from S3 and deliver to SFTP',
     schedule_interval=None,
-    tags=['C-128'],
+    tags=['C-126' , 'C-172'],
     catchup=False
 )
-ENV = 'Prod
+
 BUCKET_NAME = 'konzaandssigrouppipelines'
 S3_SUBFOLDER = 'XCAIn/'
 
@@ -44,12 +44,8 @@ def ensure_directories_exist(file_key):
     parts = file_key.split('/')
     folder1 = parts[-3]  # First folder
     folder2 = parts[-2]  # Second folder
-    
-    if ENV == 'Dev':
-        sftp_conn_id = 'sftp_airflow'
-    if ENV == 'Prod':
-        sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
 
+    sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
 
     transport = None
@@ -60,33 +56,19 @@ def ensure_directories_exist(file_key):
         transport.connect(username=sftp_conn.login, password=sftp_conn.password)
         sftp = paramiko.SFTPClient.from_transport(transport)
 
-
         # Ensure the first folder exists      sftp_path = f'C-128/C_128_test_delivery/XCAIn/{file_key.split("/")[-1]}'
-        if ENV == 'Dev':
-            try:
-                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
-            except IOError:
-                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
 
-        # Ensure the first folder exists  sftp_path = f'C-128/C_128_test_delivery/XCAIn/{file_key.split("/")[-1]}'
-        if ENV == 'Prod':
-            try:
-                sftp.chdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
-            except IOError:
-                sftp.mkdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
-
+        try:
+            sftp.chdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
+        except IOError:
+            sftp.mkdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
             logging.info(f'Created directory: {folder1}')
 
         # Ensure the second folder exists
         try:
-            if ENV == 'Dev':
-                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
-            except IOError:
-                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
-            if ENV == 'Prod':
-                sftp.chdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
-            except IOError:
-                sftp.mkdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
+            sftp.chdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
+        except IOError:
+            sftp.mkdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
             logging.info(f'Created directory: {folder2}')
     except Exception as e:
         logging.error(f'Error ensuring directories exist: {e}')
@@ -110,14 +92,11 @@ def transfer_file_to_sftp(file_key):
     file_name = parts[-1]  # File name
 
     # Construct the SFTP path
-    # Get SFTP connection details
-    if ENV == 'Dev':
-        sftp_conn_id = 'sftp_airflow'
-        sftp_path = f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
-    if ENV == 'Prod':
-        sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
-        sftp_path = f'inbound/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
+    sftp_path = f'inbound/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
     logging.info(f'SFTP Path: {sftp_path}')
+
+    # Get SFTP connection details
+    sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
 
     transport = None

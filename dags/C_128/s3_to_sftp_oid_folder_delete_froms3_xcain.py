@@ -6,6 +6,7 @@ import paramiko
 from airflow.operators.python import PythonOperator
 import logging
 import re
+from typing import List
 from datetime import datetime
 import boto3
 
@@ -16,15 +17,15 @@ default_args = {
 dag = DAG(
     'XCAIn_s3_to_sftp_with_oid_folder_delete_from_s3',
     default_args=default_args,
-    description='Retrieve files from S3 and deliver to SFTP',
+    description='Retrieve files from S3 and deliver to SFTP, delete from S3. For testing purpose, referencing S3_SUBFOLDER as HL7v3In(change done on 12/9)',
     schedule_interval=None,
     tags=['C-128'],
     catchup=False
 )
 
 BUCKET_NAME = 'konzaandssigrouppipelines'
-S3_SUBFOLDER = 'XCAIn/'
-
+S3_SUBFOLDER = 'HL7v3In/'
+ENV = 'Prod
 @task(dag=dag)
 def list_files_in_s3():
     hook = S3Hook(aws_conn_id='konzaandssigrouppipelines')
@@ -38,7 +39,7 @@ def filter_xml_files(files):
     logging.info(f'Filtered XML Files: {xml_files}')
     return xml_files
 
-@task(dag=dag)
+##@task(dag=dag)
 def ensure_directories_exist(file_key):
     parts = file_key.split('/')
     folder1 = parts[-3]  # First folder
@@ -57,16 +58,27 @@ def ensure_directories_exist(file_key):
 
         # Ensure the first folder exists
         try:
-            sftp.chdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
-        except IOError:
-            sftp.mkdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
+            if ENV == 'Dev':
+                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
+            except IOError:
+                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
+            if ENV == 'Prod':
+                sftp.chdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
+            except IOError:
+                sftp.mkdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
+
             logging.info(f'Created directory: {folder1}')
 
         # Ensure the second folder exists
         try:
-            sftp.chdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
-        except IOError:
-            sftp.mkdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
+            if ENV == 'Dev':
+                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
+                except IOError:
+                    sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
+            if ENV == 'Prod':
+                sftp.chdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
+                except IOError:
+                    sftp.mkdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
             logging.info(f'Created directory: {folder2}')
     except Exception as e:
         logging.error(f'Error ensuring directories exist: {e}')
@@ -75,8 +87,7 @@ def ensure_directories_exist(file_key):
             sftp.close()
         if transport:
             transport.close()
-
-@task(dag=dag)
+#@task(dag=dag)
 def transfer_file_to_sftp(file_key):
     logging.info(f'Starting transfer for: {file_key}')
     if not file_key.endswith('.xml'):
@@ -90,7 +101,10 @@ def transfer_file_to_sftp(file_key):
     file_name = parts[-1]  # File name
 
     # Construct the SFTP path
-    sftp_path = f'inbound/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
+    if ENV == 'Dev':
+        sftp_path = f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
+    if ENV == 'Prod':
+        sftp_path = f'inbound/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
     logging.info(f'SFTP Path: {sftp_path}')
 
     # Get SFTP connection details
@@ -122,6 +136,21 @@ def transfer_file_to_sftp(file_key):
             sftp.close()
         if transport:
             transport.close()
+            
+@task(dag=dag)
+def transfer_batch_to_sftp(batch: List[str]):
+    for file_key in batch:
+        # Ensure directories exist for each file's folder structure
+        ensure_directories_exist(file_key)
+        # Transfer files
+        transfer_file_to_sftp(file_key)
+
+@task(dag=dag)
+def divide_files_into_batches(xml_files: List[str], batch_size=100) -> List[List[str]]:
+    return [
+        xml_files[i: i + batch_size] 
+        for i in range(0, len(xml_files), batch_size)
+    ]
 
 def delete_files_from_s3(**kwargs):
     connection = BaseHook.get_connection('konzaandssigrouppipelines')
@@ -155,10 +184,12 @@ files = list_files_in_s3()
 xml_files = filter_xml_files(files)
 
 # Ensure directories exist for each file's folder structure
-ensure_directories_exist.expand(file_key=xml_files)
+#ensure_directories_exist.expand(file_key=xml_files)
+batches = divide_files_into_batches(xml_files)
 
 # Transfer files
-transfer_tasks = transfer_file_to_sftp.expand(file_key=xml_files)
+#transfer_tasks = transfer_file_to_sftp.expand(file_key=xml_files)
+transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
 
 # Set dependencies
 transfer_tasks >> delete_files_task  # Ensure delete runs after transfers
