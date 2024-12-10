@@ -38,7 +38,7 @@ def csga_panel_auto_approval_data_pull(**kwargs):
         logging.info(f'port should be {port}')
 
         logging.info(f'folder name should be {folder_name}')
-        postgres_hook = PostgresHook(postgres_conn_id="dev-az1-an2-airflowconnection")  # Replace with your ops postgres connection ID
+        postgres_hook = PostgresHook(postgres_conn_id="prd-az1-ops3-airflowconnection")  # Replace with your ops postgres connection ID
         query = """select * from sftp_credentials_parent_mgmt where client_security_groupings_admins_name = '""" + folder_name + """'; """  # 
         dfdbcreds = postgres_hook.get_pandas_df(query)
         print(dfdbcreds)
