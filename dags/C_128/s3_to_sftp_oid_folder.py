@@ -67,27 +67,19 @@ def ensure_directories_exist(file_key):
                 sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
             except IOError:
                 sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
-
-        # Ensure the first folder exists  sftp_path = f'C-128/C_128_test_delivery/XCAIn/{file_key.split("/")[-1]}'
+            try:
+                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
+            except IOError:
+                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
         if ENV == 'Prod':
             try:
                 sftp.chdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
             except IOError:
                 sftp.mkdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
-
-            logging.info(f'Created directory: {folder1}')
-
-        # Ensure the second folder exists
-        try:
-            if ENV == 'Dev':
-                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
-            except IOError:
-                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
-            if ENV == 'Prod':
+            try:
                 sftp.chdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
             except IOError:
                 sftp.mkdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
-            logging.info(f'Created directory: {folder2}')
     except Exception as e:
         logging.error(f'Error ensuring directories exist: {e}')
     finally:
