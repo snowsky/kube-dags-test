@@ -48,7 +48,7 @@ def ensure_directories_exist(file_key):
     if ENV == 'Dev':
         sftp_conn_id = 'sftp_airflow'
     if ENV == 'Prod':
-        sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
+        sftp_conn_id = 'Availity_Diameter_Health__Files_Production_SFTP'
 
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
 
@@ -73,13 +73,13 @@ def ensure_directories_exist(file_key):
                 sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
         if ENV == 'Prod':
             try:
-                sftp.chdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
+                sftp.chdir(f'dh-konza-sftp-bucket/test_customer_CCDs/inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
             except IOError:
-                sftp.mkdir(f'inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
+                sftp.mkdir(f'dh-konza-sftp-bucket/test_customer_CCDs/inbound/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
             try:
-                sftp.chdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
+                sftp.chdir(f'dh-konza-sftp-bucket/test_customer_CCDs/inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
             except IOError:
-                sftp.mkdir(f'inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
+                sftp.mkdir(f'dh-konza-sftp-bucket/test_customer_CCDs/inbound/{folder1}/{folder2}') #changed sftp path as per Eric's screenshot in pr 105
     except Exception as e:
         logging.error(f'Error ensuring directories exist: {e}')
     finally:
@@ -107,8 +107,8 @@ def transfer_file_to_sftp(file_key):
         sftp_conn_id = 'sftp_airflow'
         sftp_path = f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
     if ENV == 'Prod':
-        sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
-        sftp_path = f'inbound/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
+        sftp_conn_id = 'Availity_Diameter_Health__Files_Production_SFTP'
+        sftp_path = f'dh-konza-sftp-bucket/test_customer_CCDs/inbound/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
     logging.info(f'SFTP Path: {sftp_path}')
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
 
