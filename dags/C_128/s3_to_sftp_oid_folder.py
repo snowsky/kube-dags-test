@@ -57,7 +57,7 @@ def ensure_directories_exist(file_key):
 
     transport = None
     sftp = None
-    ttry:
+    try:
         # Establish SFTP connection
         
         transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
