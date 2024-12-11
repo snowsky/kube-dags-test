@@ -3,6 +3,7 @@ from airflow.decorators import task
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.hooks.base import BaseHook
 import paramiko
+import json
 from airflow.operators.python import PythonOperator
 import logging
 import re
@@ -60,13 +61,14 @@ def ensure_directories_exist(file_key):
          # Establish SFTP connection
         
         transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
-        if "key_file" in sftp_conn.extra: 
-            transport.connect(username=sftp_conn.login, pkey=sftp_conn.extra["key_file"])
+        extra = json.loads(sftp_conn.extra)
+        if "key_file" in extra: 
+            transport.connect(username=sftp_conn.login, pkey=extra["key_file"])
         else: 
             transport.connect(username=sftp_conn.login, password=sftp_conn.password)
 
         sftp = paramiko.SFTPClient.from_transport(transport)
-
+        
         # Ensure the first folder exists      sftp_path = f'C-128/C_128_test_delivery/XCAIn/{file_key.split("/")[-1]}'
         if ENV == 'Dev':
             try:
