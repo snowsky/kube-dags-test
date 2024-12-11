@@ -47,10 +47,10 @@ def ensure_directories_exist(file_key):
     #folder1 = parts[-3]  # First folder
     #folder2 = parts[-2]  # Second folder
     
-    if ENV == 'Dev':
+    if ENV == 'Prod':
         sftp_conn_id = 'biakonzasftp'
     if ENV == 'Prod':
-        sftp_conn_id = 'Availity_Diameter_Health__Files_Production_SFTP'
+        sftp_conn_id = 'Availity_Diameter_Health__DH_Fusion_Production_SFTP'
 
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
 
@@ -111,7 +111,7 @@ def transfer_file_to_sftp(file_key):
         sftp_conn_id = 'biakonzasftp'
         sftp_path = f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
     if ENV == 'Prod':
-        sftp_conn_id = 'Availity_Diameter_Health__Files_Production_SFTP'
+        sftp_conn_id = 'Availity_Diameter_Health__DH_Fusion_Production_SFTP'
         sftp_path = f'dh-konza-sftp-bucket/test_customer_CCDs/inbound/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
     logging.info(f'SFTP Path: {sftp_path}')
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
