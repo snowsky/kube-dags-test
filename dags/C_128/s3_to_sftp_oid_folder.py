@@ -9,7 +9,7 @@ import re
 from datetime import datetime
 from typing import List
 import boto3
-
+logging.basicConfig(level=logging.DEBUG)
 # Define the DAG
 default_args = {
     'owner': 'airflow',
