@@ -57,10 +57,11 @@ def ensure_directories_exist(file_key):
     transport = None
     sftp = None
     try:
-        # Establish SFTP connection 
+         # Establish SFTP connection
+        
         transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
-        if sftp_conn.key_file: 
-            transport.connect(username=sftp_conn.login, pkey=sftp_conn.key_file)
+        if "key_file" in sftp_conn.extra: 
+            transport.connect(username=sftp_conn.login, pkey=sftp_conn.extra["key_file"])
         else: 
             transport.connect(username=sftp_conn.login, password=sftp_conn.password)
 
