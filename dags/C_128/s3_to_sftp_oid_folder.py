@@ -57,11 +57,14 @@ def ensure_directories_exist(file_key):
     transport = None
     sftp = None
     try:
-        # Establish SFTP connection
+        # Establish SFTP connection 
         transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
-        transport.connect(username=sftp_conn.login, password=sftp_conn.password)
-        sftp = paramiko.SFTPClient.from_transport(transport)
+        if sftp_conn.key_file: 
+            transport.connect(username=sftp_conn.login, pkey=sftp_conn.key_file)
+        else: 
+            transport.connect(username=sftp_conn.login, password=sftp_conn.password)
 
+        sftp = paramiko.SFTPClient.from_transport(transport)
 
         # Ensure the first folder exists      sftp_path = f'C-128/C_128_test_delivery/XCAIn/{file_key.split("/")[-1]}'
         if ENV == 'Dev':
