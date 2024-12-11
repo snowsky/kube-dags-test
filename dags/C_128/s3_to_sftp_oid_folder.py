@@ -22,7 +22,7 @@ dag = DAG(
     tags=['C-128'],
     catchup=False
 )
-ENV = 'Dev'
+ENV = 'Prod'
 BUCKET_NAME = 'konzaandssigrouppipelines'
 S3_SUBFOLDER = 'XCAIn/'
 
