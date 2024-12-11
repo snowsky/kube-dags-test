@@ -42,8 +42,10 @@ def filter_xml_files(files):
 ## @task(dag=dag)
 def ensure_directories_exist(file_key):
     parts = file_key.split('/')
-    folder1 = parts[-3]  # First folder
-    folder2 = parts[-2]  # Second folder
+    folder1 = parts[-4].split('=')[1]  # First folder
+    folder2 = parts[-3].split('=')[1]  # Second folder
+    #folder1 = parts[-3]  # First folder
+    #folder2 = parts[-2]  # Second folder
     
     if ENV == 'Dev':
         sftp_conn_id = 'sftp_airflow'
@@ -97,8 +99,10 @@ def transfer_file_to_sftp(file_key):
 
     # Extract folder structure from the file_key
     parts = file_key.split('/')
-    folder1 = parts[-3]  # First folder
-    folder2 = parts[-2]  # Second folder
+    folder1 = parts[-4].split('=')[1]  # First folder
+    folder2 = parts[-3].split('=')[1]  # Second folder
+    #folder1 = parts[-3]  # First folder
+    #folder2 = parts[-2]  # Second folder
     file_name = parts[-1]  # File name
 
     # Construct the SFTP path
