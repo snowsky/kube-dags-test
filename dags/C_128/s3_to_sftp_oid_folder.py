@@ -48,7 +48,7 @@ def ensure_directories_exist(file_key):
     #folder2 = parts[-2]  # Second folder
     
     if ENV == 'Dev':
-        sftp_conn_id = 'sftp_airflow'
+        sftp_conn_id = 'biakonzasftp'
     if ENV == 'Prod':
         sftp_conn_id = 'Availity_Diameter_Health__Files_Production_SFTP'
 
@@ -108,7 +108,7 @@ def transfer_file_to_sftp(file_key):
     # Construct the SFTP path
     # Get SFTP connection details
     if ENV == 'Dev':
-        sftp_conn_id = 'sftp_airflow'
+        sftp_conn_id = 'biakonzasftp'
         sftp_path = f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
     if ENV == 'Prod':
         sftp_conn_id = 'Availity_Diameter_Health__Files_Production_SFTP'
