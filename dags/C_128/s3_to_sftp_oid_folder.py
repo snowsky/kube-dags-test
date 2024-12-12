@@ -18,7 +18,7 @@ default_args = {
 dag = DAG(
     'XCAIn_s3_to_sftp_with_oid_folder',
     default_args=default_args,
-    description='Retrieve files from S3 and deliver to SFTP',
+    description='Retrieve files from S3 and deliver to SFTP with OID folder structure implemenmted',
     schedule_interval=None,
     tags=['C-128'],
     catchup=False
@@ -40,6 +40,27 @@ def filter_xml_files(files):
     logging.info(f'Filtered XML Files: {xml_files}')
     return xml_files
 
+def get_sftp():
+    if ENV == 'Dev':
+        sftp_conn_id = 'sftp_airflow'
+    if ENV == 'Prod':
+        sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
+    sftp_conn = BaseHook.get_connection(sftp_conn_id)
+    transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
+    extra = json.loads(sftp_conn.extra)
+        # if key_file in extra connect to ssh 
+    if "key_file" in extra: 
+        with open(extra["key_file"]) as f:
+            pkey = paramiko.RSAKey.from_private_key(f)
+        transport.connect(username=sftp_conn.login, pkey=pkey)
+    else: 
+        transport.connect(username=sftp_conn.login, password=sftp_conn.password)
+    ## AA Edits :  commenting bogdons' code 
+    #return paramiko.SFTPClient.from_transport(transport)
+    ## AA Edits : To resolve NameError: name 'transport' is not defined
+    sftp = paramiko.SFTPClient.from_transport(transport)
+    return sftp, transport
+
 ## @task(dag=dag)
 def ensure_directories_exist(file_key):
     parts = file_key.split('/')
@@ -47,31 +68,13 @@ def ensure_directories_exist(file_key):
     folder2 = parts[-3].split('=')[1]  # Second folder
     #folder1 = parts[-3]  # First folder
     #folder2 = parts[-2]  # Second folder
-    
-    if ENV == 'Prod':
-        sftp_conn_id = 'biakonzasftp'
-    if ENV == 'Prod':
-        sftp_conn_id = 'Availity_Diameter_Health__DH_Fusion_Production_SFTP'
+    ## AA Edits :  commenting bogdons' code 
+    #sftp = get_sftp()
+    ## AA Edits : To resolve NameError: name 'transport' is not defined
+    sftp, transport = get_sftp()
+    logging.debug(f'sftp type: {type(sftp)}, transport type: {type(transport)}')
 
-    sftp_conn = BaseHook.get_connection(sftp_conn_id)
-
-    transport = None
-    sftp = None
     try:
-        # Establish SFTP connection
-        
-        transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
-        extra = json.loads(sftp_conn.extra)
-        if "key_file" in extra: 
-            with open(extra["key_file"]) as f:
-                pkey = paramiko.RSAKey.from_private_key(f)
-            transport.connect(username=sftp_conn.login, pkey=pkey)
-        else: 
-            transport.connect(username=sftp_conn.login, password=sftp_conn.password)
-
-        sftp = paramiko.SFTPClient.from_transport(transport)
-        
-        # Ensure the first folder exists      sftp_path = f'C-128/C_128_test_delivery/XCAIn/{file_key.split("/")[-1]}'
         if ENV == 'Dev':
             try:
                 sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}') #changed sftp path as per Eric's screenshot in pr 105
@@ -116,22 +119,16 @@ def transfer_file_to_sftp(file_key):
     # Construct the SFTP path
     # Get SFTP connection details
     if ENV == 'Dev':
-        sftp_conn_id = 'biakonzasftp'
         sftp_path = f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
     if ENV == 'Prod':
-        sftp_conn_id = 'Availity_Diameter_Health__DH_Fusion_Production_SFTP'
         sftp_path = f'inbound/{folder1}/{folder2}/{file_name}'  #changed sftp path as per Eric's screenshot in pr 105
     logging.info(f'SFTP Path: {sftp_path}')
-    sftp_conn = BaseHook.get_connection(sftp_conn_id)
-
-    transport = None
-    sftp = None
+    ## AA Edits :  commenting bogdons' code 
+    #sftp = get_sftp()
+    ## AA EDITs : adding statement to ensure  : unpack the tuple correctly for error : AttributeError: 'tuple' object has no attribute 'close'
+    sftp, transport = get_sftp()  # Unpack the tuple returned by get_sftp
     try:
         # Establish SFTP connection
-        transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
-        transport.connect(username=sftp_conn.login, password=sftp_conn.password)
-        sftp = paramiko.SFTPClient.from_transport(transport)
-
         # Stream the file directly from S3 to SFTP
         s3_hook = S3Hook(aws_conn_id='konzaandssigrouppipelines')
         s3_object = s3_hook.get_key(file_key, BUCKET_NAME)
@@ -147,9 +144,9 @@ def transfer_file_to_sftp(file_key):
     finally:
         if sftp:
             sftp.close()
+        ## AA EDITs : adding statement to ensure  : unpack the tuple correctly for error : AttributeError: 'tuple' object has no attribute 'close'
         if transport:
-            transport.close() 
-
+            transport.close()
 @task(dag=dag)
 def transfer_batch_to_sftp(batch: List[str]):
     for file_key in batch:
