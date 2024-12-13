@@ -51,7 +51,7 @@ def get_sftp():
     if ENV == 'Dev':
         sftp_conn_id = 'sftp_airflow'
     if ENV == 'Prod':
-        sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
+        sftp_conn_id = 'Availity_Diameter_Health__DH_Fusion_Production_SFTP'
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
     transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
     extra = json.loads(sftp_conn.extra)
