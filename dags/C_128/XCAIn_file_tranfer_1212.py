@@ -33,7 +33,7 @@ dag = DAG(
 ENV = 'Prod'
 BUCKET_NAME = 'konzaandssigrouppipelines'
 S3_SUBFOLDER = 'XCAIn/'
-LOCAL_DIR = '/data/biakonzasftp/C-128/archive/XCAIn'
+LOCAL_DIR = '/source-biakonzasftp/C-128/archive/XCAIn'
 #s3://konzaandssigrouppipelines/HL7v3In/XCAIn_test/
 @task(dag=dag)
 def list_files_in_s3():
