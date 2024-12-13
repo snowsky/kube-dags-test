@@ -25,7 +25,7 @@ dag = DAG(
 
 BUCKET_NAME = 'konzaandssigrouppipelines'
 S3_SUBFOLDER = 'HL7v3In/'
-ENV = 'Prod
+ENV = 'Prod'
 @task(dag=dag)
 def list_files_in_s3():
     hook = S3Hook(aws_conn_id='konzaandssigrouppipelines')
