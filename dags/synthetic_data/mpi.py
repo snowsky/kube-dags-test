@@ -1,0 +1,50 @@
+from airflow import DAG
+from airflow.utils.dates import days_ago
+from airflow.operators.python import get_current_context
+from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.decorators import task
+
+from populations.target_population_impl import output_df_to_target_tbl
+MYSQL_CONN_ID = "MariaDB"
+
+default_args = {
+    'owner': 'airflow',
+}
+with DAG(
+    'mpi',
+    default_args=default_args,
+    start_date=days_ago(2),
+    tags=['synthetic', 'mpi'],
+) as dag:
+    
+    create_test_database = MySqlOperator(
+        task_id="create_test_database",
+        sql="""
+        CREATE DATABASE IF NOT EXISTS hl7_processing_center;
+        """,
+        mysql_conn_id=MYSQL_CONN_ID,
+    )
+
+    create_mpi_table = MySqlOperator(
+        task_id="create_mpi_table",
+        sql="""
+        CREATE TABLE hl7_processing_center._mpi_id_master (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            firstname varchar(100) DEFAULT NULL,
+            lastname varchar(100) DEFAULT NULL,
+            dob varchar(100) DEFAULT NULL,
+            sex varchar(100) DEFAULT NULL,
+            ssn varchar(100) DEFAULT NULL,
+            longitudinal_anomoly varchar(100) DEFAULT NULL,
+            first_name_anomoly varchar(100) DEFAULT NULL,
+            mrn_anomoly varchar(100) DEFAULT NULL,
+            event_timestamp timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY dob_master (dob),
+            KEY sex_master (sex),
+            KEY mpi_combo (firstname,lastname,dob,sex)
+        ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+        """,
+        mysql_conn_id=MYSQL_CONN_ID,
+    )
+    create_test_database >> create_mpi_table
