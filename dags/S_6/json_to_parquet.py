@@ -62,7 +62,7 @@ def process_files():
                 with open(file_path, 'r') as f:
                     file_content = f.read()
                 file_data.append({'file_path': file_path, 'file_content': file_content})
-                logger.info(f'Adding {file_name} to dataframe')
+                logger.info(f'Adding {file_path} to dataframe')
                 print(file_path)
                 file_count += 1
 
