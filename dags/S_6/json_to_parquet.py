@@ -15,6 +15,16 @@ parquet_count = 0
 # Initialize a list to store file paths and contents
 file_data = []
 
+# Define the failure callback function
+def failure_callback(context):
+    dag_name = context['dag'].dag_id
+    dag_file_path = context['dag'].fileloc
+    send_email(
+        to='networksecurity@konza.org',
+        subject=f'Task Failed in DAG: {dag_name}',
+        html_content=f"Task {context['task_instance_key_str']} failed in DAG: {dag_name}. DAG source file: {dag_file_path}. Check the logs for more details."
+    )
+
 # Function to save data to a Parquet file
 def save_to_parquet(data, partition_name, parquet_count):
     df = pd.DataFrame(data)
