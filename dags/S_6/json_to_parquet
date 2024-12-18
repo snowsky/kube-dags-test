@@ -67,7 +67,6 @@ default_args = {
     'depends_on_past': False,
     'start_date': datetime(2024, 10, 15),
     'on_failure_callback': failure_callback,
-    'catchup'
 }
 
 dag = DAG(
