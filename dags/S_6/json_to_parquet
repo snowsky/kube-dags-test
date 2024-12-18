@@ -1,0 +1,87 @@
+from airflow import DAG
+from airflow.operators.python_operator import PythonOperator
+from datetime import datetime, timedelta
+import os
+import pandas as pd
+
+# Define the paths
+pathIaaSLogs = '/data/biakonzasftp/S-6/IaaS_Logs/'
+parquet_logs_master = os.path.join(pathIaaSLogs, 'parquet-logs-master')
+
+# Initialize counters
+file_count = 0
+parquet_count = 0
+
+# Initialize a list to store file paths and contents
+file_data = []
+
+# Function to save data to a Parquet file
+def save_to_parquet(data, partition_name, parquet_count):
+    df = pd.DataFrame(data)
+    df['index_update'] = partition_name  # Add the index_update column
+    directory_path = os.path.join(parquet_logs_master, partition_name)
+    os.makedirs(directory_path, exist_ok=True)
+    parquet_path = os.path.join(directory_path, f'file_{parquet_count}.parquet')
+    df.to_parquet(parquet_path)
+    print(f'Saved {len(data)} rows to {parquet_path}')
+    
+    # Delete the original files
+    for item in data:
+        os.remove(item['file_path'])
+        print(f'Deleted {item["file_path"]}')
+
+# Function to process files
+def process_files():
+    global file_count, parquet_count, file_data
+    for root, dirs, files in os.walk(pathIaaSLogs):
+        # Skip the parquet-logs-master directory
+        if 'parquet-logs-master' in root:
+            continue
+        for file in files:
+            if file.endswith('.json'):
+                file_path = os.path.join(root, file)
+                modified_time = os.path.getmtime(file_path)
+                partition_name = datetime.fromtimestamp(modified_time).strftime('%Y-%m')
+                
+                with open(file_path, 'r') as f:
+                    file_content = f.read()
+                file_data.append({'file_path': file_path, 'file_content': file_content})
+                print(file_path)
+                file_count += 1
+
+                if file_count >= 10: # Normally 1M for 1M rows per parquet file
+                    parquet_count += 1
+                    save_to_parquet(file_data, partition_name, parquet_count)
+                    file_data = []
+                    file_count = 0
+
+    # Save any remaining data
+    if file_data:
+        parquet_count += 1
+        save_to_parquet(file_data, partition_name, parquet_count)
+
+
+# Define the DAG
+default_args = {
+    'owner': 'airflow',
+    'depends_on_past': False,
+    'start_date': datetime(2024, 10, 15),
+    'on_failure_callback': failure_callback,
+    'catchup'
+}
+
+dag = DAG(
+    'Log_Translation_to_Parquet',
+    default_args=default_args,
+    description='This DAG retrieves the syslog file from a VM where it is collected and stores it for future audits with HITRUST implications',
+    schedule_interval='@daily',
+    catchup=False,
+    tags=['S-6'],
+)
+# Task 1: Copy the syslog file from SFTP to network file path
+process_files_to_parquet_task = PythonOperator(
+    task_id='process_files',
+    python_callable=process_files,
+    dag=dag,
+    on_failure_callback=failure_callback,
+)
