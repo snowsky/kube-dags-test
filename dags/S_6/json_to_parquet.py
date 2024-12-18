@@ -1,8 +1,14 @@
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
+from airflow.utils.email import send_email
 import os
 import pandas as pd
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Define the paths
 pathIaaSLogs = '/data/biakonzasftp/S-6/IaaS_Logs/'
@@ -33,12 +39,12 @@ def save_to_parquet(data, partition_name, parquet_count):
     os.makedirs(directory_path, exist_ok=True)
     parquet_path = os.path.join(directory_path, f'file_{parquet_count}.parquet')
     df.to_parquet(parquet_path)
-    print(f'Saved {len(data)} rows to {parquet_path}')
+    logger.info(f'Saved {len(data)} rows to {parquet_path}')
     
     # Delete the original files
     for item in data:
         os.remove(item['file_path'])
-        print(f'Deleted {item["file_path"]}')
+        logger.info(f'Deleted {item["file_path"]}')
 
 # Function to process files
 def process_files():
@@ -56,6 +62,7 @@ def process_files():
                 with open(file_path, 'r') as f:
                     file_content = f.read()
                 file_data.append({'file_path': file_path, 'file_content': file_content})
+                logger.info(f'Adding {file_name} to dataframe')
                 print(file_path)
                 file_count += 1
 
@@ -64,11 +71,14 @@ def process_files():
                     save_to_parquet(file_data, partition_name, parquet_count)
                     file_data = []
                     file_count = 0
+                    
+                    
 
     # Save any remaining data
     if file_data:
         parquet_count += 1
         save_to_parquet(file_data, partition_name, parquet_count)
+        
 
 
 # Define the DAG
