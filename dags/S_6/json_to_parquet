@@ -73,7 +73,7 @@ default_args = {
 dag = DAG(
     'Log_Translation_to_Parquet',
     default_args=default_args,
-    description='This DAG retrieves the syslog file from a VM where it is collected and stores it for future audits with HITRUST implications',
+    description='This DAG collects logs to compress for trino table queries',
     schedule_interval='@daily',
     catchup=False,
     tags=['S-6'],
