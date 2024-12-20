@@ -6,11 +6,15 @@ import paramiko
 import json
 import logging
 from datetime import datetime
-from typing import List
+from typing import List , Tuple
 from concurrent.futures import ThreadPoolExecutor as PoolExecutor, as_completed
 from functools import partial
 import os
 from airflow.models.param import Param
+import pathlib
+from lib.konza.parser import read_clinical_document_from_xml_path
+from lib.konza.extracts.extract import KonzaExtract
+from airflow.providers.mysql.operators.mysql import MySqlOperator
 
 
 # Define the DAG
@@ -18,25 +22,26 @@ default_args = {
     'owner': 'airflow',
 }
 dag = DAG(
-    'XCAIn_s3_to_sftp_with_oid_folder_copy_to_archive',
+    'XCAIn_s3_to_sftp_copy_to_archive_ccd_parser_delete_from_s3',
     default_args=default_args,
-    description='Retrieve files from S3 and deliver to SFTP with OID folder structure implemented and delivered to archive folder and delete from s3 after transfer(s)',
+    description='Retrieve files from S3 and deliver to SFTP with OID folder structure implemented and delivered to archive folder and delete from s3 after transfer(s), Parse CCD',
     schedule_interval='@hourly',
-    start_date=datetime(2024, 12, 13), 
+    start_date=datetime(2024, 12, 19), 
     tags=['C-128'],
     catchup=False,
     params={
         "max_workers": Param(5, type="integer", minimum=1),
-        "batch_size": Param(100, type="integer", minimum=1)
+        "batch_size": Param(100, type="integer", minimum=1)    
     }
 )
+
 ENV = 'Prod'
 BUCKET_NAME = 'konzaandssigrouppipelines'
 S3_SUBFOLDER = 'XCAIn/'
+#S3_SUBFOLDER = 'HL7v3In/XCAIn_test/'
 LOCAL_DIR = '/source-biakonzasftp/C-128/archive/XCAIn'
 #LOCAL_DIR = '/data/biakonzasftp/C-128/archive/XCAIn_AA'
 
-#s3://konzaandssigrouppipelines/HL7v3In/XCAIn_test/
 @task(dag=dag)
 def list_files_in_s3():
     hook = S3Hook(aws_conn_id='konzaandssigrouppipelines')
@@ -55,23 +60,7 @@ def get_sftp():
         sftp_conn_id = 'sftp_airflow'
     if ENV == 'Prod':
         sftp_conn_id = 'Availity_Diameter_Health__DH_Fusion_Production_SFTP'
-    sftp_conn = BaseHook.get_connection(sftp_conn_id)
-    transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
-    extra = json.loads(sftp_conn.extra)
-    if "key_file" in extra: 
-        with open(extra["key_file"]) as f:
-            pkey = paramiko.RSAKey.from_private_key(f)
-        transport.connect(username=sftp_conn.login, pkey=pkey)
-    else: 
-        transport.connect(username=sftp_conn.login, password=sftp_conn.password)
-    sftp = paramiko.SFTPClient.from_transport(transport)
-    return sftp, transport
-
-def get_sftp_test():
-    if ENV == 'Dev':
-        sftp_conn_id = 'sftp_airflow'
-    if ENV == 'Prod':
-        sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
+        #sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
     transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
     extra = json.loads(sftp_conn.extra)
@@ -118,74 +107,6 @@ def ensure_directories_exist(file_key):
         if transport:
             transport.close()
 
-def ensure_directories_exist_test(file_key):
-    parts = file_key.split('/')
-
-    # Ensure that the file_key has at least 4 parts
-    if len(parts) < 4:
-        logging.error(f"Invalid file structure for {file_key}. Expected at least 4 parts.")
-        return
-
-    folder1 = parts[-4].split('=')[1]
-    folder2 = parts[-3].split('=')[1]
-    # Initialize folder3 as None by default
-    folder3 = None
-    # If there are at least 5 parts, extract folder3
-    if len(parts) > 4:
-        # Ensure the second-to-last part contains '=' before splitting
-        if '=' in parts[-2]:
-            folder3 = parts[-2].split('=')[1]
-        else:
-            logging.warning(f"Invalid format for folder3 in {file_key}. Skipping extraction.")
-            folder3 = None
-
-    file_name = parts[-1]
-    # Log extracted values
-    logging.debug(f"folder1: {folder1}, folder2: {folder2}, folder3: {folder3}, file_name: {file_name}")
-    sftp, transport = get_sftp_test()
-    
-    try:
-        if ENV == 'Dev':
-            try:
-                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}')
-            except IOError:
-                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}')
-            
-            try:
-                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}')
-            except IOError:
-                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}')
-            
-            if folder3:  # Only attempt to create folder3 if it exists
-                try:
-                    sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{folder3}')
-                except IOError:
-                    sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{folder3}')
-        
-        if ENV == 'Prod':
-            try:
-                sftp.chdir(f'inbound/{folder1}')
-            except IOError:
-                sftp.mkdir(f'inbound/{folder1}')
-            
-            try:
-                sftp.chdir(f'inbound/{folder1}/{folder2}')
-            except IOError:
-                sftp.mkdir(f'inbound/{folder1}/{folder2}')
-            
-            if folder3:  # Only attempt to create folder3 if it exists
-                try:
-                    sftp.chdir(f'inbound/{folder1}/{folder2}/{folder3}')
-                except IOError:
-                    sftp.mkdir(f'inbound/{folder1}/{folder2}/{folder3}')
-    except Exception as e:
-        logging.error(f'Error ensuring directories exist: {e}')
-    finally:
-        if sftp:
-            sftp.close()
-        if transport:
-            transport.close()
-
 def transfer_file_to_sftp(file_key):
     logging.info(f'Starting transfer for: {file_key}')
     if not file_key.endswith('.xml'):
@@ -220,75 +141,11 @@ def transfer_file_to_sftp(file_key):
         if transport:
             transport.close()
 
-def transfer_file_to_sftp_test(file_key):
-    logging.info(f'Starting transfer for: {file_key}')
-    if not file_key.endswith('.xml'):
-        logging.info(f'Skipping non-XML file: {file_key}')
-        return
-
-    parts = file_key.split('/')
-    
-    # Ensure that folder1 and folder2 exist before accessing them
-    if len(parts) < 4:
-        logging.error(f'Invalid file structure for {file_key}. Expected at least 4 parts.')
-        return
-
-    folder1 = parts[-4].split('=')[1]  # Assumes this folder always exists
-    folder2 = parts[-3].split('=')[1]  # Assumes this folder always exists
-
-    # Check if folder3 exists (with appropriate bounds check)
-    folder3 = None
-    if len(parts) > 4:  # Check if there are more than 4 parts
-        if '=' in parts[-2]:  # Ensure the second-to-last part contains '=' before splitting
-            folder3 = parts[-2].split('=')[1]
-        else:
-            logging.warning(f"Invalid format for folder3 in {file_key}. Skipping extraction.")
-            folder3 = None
-
-    file_name = parts[-1]
-
-        # Construct the SFTP path based on the environment
-    if ENV == 'Dev':
-        if folder3:
-            sftp_path = f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{folder3}/{file_name}'
-        else:
-            sftp_path = f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{file_name}'
-    elif ENV == 'Prod':
-        if folder3:
-            sftp_path = f'inbound/{folder1}/{folder2}/{folder3}/{file_name}'
-        else:
-            sftp_path = f'inbound/{folder1}/{folder2}/{file_name}'
-    else:
-        logging.error(f"Unsupported environment: {ENV}")
-        return
-
-    logging.info(f'SFTP Path: {sftp_path}')
-    sftp, transport = get_sftp_test()
-
-    try:
-        s3_hook = S3Hook(aws_conn_id='konzaandssigrouppipelines')
-        s3_object = s3_hook.get_key(file_key, BUCKET_NAME)
-
-        with s3_object.get()['Body'] as s3_file:
-            sftp.putfo(s3_file, sftp_path)
-            logging.info(f'Transferred file: {file_name} to {sftp_path}')
-        return file_key
-    except Exception as e:
-        logging.error(f'Error during file transfer: {e}')
-        return None
-    finally:
-        if sftp:
-            sftp.close()
-        if transport:
-            transport.close()       
 @task(dag=dag)
 def transfer_batch_to_sftp(batch: List[str]):
     for file_key in batch:
         ensure_directories_exist(file_key)
-        ensure_directories_exist_test(file_key)
         transfer_file_to_sftp(file_key)
-        transfer_file_to_sftp_test(file_key)
-
 
 @task(dag=dag)
 def divide_files_into_batches(xml_files: List[str], batch_size: str) -> List[List[str]]:
@@ -300,18 +157,13 @@ def divide_files_into_batches(xml_files: List[str], batch_size: str) -> List[Lis
 
 def _download_file_from_s3(local_dir, aws_conn_id, bucket_name, file_key):
     s3_hook = S3Hook(aws_conn_id=aws_conn_id)
-    # Parse file
     parts = file_key.split('/')
     folder1 = parts[-4].split('=')[1]
     folder2 = parts[-3].split('=')[1]
     file_name = parts[-1]
-    
-    # Create date folder
     date_folder = datetime.now().strftime('%Y-%m-%d')
-    # Create same oid folder pattern as in client SFTP location
     local_path = f"{local_dir}/{date_folder}/{folder1}/{folder2}/{file_name}"
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
-    
     s3_hook.download_file(
         key=file_key,
         bucket_name=bucket_name,
@@ -319,21 +171,83 @@ def _download_file_from_s3(local_dir, aws_conn_id, bucket_name, file_key):
         preserve_file_name=True,
         use_autogenerated_subdir=False
     )
-    return file_key
+    logging.info(f"Downloaded file: {file_key} to {local_path}")
+    return local_path
 
 @task(dag=dag)
-def download_files_to_local(xml_files, local_dir, aws_conn_id, bucket_name, max_workers: str):
-    max_workers = int(max_workers)  # Convert max_workers to integer
+def download_files_to_local(xml_files, local_dir, aws_conn_id, bucket_name, max_workers: int):
+    max_workers = int(max_workers)
+    downloaded_files = []
     with PoolExecutor(max_workers=max_workers) as executor:
-        future_file_dict = {executor.submit(partial(_download_file_from_s3, local_dir, aws_conn_id, bucket_name), file_key): file_key for file_key in xml_files}
-        for future in as_completed(future_file_dict):
-            file_key = future_file_dict[future]
+        future_file_map = {
+            executor.submit(
+                partial(_download_file_from_s3, local_dir, aws_conn_id, bucket_name),
+                file_key
+            ): file_key for file_key in xml_files
+        }
+        for future in as_completed(future_file_map):
             try:
-                future.result()
-                logging.info(f"Downloaded {file_key} to {local_dir}")
+                downloaded_path = future.result()
+                downloaded_files.append(downloaded_path)
+                logging.info(f"Downloaded: {downloaded_path}")
             except Exception as e:
-                logging.error(f"Failed to download {file_key}: {e}")
+                logging.error(f"Failed to download file {future_file_map[future]}: {e}")
+    logging.info(f"All downloaded files: {downloaded_files}")
+    return downloaded_files
+    
+@task(dag=dag)
+def list_local_files(local_dir):
+    #"""Recursively list all files in the directory structure."""
+    files = []
+    base_path = pathlib.Path(local_dir)
+    for file in base_path.rglob("*"):  # Search for all files recursively
+        if file.is_file():  # Ensure it's a file, not a directory
+            files.append(str(file))  # Add full path to the list
+            logging.info(f"File found: {file}")
+    return files
 
+@task(dag=dag)
+def filter_local_xml_files(files):
+    #"""Filter only XML files from the list."""
+    xml_files = [file for file in files if file.endswith('.xml')]
+    logging.info(f"Filtered XML Files: {xml_files}")
+    return xml_files
+    
+@task(dag=dag)
+def parse_local_xml(xml_files: List[str]):
+    #"""Process only the filtered XML files."""
+    for xml_file in xml_files:
+        logging.info(f"Processing {xml_file}.")
+        try:
+            clinical_document = read_clinical_document_from_xml_path(xml_file)
+            extract = KonzaExtract.from_clinical_document(clinical_document)
+            euid = pathlib.Path(xml_file).stem
+
+            given_name = extract.patient_name_extract.given_name
+            family_name = extract.patient_name_extract.family_name
+            given_name_parts = given_name.split()
+            family_name_parts = family_name.split()
+
+            firstname = given_name_parts[0]
+            middlename = given_name_parts[1] if len(given_name_parts) > 1 else ''
+            lastname = family_name_parts[0]
+
+            mrn = '999999999'
+            event_timestamp = '2023-02-08 10:34:00'
+            mysql_op = MySqlOperator(
+                task_id=f'parse_ccd_to_sql_{euid}',  # Unique task ID for each file
+                mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection',
+                sql=f"""
+                INSERT INTO person_master._mpi (mrn, firstname, middlename, lastname, event_timestamp, euid)
+                VALUES ('{mrn}', '{firstname}', '{middlename}', '{lastname}', '{event_timestamp}', '{euid}');
+                """,
+                dag=dag,
+                pool='ccd_pool'
+            )
+            mysql_op.execute(dict())
+        except Exception as e:
+            logging.error(f"Failed to process {xml_file}: {e}")
+            
 @task(dag=dag)
 def delete_files_from_s3(xml_files, aws_conn_id, bucket_name):
     s3_hook = S3Hook(aws_conn_id=aws_conn_id)
@@ -383,17 +297,18 @@ def delete_files_from_s3(xml_files, aws_conn_id, bucket_name):
         except Exception as e:
             logging.error(f"Failed to delete directory {file_key}: {e}")
 
-
 # Define the workflow
 files = list_files_in_s3()
 xml_files = filter_xml_files(files)
 batches = divide_files_into_batches(xml_files, batch_size="{{ params.batch_size }}")
 transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
 download_files = download_files_to_local(xml_files, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME, max_workers="{{ params.max_workers }}")
+local_files = list_local_files(local_dir=LOCAL_DIR)
+filtered_xml_files = filter_local_xml_files(local_files)
+parsed_tasks = parse_local_xml(filtered_xml_files)
 delete_files = delete_files_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
-
-files >> xml_files >> batches >> transfer_tasks >> download_files >> delete_files
-#files >> xml_files >> batches >> transfer_tasks >> download_files 
+   
+files >> xml_files >> batches >> transfer_tasks >> download_files >> local_files >> filtered_xml_files >> parsed_tasks >> delete_files
 
 if __name__ == "__main__":
     dag.cli()
