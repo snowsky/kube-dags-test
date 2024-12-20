@@ -66,7 +66,7 @@ def process_files():
                 print(file_path)
                 file_count += 1
 
-                if file_count >= 1000000: # Normally 1M for 1M rows per parquet file
+                if file_count >= 100000: # Normally 1M for 1M rows per parquet file
                     parquet_count += 1
                     save_to_parquet(file_data, partition_name, parquet_count)
                     file_data = []
