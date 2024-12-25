@@ -8,7 +8,7 @@ default_args = {
     'retries': 1,
 }
 
-with DAG('Connection_test_trino_dag', default_args=default_args, schedule='@daily') as dag:
+with DAG('Connection_test_trino_dag', default_args=default_args, schedule='@daily', tags=['C-35']) as dag:
     trino_task = SQLExecuteQueryOperator(
         task_id='run_trino_query',
         sql='SELECT "schema_name" FROM "information_schema"."schemata";',
