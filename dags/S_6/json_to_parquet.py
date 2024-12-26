@@ -37,7 +37,10 @@ def save_to_parquet(data, partition_name, parquet_count):
     df['index_update'] = partition_name  # Add the index_update column
     directory_path = os.path.join(parquet_logs_master, partition_name)
     os.makedirs(directory_path, exist_ok=True)
-    parquet_path = os.path.join(directory_path, f'file_{parquet_count}.parquet')
+    #parquet_path = os.path.join(directory_path, f'file_{parquet_count}.parquet')
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    parquet_path = os.path.join(directory_path, f'file_{parquet_count}_{timestamp}.parquet')
+    
     df.to_parquet(parquet_path)
     logger.info(f'Saved {len(data)} rows to {parquet_path}')
     
