@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from airflow.providers.trino.operators.trino import TrinoOperator
 from datetime import datetime
 
 default_args = {
@@ -9,7 +9,7 @@ default_args = {
 }
 
 with DAG('Connection_test_trino_dag', default_args=default_args, schedule='@daily', tags=['C-35']) as dag:
-    trino_task = SQLExecuteQueryOperator(
+    trino_task = TrinoOperator(
         task_id='run_trino_query',
         sql='SELECT "schema_name" FROM "information_schema"."schemata";',
         conn_id='trinokonza'
