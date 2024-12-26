@@ -52,13 +52,13 @@ def save_to_parquet(data, partition_name, parquet_count):
 # Function to process files
 def process_files():
     global file_count, parquet_count, file_data
-    for root, dirs, files in os.walk(pathIaaSLogs):
-        # Skip the parquet-logs-master directory
-        if 'parquet-logs-master' in root:
-            continue
-        for file in files:
-            if file.endswith('.json'):
-                file_path = os.path.join(root, file)
+
+    def scan_directory(directory):
+        for entry in os.scandir(directory):
+            if entry.is_dir() and 'parquet-logs-master' not in entry.path:
+                scan_directory(entry.path)
+            elif entry.is_file() and entry.name.endswith('.json'):
+                file_path = entry.path
                 modified_time = os.path.getmtime(file_path)
                 partition_name = datetime.fromtimestamp(modified_time).strftime('%Y-%m')
                 
@@ -69,20 +69,19 @@ def process_files():
                 print(file_path)
                 file_count += 1
 
-                if file_count >= 1000: # Normally 1M for 1M rows per parquet file
+                if file_count >= 1000:  # Normally 1M for 1M rows per parquet file
                     parquet_count += 1
                     save_to_parquet(file_data, partition_name, parquet_count)
                     file_data = []
                     file_count = 0
-                    
-                    
+                    return  # Stop processing after the first 1,000 files
+
+    scan_directory(pathIaaSLogs)
 
     # Save any remaining data
     if file_data:
         parquet_count += 1
         save_to_parquet(file_data, partition_name, parquet_count)
-        
-
 
 # Define the DAG
 default_args = {
