@@ -51,13 +51,14 @@ def save_to_parquet(data, partition_name, parquet_count):
 
 # Function to process files
 logger.info(f'File Count at outside of def: {file_count}')
+logger.info(f'File Count at outside of def: {file_count}')
 def process_files():
-    global file_count, parquet_count, file_data
+    global file_count, parquet_count, file_data, partition_name
     logger.info(f'File Count at global variable in processdef: {file_count}')
     print('starting processing')
     
     def scan_directory(directory):
-        global file_count, parquet_count, file_data
+        global file_count, parquet_count, file_data, partition_name
         logger.info(f'File Count at scan_directorydef: {file_count}')
         print(f'starting directory {directory}')
         for entry in os.scandir(directory):
@@ -91,12 +92,13 @@ def process_files():
                     file_count = 0
                     return  # Stop processing after the first 1,000 files
 
-    scan_directory(example_2)
+    scan_directory(pathIaaSLogs)
 
     # Save any remaining data
     if file_data:
         parquet_count += 1
         save_to_parquet(file_data, partition_name, parquet_count)
+        
 # Define the DAG
 default_args = {
     'owner': 'airflow',
