@@ -111,7 +111,7 @@ dag = DAG(
     'Log_Translation_to_Parquet',
     default_args=default_args,
     description='This DAG collects logs to compress for trino table queries',
-    schedule_interval='@daily',
+    schedule_interval='None',#'@daily'
     catchup=False,
     tags=['S-6'],
 )
