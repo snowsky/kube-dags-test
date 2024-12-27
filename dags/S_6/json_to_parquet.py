@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Define the paths
-pathIaaSLogs = '/source-biakonzasftp/S-6/IaaS_Logs/'
+pathIaaSLogs = '/data/biakonzasftp/S-6/IaaS_Logs/insights-logs-signinlogs/tenantId=a1840142-c74b-4ec8-9f4a-768337be17c7/y=2024/m=12/d=09/h=18/m=00/'
 parquet_logs_master = os.path.join(pathIaaSLogs, 'parquet-logs-master')
 
 # Initialize counters
