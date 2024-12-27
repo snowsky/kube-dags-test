@@ -44,27 +44,37 @@ def save_to_parquet(data, partition_name, parquet_count):
     df.to_parquet(parquet_path)
     logger.info(f'Saved {len(data)} rows to {parquet_path}')
     
-    # Delete the original files
-    for item in data:
-        os.remove(item['file_path'])
-        logger.info(f'Deleted {item["file_path"]}')
+    ## Delete the original files
+    #for item in data:
+    #    os.remove(item['file_path'])
+    #    logger.info(f'Deleted {item["file_path"]}')
 
 # Function to process files
+logger.info(f'File Count at outside of def: {file_count}')
 def process_files():
     global file_count, parquet_count, file_data
-
+    logger.info(f'File Count at global variable in processdef: {file_count}')
+    print('starting processing')
+    
     def scan_directory(directory):
+        global file_count, parquet_count, file_data
+        logger.info(f'File Count at scan_directorydef: {file_count}')
+        print(f'starting directory {directory}')
         for entry in os.scandir(directory):
+            print(f'starting entry {entry} with entry path {entry.path}')
             if entry.is_dir() and 'parquet-logs-master' not in entry.path:
+                print(f'starting entry {entry} after check')
+                scan_directory(entry.path)
+                # Check if the directory is empty after processing
                 if not os.listdir(entry.path):
-                    logger.info(f'Deleting empty directory: {entry.path}')
                     print(f'Deleting empty directory: {entry.path}')
                     os.rmdir(entry.path)
-                scan_directory(entry.path)
             elif entry.is_file() and entry.name.endswith('.json'):
+                print(f'starting file {entry.path}')
                 file_path = entry.path
                 modified_time = os.path.getmtime(file_path)
                 partition_name = datetime.fromtimestamp(modified_time).strftime('%Y-%m')
+                print(f'Partition Name: {partition_name}')
                 
                 with open(file_path, 'r') as f:
                     file_content = f.read()
@@ -74,19 +84,19 @@ def process_files():
                 file_count += 1
 
                 if file_count >= 1000:  # Normally 1M for 1M rows per parquet file
+                    logger.info(f'File Count max Reached for reset: {file_count}')
                     parquet_count += 1
                     save_to_parquet(file_data, partition_name, parquet_count)
                     file_data = []
                     file_count = 0
                     return  # Stop processing after the first 1,000 files
 
-    scan_directory(pathIaaSLogs)
+    scan_directory(example_2)
 
     # Save any remaining data
     if file_data:
         parquet_count += 1
         save_to_parquet(file_data, partition_name, parquet_count)
-
 # Define the DAG
 default_args = {
     'owner': 'airflow',
