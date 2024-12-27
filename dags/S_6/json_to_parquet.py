@@ -57,6 +57,7 @@ def process_files():
         for entry in os.scandir(directory):
             if entry.is_dir() and 'parquet-logs-master' not in entry.path:
                 if not os.listdir(entry.path):
+                    logger.info(f'Deleting empty directory: {entry.path}')
                     print(f'Deleting empty directory: {entry.path}')
                     os.rmdir(entry.path)
                 scan_directory(entry.path)
