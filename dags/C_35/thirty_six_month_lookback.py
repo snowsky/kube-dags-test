@@ -110,8 +110,6 @@ def write_to_mysql():
         schema=trino_schema,
     )
     trino_cursor = trino_conn.cursor()
-    trino_cursor.execute('SELECT * FROM thirtysix_month_lookback limit 1000')
-    data = trino_cursor.fetchall()
 
     # Retrieve the MySQL connection details
     mysql_conn = BaseHook.get_connection('prd-az1-sqlw3-mysql-airflowconnection')
@@ -145,13 +143,22 @@ def write_to_mysql():
     )
     """)
 
-    # Insert data into MySQL
+    # Insert data into MySQL in chunks
     insert_query = """
     INSERT INTO thirtysix_month_lookback_airflow (admitted, source, unit_id, related_provider_id, accid, partition_month)
     VALUES (%s, %s, %s, %s, %s, %s)
     """
-    mysql_cursor.executemany(insert_query, data)
-    mysql_conn.commit()
+    chunk_size = 1000
+    offset = 0
+
+    while True:
+        trino_cursor.execute(f'SELECT * FROM thirtysix_month_lookback LIMIT {chunk_size} OFFSET {offset}')
+        data = trino_cursor.fetchall()
+        if not data:
+            break
+        mysql_cursor.executemany(insert_query, data)
+        mysql_conn.commit()
+        offset += chunk_size
 
     mysql_cursor.close()
     mysql_conn.close()
