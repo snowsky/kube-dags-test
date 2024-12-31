@@ -55,8 +55,14 @@ list_containers = BashOperator(
 
 # Define the task to copy each container
 def create_copy_task(container_name):
+    # Log the original container_name
+    logger.info(f"Original container_name: {container_name}")
+    
     # Replace any characters that are not alphanumeric, dashes, dots, or underscores with underscores
     sanitized_container_name = re.sub(r'[^a-zA-Z0-9_.-]', '_', container_name)
+    
+    # Log the sanitized container_name
+    logger.info(f"Sanitized container_name: {sanitized_container_name}")
     
     copy_command = f"azcopy copy '{source_account_url}/{container_name}' '{destination_base_url}/{container_name}' --recursive"
     logger.info(f"Executing command: {copy_command}")
