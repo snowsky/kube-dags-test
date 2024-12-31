@@ -1,5 +1,6 @@
 from airflow.hooks.base import BaseHook
 import trino
+import mysql.connector
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
@@ -24,12 +25,6 @@ def test_trino_connection():
     cursor.execute('SELECT 1')
     result = cursor.fetchall()
     print(result)
-
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-from airflow.hooks.base import BaseHook
-from datetime import datetime
-import trino
 
 def execute_trino_queries():
     # Retrieve the connection details
@@ -98,13 +93,91 @@ def execute_trino_queries():
     cursor.close()
     trino_conn.close()
 
+def write_to_mysql():
+    # Retrieve the Trino connection details
+    trino_conn = BaseHook.get_connection('trinokonza')
+    trino_host = trino_conn.host
+    trino_port = trino_conn.port
+    trino_user = trino_conn.login
+    trino_schema = trino_conn.schema
+
+    # Connect to Trino
+    trino_conn = trino.dbapi.connect(
+        host=trino_host,
+        port=trino_port,
+        user=trino_user,
+        catalog='hive',
+        schema=trino_schema,
+    )
+    trino_cursor = trino_conn.cursor()
+    trino_cursor.execute('SELECT * FROM thirtysix_month_lookback')
+    data = trino_cursor.fetchall()
+
+    # Retrieve the MySQL connection details
+    mysql_conn = BaseHook.get_connection('prd-az1-sqlw3-mysql-airflowconnection')
+    mysql_host = mysql_conn.host
+    mysql_port = mysql_conn.port
+    mysql_user = mysql_conn.login
+    mysql_password = mysql_conn.password
+    mysql_database = mysql_conn.schema
+
+    # Connect to MySQL
+    mysql_conn = mysql.connector.connect(
+        host=mysql_host,
+        port=mysql_port,
+        user=mysql_user,
+        password=mysql_password,
+        database=mysql_database
+    )
+    mysql_cursor = mysql_conn.cursor()
+    # Drop if exists the table in MySQL
+    mysql_cursor.execute("""
+    DROP TABLE IF EXISTS thirtysix_month_lookback_airflow""")
+    # Create the table in MySQL
+    mysql_cursor.execute("""
+    CREATE TABLE IF NOT EXISTS thirtysix_month_lookback_airflow (
+        admitted VARCHAR(255),
+        source VARCHAR(255),
+        unit_id VARCHAR(255),
+        related_provider_id VARCHAR(255),
+        accid VARCHAR(255),
+        partition_month VARCHAR(255)
+    )
+    """)
+
+    # Insert data into MySQL
+    insert_query = """
+    INSERT INTO thirtysix_month_lookback_airflow (admitted, source, unit_id, related_provider_id, accid, partition_month)
+    VALUES (%s, %s, %s, %s, %s, %s)
+    """
+    mysql_cursor.executemany(insert_query, data)
+    mysql_conn.commit()
+
+    mysql_cursor.close()
+    mysql_conn.close()
+    trino_cursor.close()
+    trino_conn.close()
+
 with DAG(
     dag_id='execute_trino_queries_dag',
     schedule_interval='@once',
+    tags=['C-35'],
     start_date=datetime(2023, 1, 1),
     catchup=False,
 ) as dag:
+    test_connection_task = PythonOperator(
+        task_id='test_trino_connection',
+        python_callable=test_trino_connection,
+    )
+
     execute_queries_task = PythonOperator(
         task_id='execute_trino_queries',
         python_callable=execute_trino_queries,
     )
+
+    write_to_mysql_task = PythonOperator(
+        task_id='write_to_mysql',
+        python_callable=write_to_mysql,
+    )
+
+    test_connection_task >> execute_queries_task >> write_to_mysql_task
