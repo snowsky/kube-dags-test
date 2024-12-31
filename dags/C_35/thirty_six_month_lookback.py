@@ -110,7 +110,7 @@ def write_to_mysql():
         schema=trino_schema,
     )
     trino_cursor = trino_conn.cursor()
-    trino_cursor.execute('SELECT * FROM thirtysix_month_lookback')
+    trino_cursor.execute('SELECT * FROM thirtysix_month_lookback limit 1000')
     data = trino_cursor.fetchall()
 
     # Retrieve the MySQL connection details
