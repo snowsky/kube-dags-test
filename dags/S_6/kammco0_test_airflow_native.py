@@ -34,8 +34,6 @@ dag = DAG(
 # Variables
 source_account_name = "logauditdata"
 destination_account_name = "biakonzasftp"
-source_container_name = "source-container"
-destination_container_name = "destination-container"
 
 # Retrieve the source storage account key from Airflow connection
 source_connection = BaseHook.get_connection('logauditdata-blob-core-windows-net')
@@ -76,16 +74,22 @@ def copy_container(container_name):
     for blob in blobs:
         source_blob = f"{container_name}/{blob.name}"
         destination_blob = f"{sanitized_container_name}/{blob.name}"
-        source_hook.copy_blob(source_blob, destination_account_name, destination_blob)
-        logger.info(f"Copied {source_blob} to {destination_blob}")
+        try:
+            source_hook.copy_blob(source_blob, destination_account_name, destination_blob)
+            logger.info(f"Copied {source_blob} to {destination_blob}")
+        except Exception as e:
+            logger.error(f"Failed to copy {source_blob} to {destination_blob}: {e}")
 
 # Create a dynamic task for each container
-containers = list_containers()
-for container in containers:
-    copy_task = PythonOperator(
-        task_id=f'copy_container_{container}',
-        python_callable=copy_container,
-        op_args=[container],
-        dag=dag,
-    )
-    list_containers_task >> copy_task
+def create_copy_tasks():
+    containers = list_containers()
+    for container in containers:
+        copy_task = PythonOperator(
+            task_id=f'copy_container_{container}',
+            python_callable=copy_container,
+            op_args=[container],
+            dag=dag,
+        )
+        list_containers_task >> copy_task
+
+create_copy_tasks()
