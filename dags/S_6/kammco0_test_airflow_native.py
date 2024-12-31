@@ -23,7 +23,7 @@ default_args = {
 
 # Define the DAG
 dag = DAG(
-    'azcopy_containers',
+    'azcopy_containers_airflow_native',
     default_args=default_args,
     description='Copy containers from source to destination storage account',
     schedule_interval=None,
