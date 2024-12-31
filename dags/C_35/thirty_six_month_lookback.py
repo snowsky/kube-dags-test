@@ -159,7 +159,7 @@ def write_to_mysql():
     trino_conn.close()
 
 with DAG(
-    dag_id='execute_trino_queries_dag',
+    dag_id='thirty_six_month_lookback',
     schedule_interval='@once',
     tags=['C-35'],
     start_date=datetime(2023, 1, 1),
