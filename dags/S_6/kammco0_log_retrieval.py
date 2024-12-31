@@ -27,7 +27,6 @@ dag = DAG(
     schedule_interval=None,
     tags=['S-6'],
     start_date=days_ago(1),
-    tags=['azcopy'],
 )
 
 # Variables
