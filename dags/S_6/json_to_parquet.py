@@ -37,21 +37,21 @@ def save_to_parquet(data, partition_name, parquet_count):
     df['index_update'] = partition_name  # Add the index_update column
     directory_path = os.path.join(parquet_logs_master, partition_name)
     os.makedirs(directory_path, exist_ok=True)
-    #parquet_path = os.path.join(directory_path, f'file_{parquet_count}.parquet')
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     parquet_path = os.path.join(directory_path, f'file_{parquet_count}_{timestamp}.parquet')
+    
+    # Log the size of the DataFrame
+    logger.info(f'DataFrame size: {df.memory_usage(deep=True).sum()} bytes')
     
     df.to_parquet(parquet_path)
     logger.info(f'Saved {len(data)} rows to {parquet_path}')
     
-    ## Delete the original files
-    #for item in data:
-    #    os.remove(item['file_path'])
-    #    logger.info(f'Deleted {item["file_path"]}')
+    # Delete the original files
+    # for item in data:
+    #     os.remove(item['file_path'])
+    #     logger.info(f'Deleted {item["file_path"]}')
 
 # Function to process files
-logger.info(f'File Count at outside of def: {file_count}')
-logger.info(f'File Count at outside of def: {file_count}')
 def process_files():
     global file_count, parquet_count, file_data, partition_name
     logger.info(f'File Count at global variable in processdef: {file_count}')
@@ -111,10 +111,11 @@ dag = DAG(
     'Log_Translation_to_Parquet',
     default_args=default_args,
     description='This DAG collects logs to compress for trino table queries',
-    schedule_interval='@daily',#'@daily'
+    schedule_interval='@daily',
     catchup=False,
     tags=['S-6'],
 )
+
 # Task 1: Copy the syslog file from SFTP to network file path
 process_files_to_parquet_task = PythonOperator(
     task_id='process_files',
