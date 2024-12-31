@@ -25,6 +25,7 @@ dag = DAG(
     default_args=default_args,
     description='Copy containers from source to destination storage account',
     schedule_interval=None,
+    tags=['S-6'],
     start_date=days_ago(1),
     tags=['azcopy'],
 )
