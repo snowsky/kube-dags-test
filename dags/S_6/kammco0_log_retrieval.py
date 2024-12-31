@@ -35,11 +35,11 @@ source_account_name = "logauditdata"
 destination_base_url = "https://biakonzasftp.blob.core.windows.net/airflow"
 
 # Retrieve the source storage account key from Airflow connection
-source_connection = BaseHook.get_connection('logauditdata')
+source_connection = BaseHook.get_connection('logauditdata-blob-core-windows-net')
 source_account_key = source_connection.password
 
 # Retrieve the destination storage account key from Airflow connection
-destination_connection = BaseHook.get_connection('biakonzasftp')
+destination_connection = BaseHook.get_connection('biakonzasftp-blob-core-windows-net')
 destination_account_key = destination_connection.password
 
 # Get the list of containers in the source storage account
