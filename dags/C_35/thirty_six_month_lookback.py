@@ -152,7 +152,15 @@ def write_to_mysql():
     offset = 0
 
     while True:
-        trino_cursor.execute(f'SELECT * FROM thirtysix_month_lookback LIMIT {chunk_size} OFFSET {offset}')
+        trino_cursor.execute(f"""
+        SELECT admitted, source, unit_id, related_provider_id, accid, partition_month
+        FROM (
+            SELECT admitted, source, unit_id, related_provider_id, accid, partition_month,
+                   ROW_NUMBER() OVER () AS row_num
+            FROM thirtysix_month_lookback
+        )
+        WHERE row_num > {offset} AND row_num <= {offset + chunk_size}
+        """)
         data = trino_cursor.fetchall()
         if not data:
             break
