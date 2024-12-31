@@ -1,4 +1,5 @@
 import logging
+import re
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.hooks.base_hook import BaseHook
@@ -54,10 +55,14 @@ list_containers = BashOperator(
 
 # Define the task to copy each container
 def create_copy_task(container_name):
+    # Replace any characters that are not alphanumeric, dashes, dots, or underscores with underscores
+    sanitized_container_name = re.sub(r'[^a-zA-Z0-9_.-]', '_', container_name)
+    
     copy_command = f"azcopy copy '{source_account_url}/{container_name}' '{destination_base_url}/{container_name}' --recursive"
     logger.info(f"Executing command: {copy_command}")
+    
     return BashOperator(
-        task_id=f'copy_container_{container_name}',
+        task_id=f'copy_container_{sanitized_container_name}',
         bash_command=copy_command,
         dag=dag,
     )
