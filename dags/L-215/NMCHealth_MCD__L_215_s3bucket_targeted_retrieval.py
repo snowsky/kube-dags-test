@@ -99,7 +99,7 @@ def move_files_to_local(**kwargs):
 
 move_files_task = PythonOperator(
     task_id='move_files',
-    max_active_runs: 1,
+    max_active_runs=1,
     python_callable=move_files_to_local,
     provide_context=True,
     dag=dag,
