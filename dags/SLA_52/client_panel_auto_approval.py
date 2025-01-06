@@ -111,7 +111,8 @@ with DAG(
     dag_id="csga_panel_auto_approval",
     start_date=datetime(2024,11,6),
     schedule_interval='@hourly',
-    tags=['csga_approval','sla_52']
+    tags=['csga_approval','sla_52'],
+    catchup=False
 ) as dag:
     task = PythonOperator(
         task_id="csga_panel_auto_approval_task",
