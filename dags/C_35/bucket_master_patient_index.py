@@ -4,7 +4,8 @@ import mysql.connector
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-def execute_trino_queries():
+def execute_trino_queries(**kwargs):
+    ds = kwargs['ds']
     # Retrieve the connection details
     conn = BaseHook.get_connection('trinokonza')
     host = conn.host
@@ -25,7 +26,7 @@ def execute_trino_queries():
     # Define the SQL queries
     queries = [
         """CREATE TABLE IF NOT EXISTS hive.parquet_master_data.patient_account_parquet_pm_by_accid ( admitted varchar, source varchar, unit_id varchar, related_provider_id varchar, accid varchar, index_update varchar ) WITH (partitioned_by = ARRAY['index_update'], bucketed_by = ARRAY['accid'], bucket_count = 64 )""",
-        """
+        f"""
         INSERT INTO hive.parquet_master_data.patient_account_parquet_pm_by_accid
         SELECT
         admitted ,
@@ -35,7 +36,7 @@ def execute_trino_queries():
         accid,
         index_update
         FROM patient_account_parquet_pm
-        WHERE concat(index_update,'-01') = '{{ ds }}'
+        WHERE concat(index_update,'-01') = '{ds}'
         """
     ]
     
@@ -58,5 +59,6 @@ with DAG(
     execute_queries_task = PythonOperator(
         task_id='execute_trino_queries',
         python_callable=execute_trino_queries,
+        provide_context=True,
     )
     execute_queries_task
