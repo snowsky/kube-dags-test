@@ -20,6 +20,7 @@ default_args = {
 dag = DAG(
     'L_215_s3bucket_targeted_retrieval',
     default_args=default_args,
+    max_active_runs=1,
     description='A simple DAG to move files from an S3 subfolder to a mounted drive location',
     schedule_interval='@hourly',  # Set to run hourly
     tags=['L-215'],
@@ -99,7 +100,6 @@ def move_files_to_local(**kwargs):
 
 move_files_task = PythonOperator(
     task_id='move_files',
-    max_active_runs=1,
     python_callable=move_files_to_local,
     provide_context=True,
     dag=dag,
