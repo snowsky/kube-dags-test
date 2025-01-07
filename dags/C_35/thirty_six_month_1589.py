@@ -73,7 +73,7 @@ with DAG(
     bucket_patient_account_by_acc_id_table = KonzaTrinoOperator(
         task_id='bucket_patient_account_by_acc_id_table',
         query="""
-        INSERT INTO hive.parquet_master_data.patient_account_parquet_pm_by_accid
+        INSERT INTO parquet_master_data.patient_account_parquet_pm_by_accid
         SELECT
             admitted,
             source, 
@@ -146,7 +146,7 @@ with DAG(
     bucket_mpi_parquet_pm_by_acc_id_table = KonzaTrinoOperator(
         task_id='bucket_mpi_parquet_pm_by_acc_id_table',
         query="""
-        INSERT INTO hive.parquet_master_data.mpi_parquet_pm_by_accid
+        INSERT INTO parquet_master_data.mpi_parquet_pm_by_accid
         SELECT
         -- @biakonza, please check this makes sense
 index_update_dt_tm ,
@@ -222,7 +222,7 @@ index_update_dt_tm ,
     populate_patient_account_latest_past36months_table = KonzaTrinoOperator(
         task_id='populate_patient_account_latest_past36months_table',
         query="""
-        INSERT INTO hive.parquet_master_data.patient_account_latest_past36months
+        INSERT INTO parquet_master_data.patient_account_latest_past36months
 SELECT 
   accid,
   latest_known.admitted AS latest_known_admitted,
@@ -268,7 +268,7 @@ SELECT
         task_id='populate_patient_account_latest_past36months_mpi_pm_table',
         query="""
         INSERT INTO
-            hive.parquet_master_data.patient_account_latest_past36months_mpi_pm
+            parquet_master_data.patient_account_latest_past36months_mpi_pm
         SELECT 
           accid,
           latest_known_admitted, 
@@ -278,9 +278,9 @@ SELECT
           MPI VARCHAR,
           '<DATEID>' AS ds
         FROM
-            hive.parquet_master_data.patient_account_latest_past36months t1
+            parquet_master_data.patient_account_latest_past36months t1
         JOIN
-            hive.parquet_master_data.mpi_parquet_pm_by_accid t2
+            parquet_master_data.mpi_parquet_pm_by_accid t2
         -- assumes both tables have a column called accid
         USING (accid)
         WHERE t1.ds = '<DATEID>'
