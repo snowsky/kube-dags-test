@@ -89,7 +89,7 @@ with DAG(
         task_id='create_mpi_parquet_pm_by_acc_id_table',
         query="""
         CREATE TABLE IF NOT EXISTS 
-        hive.parquet_master_data.mpi_parquet_pm_parquet_pm_by_accid (
+        hive.parquet_master_data.mpi_parquet_pm_by_accid (
             accid VARCHAR,
             index_update_dt_tm varchar,
  source varchar, 
@@ -147,7 +147,7 @@ with DAG(
     bucket_mpi_parquet_pm_by_acc_id_table = KonzaTrinoOperator(
         task_id='bucket_mpi_parquet_pm_by_acc_id_table',
         query="""
-        INSERT INTO hive.parquet_master_data.mpi_parquet_pm_parquet_pm_by_accid
+        INSERT INTO hive.parquet_master_data.mpi_parquet_pm_by_accid
         SELECT
         -- @biakonza, please check this makes sense
             accid, index_update_dt_tm ,
@@ -193,7 +193,7 @@ with DAG(
  discharge_status_description , 
  accid_ref , 
             index_update
-        FROM mpi_parquet_pm_parquet_pm
+        FROM mpi_parquet_pm
         WHERE concat(index_update,'-01') = '<DATEID>'
         """
     )
@@ -287,12 +287,12 @@ with DAG(
         FROM
             hive.parquet_master_data.patient_account_latest_past36months t1
         JOIN
-            hive.parquet_master_data.mpi_parquet_pm_parquet_pm_by_accid t2
+            hive.parquet_master_data.mpi_parquet_pm_by_accid t2
         -- assumes both tables have a column called accid
         USING (accid)
         WHERE t1.ds = '<DATEID>'
         -- @biakonza, there might be additional clauses you might whish to impose on
-        -- mpi_parquet_pm_parquet_pm_by_accid -- is there a lookback there too? -ET no there is not a lookback there too, index update does play the same replace with newer role.
+        -- mpi_parquet_pm_by_accid -- is there a lookback there too? -ET no there is not a lookback there too, index update does play the same replace with newer role.
         -- or does an index_update also play a role? etc.
         --- AND [...] 
         """,
