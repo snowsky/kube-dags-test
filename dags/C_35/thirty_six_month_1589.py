@@ -237,7 +237,7 @@ SELECT
       index_update,
       ROW(admitted, source, unit_id, related_provider_id)
     ) AS latest_known
-  FROM hive.patient_account_parquet_pm_by_accid
+  FROM hive.parquet_master_data.patient_account_parquet_pm_by_accid
   -- assumption: index_update always >= admitted
   -- this additional predicate limits the partitions we traverse
           WHERE index_update >= DATE_ADD('month', -36, '<DATEID>')
