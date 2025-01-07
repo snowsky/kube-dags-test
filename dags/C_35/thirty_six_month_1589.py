@@ -85,7 +85,7 @@ with DAG(
         WHERE concat(index_update,'-01') = '<DATEID>'
         """
      )
-     create_mpi_parquet_pm_by_acc_id_table = KonzaTrinoOperator(
+    create_mpi_parquet_pm_by_acc_id_table = KonzaTrinoOperator(
         task_id='create_mpi_parquet_pm_by_acc_id_table',
         query="""
         CREATE TABLE IF NOT EXISTS 
