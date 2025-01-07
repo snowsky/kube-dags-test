@@ -135,6 +135,7 @@ with DAG(
             index_update VARCHAR 
         ) WITH (
             -- I assume index_update also makes sense here 
+            external_location = 'abfs://content@reportwriterstorage.dfs.core.windows.net/parquet-master-data/mpi_parquet_pm_by_accid',
             partitioned_by = ARRAY['index_update'], 
             bucketed_by = ARRAY['accid_ref'], 
             bucket_count = 64 
