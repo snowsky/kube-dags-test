@@ -264,8 +264,7 @@ with DAG(
             latest_known_unit_id VARCHAR, 
             latest_known_related_provider_id VARCHAR, 
             latest_index_update VARCHAR,
-            -- @biakonza, please add:
-            [mpi_pm_columns],
+            MPI VARCHAR,
             ds VARCHAR
         ) WITH (
             partitioned_by = ARRAY['ds']
@@ -283,8 +282,7 @@ with DAG(
           latest_known_source,
           latest_known_unit_id,
           latest_known_related_provider_id,
-          -- @biakonza, please add
-          [mpi_pm_columns],
+          MPI VARCHAR,
           '<DATEID>' AS ds
         FROM
             hive.parquet_master_data.patient_account_latest_past36months t1
@@ -294,9 +292,9 @@ with DAG(
         USING (accid)
         WHERE t1.ds = '<DATEID>'
         -- @biakonza, there might be additional clauses you might whish to impose on
-        -- mpi_parquet_pm_parquet_pm_by_accid -- is there a lookback there too? 
+        -- mpi_parquet_pm_parquet_pm_by_accid -- is there a lookback there too? -ET no there is not a lookback there too, index update does play the same replace with newer role.
         -- or does an index_update also play a role? etc.
-        AND [...] 
+        --- AND [...] 
         """,
     )
 
