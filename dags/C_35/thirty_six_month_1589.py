@@ -1,0 +1,229 @@
+from airflow.hooks.base import BaseHook
+import trino
+import mysql.connector
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime
+
+
+class KonzaTrinoOperator(PythonOperator):
+
+    def __init__(self, query, **kwargs):
+
+        def execute_trino_query(**kwargs):
+            ds = kwargs['ds']
+            # Retrieve the connection details
+            conn = BaseHook.get_connection('trinokonza')
+            host = conn.host
+            port = conn.port
+            user = conn.login
+            schema = conn.schema
+
+            # Connect to Trino
+            trino_conn = trino.dbapi.connect(
+                host=host,
+                port=port,
+                user=user,
+                catalog='hive',
+                schema=schema,
+            )
+            cursor = trino_conn.cursor()
+
+            # the .replace is a no-op if ds not present in query
+            cursor.execute(query.replace('<DATEID>', ds))
+            print(f"Executed query: {query}")
+
+            cursor.close()
+            trino_conn.close()
+
+        super(KonzaTrinoOperator, self).__init__(
+            python_callable=execute_trino_query,
+            provide_context=True,
+            **kwargs
+        )
+
+with DAG(
+    dag_id='bucket_master_patient_index',
+    schedule_interval='@monthly',
+    tags=['C-35'],
+    start_date=datetime(2023, 3, 1),
+    catchup=True,
+    max_active_runs=1,
+) as dag:
+    create_patient_account_by_acc_id_table = KonzaTrinoOperator(
+        task_id='create_patient_account_by_acc_id_table',
+        query="""
+        CREATE TABLE IF NOT EXISTS 
+        hive.parquet_master_data.patient_account_parquet_pm_by_accid ( 
+            admitted VARCHAR, 
+            source VARCHAR, 
+            unit_id VARCHAR, 
+            related_provider_id VARCHAR, 
+            accid VARCHAR, 
+            index_update VARCHAR 
+        ) WITH (
+            partitioned_by = ARRAY['index_update'], 
+            bucketed_by = ARRAY['accid'], 
+            sorted_by = ARRAY['accid'],
+            bucket_count = 64 
+        )
+        """,
+    )
+
+    bucket_patient_account_by_acc_id_table = KonzaTrinoOperator(
+        task_id='bucket_patient_account_by_acc_id_table',
+        query="""
+        INSERT INTO hive.parquet_master_data.patient_account_parquet_pm_by_accid
+        SELECT
+            admitted,
+            source, 
+            unit_id, 
+            related_provider_id,
+            accid,
+            index_update
+        FROM patient_account_parquet_pm
+        WHERE concat(index_update,'-01') = '<DATEID>'
+        """
+     )
+     create_mpi_parquet_pm_by_acc_id_table = KonzaTrinoOperator(
+        task_id='create_mpi_parquet_pm_by_acc_id_table',
+        query="""
+        CREATE TABLE IF NOT EXISTS 
+        hive.parquet_master_data.mpi_parquet_pm_parquet_pm_by_accid ( 
+            accid VARCHAR, 
+            -- @biakonza, please fill in
+            [some other columns]
+            index_update VARCHAR 
+        ) WITH (
+            -- I assume index_update also makes sense here 
+            partitioned_by = ARRAY['index_update'], 
+            bucketed_by = ARRAY['accid'], 
+            sorted_by = ARRAY['accid'],
+            bucket_count = 64 
+        )
+        """,
+    )
+
+    bucket_mpi_parquet_pm_by_acc_id_table = KonzaTrinoOperator(
+        task_id='bucket_mpi_parquet_pm_by_acc_id_table',
+        query="""
+        INSERT INTO hive.parquet_master_data.mpi_parquet_pm_parquet_pm_by_accid
+        SELECT
+        -- @biakonza, please check this makes sense
+            accid, [some other columns]
+            index_update
+        FROM mpi_parquet_pm_parquet_pm
+        WHERE concat(index_update,'-01') = '<DATEID>'
+        """
+    )
+    create_patient_account_latest_past36months_table = KonzaTrinoOperator(
+        task_id='create_patient_account_latest_past36months_table',
+        query="""
+        CREATE TABLE IF NOT EXISTS 
+        hive.parquet_master_data.patient_account_latest_past36months ( 
+            accid VARCHAR, 
+            latest_known_admitted VARCHAR, 
+            latest_known_source VARCHAR, 
+            latest_known_unit_id VARCHAR, 
+            latest_known_related_provider_id VARCHAR, 
+            latest_index_update VARCHAR,
+            -- note the use of ds here as the partitioning column
+            -- ds is the date w/r to which the 36-month lookback is computed!
+            ds VARCHAR
+        ) WITH (
+            partitioned_by = ARRAY['ds'], 
+            bucketed_by = ARRAY['accid'], 
+            sorted_by = ARRAY['accid'],
+            bucket_count = 64 
+        )
+        """,
+    )
+
+    populate_patient_account_latest_past36months_table = KonzaTrinoOperator(
+        task_id='populate_patient_account_latest_past36months_table',
+        query="""
+        INSERT INTO hive.parquet_master_data.patient_account_latest_past36months
+        SELECT 
+          accid,
+          latest_known.admitted AS latest_known_admitted,
+          latest_known.source AS latest_known_source,
+          latest_known.unit_id AS latest_known_unit_id,
+          latest_known.related_provider_id AS latest_known_related_provider_id,
+          '<DATEID>' AS ds
+        FROM (
+          SELECT
+            acc_id,
+            MAX_BY(
+              index_update,
+              CAST(ROW(admitted, source, unit_id, related_provider_id)) AS
+              ROW(
+                  admitted VARCHAR, 
+                  source VARCHAR, 
+                  unit_id VARCHAR, 
+                  related_provider_id VARCHAR
+              )
+            ) AS latest_known
+          FROM hive.patient_account_parquet_pm_by_accid
+          -- assumption: index_update always >= admitted
+          -- this additional predicate limits the partitions we traverse
+          WHERE index_update >= DATE_ADD('month', -36, '<DATEID>')
+          AND admitted >= DATE_ADD('month', -36, '<DATEID>')
+          GROUP BY accid
+        )
+        """,
+    )
+    create_patient_account_latest_past36months_mpi_pm_table = KonzaTrinoOperator(
+        task_id='create_patient_account_latest_past36months_mpi_pm_table',
+        query="""
+        CREATE TABLE IF NOT EXISTS 
+        hive.parquet_master_data.patient_account_latest_past36months_mpi_pm ( 
+            accid VARCHAR, 
+            latest_known_admitted VARCHAR, 
+            latest_known_source VARCHAR, 
+            latest_known_unit_id VARCHAR, 
+            latest_known_related_provider_id VARCHAR, 
+            latest_index_update VARCHAR,
+            -- @biakonza, please add:
+            [mpi_pm_columns],
+            ds VARCHAR
+        ) WITH (
+            partitioned_by = ARRAY['ds']
+        )
+        """,
+    )
+    populate_patient_account_latest_past36months_mpi_pm_table = KonzaTrinoOperator(
+        task_id='populate_patient_account_latest_past36months_mpi_pm_table',
+        query="""
+        INSERT INTO
+            hive.parquet_master_data.patient_account_latest_past36months_mpi_pm
+        SELECT 
+          accid,
+          latest_known_admitted, 
+          latest_known_source,
+          latest_known_unit_id,
+          latest_known_related_provider_id,
+          -- @biakonza, please add
+          [mpi_pm_columns],
+          '<DATEID>' AS ds
+        FROM
+            hive.parquet_master_data.patient_account_latest_past36months t1
+        JOIN
+            hive.parquet_master_data.mpi_parquet_pm_parquet_pm_by_accid t2
+        -- assumes both tables have a column called accid
+        USING (accid)
+        WHERE t1.ds = '<DATEID>'
+        -- @biakonza, there might be additional clauses you might whish to impose on
+        -- mpi_parquet_pm_parquet_pm_by_accid -- is there a lookback there too? 
+        -- or does an index_update also play a role? etc.
+        AND [...] 
+        """,
+    )
+
+
+    create_patient_account_by_acc_id_table >> bucket_patient_account_by_acc_id_table
+    create_mpi_parquet_pm_by_acc_id_table >> bucket_mpi_parquet_pm_by_acc_id_table
+    create_patient_account_latest_past36months_table >> populate_patient_account_latest_past36months_table
+    bucket_patient_account_by_acc_id_table >> populate_patient_account_latest_past36months_table
+    create_patient_account_latest_past36months_mpi_pm_table >> populate_patient_account_latest_past36months_mpi_pm_table
+    populate_patient_account_latest_past36months_table >> populate_patient_account_latest_past36months_mpi_pm_table
+    bucket_mpi_parquet_pm_by_acc_id_table >> populate_patient_account_latest_past36months_mpi_pm_table
