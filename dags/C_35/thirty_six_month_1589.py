@@ -90,8 +90,7 @@ with DAG(
         query="""
         CREATE TABLE IF NOT EXISTS 
         hive.parquet_master_data.mpi_parquet_pm_by_accid (
-            accid VARCHAR,
-            index_update_dt_tm varchar,
+    index_update_dt_tm varchar,
  source varchar, 
  source_type varchar, 
  mpi varchar, 
@@ -150,7 +149,7 @@ with DAG(
         INSERT INTO hive.parquet_master_data.mpi_parquet_pm_by_accid
         SELECT
         -- @biakonza, please check this makes sense
-            accid, index_update_dt_tm ,
+index_update_dt_tm ,
  source , 
  source_type , 
  mpi , 
