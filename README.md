@@ -122,12 +122,12 @@ If a library is used often (either in many tasks or in a task that needs to run 
 
 ## To Push Changes, generate PR
 
-- To Check which directory you are in : git status
-- If on correct directory and want to push the changes for an existing Code : git diff (this will show new changes made)
-- git add <filename> to add the new file
-- Use : git status to confirm that the new filename is added
-- git commit -m "commit msg" to add a commit message 
-- git push to push the changes
+- To Check which directory you are in : 'git status'
+- If on correct directory and want to push the changes for an existing Code : 'git diff' (this will show new changes made)
+- 'git add <filename>' to add the new file
+- Use : 'git status' to confirm that the new filename is added - Green means you have those green items are the items you are hoping to push.
+- 'git commit -m "commit msg"' to add a commit message 
+- 'git push' to push the changes
 
 ## If pushing the PR via new directory:
 - To create new branch : git checkout -b new-branch-name
