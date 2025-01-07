@@ -43,7 +43,7 @@ class KonzaTrinoOperator(PythonOperator):
         )
 
 with DAG(
-    dag_id='bucket_master_patient_index',
+    dag_id='thirty_six_month_1589',
     schedule_interval='@monthly',
     tags=['C-35'],
     start_date=datetime(2023, 3, 1),
