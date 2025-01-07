@@ -223,29 +223,23 @@ index_update_dt_tm ,
         task_id='populate_patient_account_latest_past36months_table',
         query="""
         INSERT INTO hive.parquet_master_data.patient_account_latest_past36months
-        SELECT 
-          accid,
-          latest_known.admitted AS latest_known_admitted,
-          latest_known.source AS latest_known_source,
-          latest_known.unit_id AS latest_known_unit_id,
-          latest_known.related_provider_id AS latest_known_related_provider_id,
+SELECT 
+  accid,
+  latest_known.admitted AS latest_known_admitted,
+  latest_known.source AS latest_known_source,
+  latest_known.unit_id AS latest_known_unit_id,
+  latest_known.related_provider_id AS latest_known_related_provider_id,
           '<DATEID>' AS ds
         FROM (
-          SELECT
-            acc_id,
-            MAX_BY(
-              index_update,
-              CAST(ROW(admitted, source, unit_id, related_provider_id)) AS
-              ROW(
-                  admitted VARCHAR, 
-                  source VARCHAR, 
-                  unit_id VARCHAR, 
-                  related_provider_id VARCHAR
-              )
-            ) AS latest_known
-          FROM hive.patient_account_parquet_pm_by_accid
-          -- assumption: index_update always >= admitted
-          -- this additional predicate limits the partitions we traverse
+  SELECT
+    accid,
+    MAX_BY(
+      index_update,
+      ROW(admitted, source, unit_id, related_provider_id)
+    ) AS latest_known
+  FROM hive.patient_account_parquet_pm_by_accid
+  -- assumption: index_update always >= admitted
+  -- this additional predicate limits the partitions we traverse
           WHERE index_update >= DATE_ADD('month', -36, '<DATEID>')
           AND admitted >= DATE_ADD('month', -36, '<DATEID>')
           GROUP BY accid
