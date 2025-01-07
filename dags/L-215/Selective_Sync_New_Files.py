@@ -20,6 +20,7 @@ default_args = {
 dag = DAG(
     'L_215_s3_selective_sync',
     default_args=default_args,
+    max_active_runs=1,
     description='A simple DAG to move new or changed files from an S3 subfolder to a mounted drive location',
     schedule_interval='@hourly',  # Set to run hourly
     start_date=datetime(2024, 11, 4),  # Set to today
