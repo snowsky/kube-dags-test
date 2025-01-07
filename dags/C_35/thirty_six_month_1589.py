@@ -137,7 +137,6 @@ with DAG(
             -- I assume index_update also makes sense here 
             partitioned_by = ARRAY['index_update'], 
             bucketed_by = ARRAY['accid_ref'], 
-            sorted_by = ARRAY['accid_ref'],
             bucket_count = 64 
         )
         """,
