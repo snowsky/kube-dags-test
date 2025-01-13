@@ -147,37 +147,39 @@ def ensure_directories_exist_test(file_key):
     try:
         if ENV == 'Dev':
             try:
-                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}')
+                # Change XCAIn directory to XCAIn_test_3_folder : which is a folder I have created in My DEV SFTP location
+                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}')
             except IOError:
-                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}')
+                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}')
             
             try:
-                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}')
+                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}')
             except IOError:
-                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}')
+                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}')
             
             if folder3:  # Only attempt to create folder3 if it exists
                 try:
-                    sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{folder3}')
+                    sftp.chdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}/{folder3}')
                 except IOError:
-                    sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{folder3}')
+                    sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}/{folder3}')
         
         if ENV == 'Prod':
             try:
-                sftp.chdir(f'inbound/{folder1}')
+                # Please change the inbound folder to a folder name that is created at the client SFTP location. 
+                sftp.chdir(f'inbound_test_3_folder/{folder1}')
             except IOError:
-                sftp.mkdir(f'inbound/{folder1}')
+                sftp.mkdir(f'inbound_test_3_folder/{folder1}')
             
             try:
-                sftp.chdir(f'inbound/{folder1}/{folder2}')
+                sftp.chdir(f'inbound_test_3_folder/{folder1}/{folder2}')
             except IOError:
-                sftp.mkdir(f'inbound/{folder1}/{folder2}')
+                sftp.mkdir(f'inbound_test_3_folder/{folder1}/{folder2}')
             
             if folder3:  # Only attempt to create folder3 if it exists
                 try:
-                    sftp.chdir(f'inbound/{folder1}/{folder2}/{folder3}')
+                    sftp.chdir(f'inbound_test_3_folder/{folder1}/{folder2}/{folder3}')
                 except IOError:
-                    sftp.mkdir(f'inbound/{folder1}/{folder2}/{folder3}')
+                    sftp.mkdir(f'inbound_test_3_folder/{folder1}/{folder2}/{folder3}')
     except Exception as e:
         logging.error(f'Error ensuring directories exist: {e}')
     finally:
@@ -250,14 +252,14 @@ def transfer_file_to_sftp_test(file_key):
         # Construct the SFTP path based on the environment
     if ENV == 'Dev':
         if folder3:
-            sftp_path = f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{folder3}/{file_name}'
+            sftp_path = f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}/{folder3}/{file_name}'
         else:
-            sftp_path = f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{file_name}'
+            sftp_path = f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}/{file_name}'
     elif ENV == 'Prod':
         if folder3:
-            sftp_path = f'inbound/{folder1}/{folder2}/{folder3}/{file_name}'
+            sftp_path = f'inbound_test_3_folder/{folder1}/{folder2}/{folder3}/{file_name}'
         else:
-            sftp_path = f'inbound/{folder1}/{folder2}/{file_name}'
+            sftp_path = f'inbound_test_3_folder/{folder1}/{folder2}/{file_name}'
     else:
         logging.error(f"Unsupported environment: {ENV}")
         return
