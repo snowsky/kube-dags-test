@@ -89,26 +89,30 @@ def ensure_directories_exist(file_key):
     folder1 = parts[-4].split('=')[1]
     folder2 = parts[-3].split('=')[1]
     sftp, transport = get_sftp()
-    logging.debug(f'sftp type: {type(sftp)}, transport type: {type(transport)}')
+    logging.info(f'sftp type: {type(sftp)}, transport type: {type(transport)}')
 
     try:
         if ENV == 'Dev':
             try:
                 sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}')
             except IOError:
+                sftp.chdir(sftp.normalize('.'))
                 sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}')
             try:
                 sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}')
             except IOError:
+                sftp.chdir(sftp.normalize('.'))
                 sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}')
         if ENV == 'Prod':
             try:
                 sftp.chdir(f'inbound/{folder1}')
             except IOError:
+                sftp.chdir(sftp.normalize('.'))
                 sftp.mkdir(f'inbound/{folder1}')
             try:
                 sftp.chdir(f'inbound/{folder1}/{folder2}')
             except IOError:
+                sftp.chdir(sftp.normalize('.'))
                 sftp.mkdir(f'inbound/{folder1}/{folder2}')
     except Exception as e:
         logging.error(f'Error ensuring directories exist: {e}')
@@ -141,7 +145,7 @@ def ensure_directories_exist_test(file_key):
 
     file_name = parts[-1]
     # Log extracted values
-    logging.debug(f"folder1: {folder1}, folder2: {folder2}, folder3: {folder3}, file_name: {file_name}")
+    logging.info(f"folder1: {folder1}, folder2: {folder2}, folder3: {folder3}, file_name: {file_name}")
     sftp, transport = get_sftp_test()
     
     try:
@@ -150,36 +154,53 @@ def ensure_directories_exist_test(file_key):
                 # Change XCAIn directory to XCAIn_test_3_folder : which is a folder I have created in My DEV SFTP location
                 sftp.chdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}')
             except IOError:
+                sftp.chdir(sftp.normalize('.'))
                 sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}')
-            
+                logging.info("first folder is created")
+
             try:
                 sftp.chdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}')
             except IOError:
+                sftp.chdir(sftp.normalize('.'))
                 sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}')
+                logging.info("second folder is created")
+
             
             if folder3:  # Only attempt to create folder3 if it exists
                 try:
                     sftp.chdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}/{folder3}')
                 except IOError:
+                    sftp.chdir(sftp.normalize('.'))
                     sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}/{folder3}')
+                    logging.info("Third folder is created")
+
         
         if ENV == 'Prod':
             try:
                 # Please change the inbound folder to a folder name that is created at the client SFTP location. 
                 sftp.chdir(f'inbound_test_3_folder/{folder1}')
             except IOError:
+                sftp.chdir(sftp.normalize('.'))
                 sftp.mkdir(f'inbound_test_3_folder/{folder1}')
+                logging.info("first folder is created")
+
             
             try:
                 sftp.chdir(f'inbound_test_3_folder/{folder1}/{folder2}')
             except IOError:
+                sftp.chdir(sftp.normalize('.'))
                 sftp.mkdir(f'inbound_test_3_folder/{folder1}/{folder2}')
+                logging.info("second folder is created")
+                
             
             if folder3:  # Only attempt to create folder3 if it exists
                 try:
                     sftp.chdir(f'inbound_test_3_folder/{folder1}/{folder2}/{folder3}')
                 except IOError:
+                    sftp.chdir(sftp.normalize('.'))
                     sftp.mkdir(f'inbound_test_3_folder/{folder1}/{folder2}/{folder3}')
+                    logging.info("third folder is created")
+
     except Exception as e:
         logging.error(f'Error ensuring directories exist: {e}')
     finally:
@@ -336,54 +357,7 @@ def download_files_to_local(xml_files, local_dir, aws_conn_id, bucket_name, max_
             except Exception as e:
                 logging.error(f"Failed to download {file_key}: {e}")
 
-@task(dag=dag)
-def delete_files_from_s3(xml_files, aws_conn_id, bucket_name):
-    s3_hook = S3Hook(aws_conn_id=aws_conn_id)
-    s3_client = s3_hook.get_conn()
 
-    # Step 1: Delete XML files
-    for file_key in xml_files:
-        try:
-            s3_client.delete_object(Bucket=bucket_name, Key=file_key)
-            logging.info(f"Deleted file: {file_key}")
-        except Exception as e:
-            logging.error(f"Failed to delete file {file_key}: {e}")
-
-    # Step 2: Delete empty directories, skipping the S3_SUBFOLDER
-    deleted_directories = set()
-
-    for file_key in xml_files:
-        try:
-            # Extract base directory path
-            base_directory_path = '/'.join(file_key.split('/')[:-1]) + '/'
-            if base_directory_path == S3_SUBFOLDER:
-                continue  # Skip the root folder (S3_SUBFOLDER)
-
-            logging.info(f"Checking directory: {base_directory_path}")
-            
-            # List objects within the directory
-            objects_in_dir = s3_hook.list_keys(bucket_name=bucket_name, prefix=base_directory_path)
-            if not objects_in_dir:
-                # Directory is empty, delete it
-                s3_client.delete_object(Bucket=bucket_name, Key=base_directory_path)
-                logging.info(f"Deleted empty directory: {base_directory_path}")
-                deleted_directories.add(base_directory_path)
-            
-            # Check parent directories recursively
-            parts = base_directory_path.split('/')
-            for i in range(len(parts) - 1, 0, -1):
-                dir_path = '/'.join(parts[:i]) + '/'
-                if dir_path == S3_SUBFOLDER or dir_path in deleted_directories:
-                    continue  # Skip root folder or already deleted directories
-
-                # Check if the parent directory is empty
-                objects_in_parent_dir = s3_hook.list_keys(bucket_name=bucket_name, prefix=dir_path)
-                if not objects_in_parent_dir:
-                    s3_client.delete_object(Bucket=bucket_name, Key=dir_path)
-                    logging.info(f"Deleted empty parent directory: {dir_path}")
-                    deleted_directories.add(dir_path)
-        except Exception as e:
-            logging.error(f"Failed to delete directory {file_key}: {e}")
 
 
 # Define the workflow
@@ -392,10 +366,10 @@ xml_files = filter_xml_files(files)
 batches = divide_files_into_batches(xml_files, batch_size="{{ params.batch_size }}")
 transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
 download_files = download_files_to_local(xml_files, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME, max_workers="{{ params.max_workers }}")
-delete_files = delete_files_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
+#delete_files = delete_files_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 
-files >> xml_files >> batches >> transfer_tasks >> download_files >> delete_files
-#files >> xml_files >> batches >> transfer_tasks >> download_files 
+#files >> xml_files >> batches >> transfer_tasks >> download_files >> delete_files
+files >> xml_files >> batches >> transfer_tasks >> download_files 
 
 if __name__ == "__main__":
     dag.cli()
