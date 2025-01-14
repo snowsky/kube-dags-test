@@ -133,13 +133,13 @@ with DAG(
  discharge_status_description varchar, 
  accid_ref varchar, 
             index_update VARCHAR 
-        ) WITH (
-            -- I assume index_update also makes sense here 
-            external_location = 'abfs://content@reportwriterstorage.dfs.core.windows.net/parquet-master-data/mpi_parquet_pm_by_accid',
-            partitioned_by = ARRAY['index_update'], 
-            bucketed_by = ARRAY['accid_ref'], 
-            bucket_count = 64 
-        )
+        ) WITH  ( 
+        bucket_count = 64, 
+        bucketed_by = ARRAY['accid_ref'], 
+        bucketing_version = 1, 
+        format = 'ORC', 
+        partitioned_by = ARRAY['index_update'], 
+        sorted_by = ARRAY['accid_ref'] )
         """,
     )
 
