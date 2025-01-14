@@ -269,7 +269,7 @@ WHERE row_num = 1
     populate_patient_account_latest_past36months_mpi_pm_table = KonzaTrinoOperator(
         task_id='populate_patient_account_latest_past36months_mpi_pm_table',
         query="""
-        INSERT INTO
+                INSERT INTO
             parquet_master_data.patient_account_latest_past36months_mpi_pm
         SELECT 
           t1.accid,
@@ -277,8 +277,9 @@ WHERE row_num = 1
           latest_known_source,
           latest_known_unit_id,
           latest_known_related_provider_id,
-          MPI VARCHAR,
-          '<DATEID>' AS ds
+          latest_index_update,
+          CAST(MPI AS VARCHAR),  -- Ensure MPI is cast to VARCHAR
+          CAST('<DATEID>' AS VARCHAR) AS ds  -- Cast ds as general VARCHAR
         FROM
             parquet_master_data.patient_account_latest_past36months t1
         JOIN
@@ -290,7 +291,7 @@ WHERE row_num = 1
         -- @biakonza, there might be additional clauses you might whish to impose on
         -- mpi_parquet_pm_by_accid -- is there a lookback there too? -ET no there is not a lookback there too, index update does play the same replace with newer role.
         -- or does an index_update also play a role? etc.
-        --- AND [...] 
+        --- AND [...]
         """,
     )
 
