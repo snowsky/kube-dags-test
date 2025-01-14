@@ -178,27 +178,27 @@ def ensure_directories_exist_test(file_key):
         if ENV == 'Prod':
             try:
                 # Please change the inbound folder to a folder name that is created at the client SFTP location. 
-                sftp.chdir(f'inbound_test_3_folder/{folder1}')
+                sftp.chdir(f'inbound_test_4_folder/{folder1}')
             except IOError:
                 sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'inbound_test_3_folder/{folder1}')
+                sftp.mkdir(f'inbound_test_4_folder/{folder1}')
                 logging.info("first folder is created")
 
             
             try:
-                sftp.chdir(f'inbound_test_3_folder/{folder1}/{folder2}')
+                sftp.chdir(f'inbound_test_4_folder/{folder1}/{folder2}')
             except IOError:
                 sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'inbound_test_3_folder/{folder1}/{folder2}')
+                sftp.mkdir(f'inbound_test_4_folder/{folder1}/{folder2}')
                 logging.info("second folder is created")
                 
             
             if folder3:  # Only attempt to create folder3 if it exists
                 try:
-                    sftp.chdir(f'inbound_test_3_folder/{folder1}/{folder2}/{folder3}')
+                    sftp.chdir(f'inbound_test_4_folder/{folder1}/{folder2}/{folder3}')
                 except IOError:
                     sftp.chdir(sftp.normalize('.'))
-                    sftp.mkdir(f'inbound_test_3_folder/{folder1}/{folder2}/{folder3}')
+                    sftp.mkdir(f'inbound_test_4_folder/{folder1}/{folder2}/{folder3}')
                     logging.info("third folder is created")
 
     except Exception as e:
@@ -278,9 +278,9 @@ def transfer_file_to_sftp_test(file_key):
             sftp_path = f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}/{file_name}'
     elif ENV == 'Prod':
         if folder3:
-            sftp_path = f'inbound_test_3_folder/{folder1}/{folder2}/{folder3}/{file_name}'
+            sftp_path = f'inbound_test_4_folder/{folder1}/{folder2}/{folder3}/{file_name}'
         else:
-            sftp_path = f'inbound_test_3_folder/{folder1}/{folder2}/{file_name}'
+            sftp_path = f'inbound_test_4_folder/{folder1}/{folder2}/{file_name}'
     else:
         logging.error(f"Unsupported environment: {ENV}")
         return
@@ -308,7 +308,7 @@ def transfer_file_to_sftp_test(file_key):
 def transfer_batch_to_sftp(batch: List[str]):
     for file_key in batch:
         ensure_directories_exist(file_key)
-        ensure_directories_exist_test(file_key)
+        #ensure_directories_exist_test(file_key)
         transfer_file_to_sftp(file_key)
         transfer_file_to_sftp_test(file_key)
 
