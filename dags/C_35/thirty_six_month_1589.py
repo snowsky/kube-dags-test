@@ -272,7 +272,7 @@ WHERE row_num = 1
         INSERT INTO
             parquet_master_data.patient_account_latest_past36months_mpi_pm
         SELECT 
-          accid,
+          t1.accid,
           latest_known_admitted, 
           latest_known_source,
           latest_known_unit_id,
@@ -283,8 +283,9 @@ WHERE row_num = 1
             parquet_master_data.patient_account_latest_past36months t1
         JOIN
             parquet_master_data.mpi_parquet_pm_by_accid t2
+        ON t1.accid = t2.accid_ref
         -- assumes both tables have a column called accid
-        USING (accid)
+        --USING (accid)
         WHERE t1.ds = '<DATEID>'
         -- @biakonza, there might be additional clauses you might whish to impose on
         -- mpi_parquet_pm_by_accid -- is there a lookback there too? -ET no there is not a lookback there too, index update does play the same replace with newer role.
