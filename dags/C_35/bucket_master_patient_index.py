@@ -37,6 +37,17 @@ def execute_trino_queries(**kwargs):
         index_update
         FROM patient_account_parquet_pm
         WHERE concat(index_update,'-01') = '{ds}'
+        """,
+        f"""
+        CREATE TABLE test_dag_based_patient_by_acc_id_sorted_3 AS
+        SELECT
+    accid,
+    MAX_BY(
+        index_update,
+        CAST(ROW(admitted, source, unit_id, related_provider_id) AS ROW(admitted VARCHAR, source VARCHAR, unit_id VARCHAR, related_provider_id VARCHAR))
+    ) AS latest_known
+        FROM hive.parquet_master_data.patient_account_parquet_pm_by_accid
+        GROUP BY accid
         """
     ]
     
