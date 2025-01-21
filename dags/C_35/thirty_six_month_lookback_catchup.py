@@ -241,11 +241,27 @@ FROM (
     ROW_NUMBER() OVER (PARTITION BY accid ORDER BY CAST(DATE_PARSE(index_update || '-01', '%Y-%m-%d') AS date) DESC) AS row_num
   FROM hive.parquet_master_data.patient_account_parquet_pm_by_accid
   WHERE CAST(DATE_PARSE(index_update || '-01', '%Y-%m-%d') AS date) >= DATE_ADD('month', -36, CAST('<DATEID>' AS date))
+  --Filter out high frequency ACCIDs here
   AND admitted <> '1900-00-00 00:00:00' AND admitted <> '0000-00-00 00:00:00' 
   AND CAST(admitted AS timestamp) >= DATE_ADD('month', -36, CAST('<DATEID>' AS date))
   
 ) subquery
 WHERE row_num = 1
+        """,
+    )
+    drop_cardinality_patient_account_latest_past36months_mpi_pm_table = KonzaTrinoOperator(
+        task_id='drop_cardinality_patient_account_latest_past36months_mpi_pm_table',
+        query="""
+        DROP TABLE IF EXISTS cardinality_patient_account_latest_past36months_mpi_pm_table 
+        """,
+    )
+    create_cardinality_patient_account_latest_past36months_mpi_pm_table = KonzaTrinoOperator(
+        task_id='create_cardinality_patient_account_latest_past36months_mpi_pm_table',
+        query="""
+        CREATE TABLE IF NOT EXISTS cardinality_patient_account_latest_past36months_mpi_pm_table AS
+        SELECT accid, count(*) AS freq
+FROM hive.parquet_master_data.patient_account_parquet_pm_by_accid
+GROUP BY 1
         """,
     )
     create_patient_account_latest_past36months_mpi_pm_table = KonzaTrinoOperator(
@@ -299,7 +315,8 @@ WHERE row_num = 1
     create_patient_account_by_acc_id_table >> bucket_patient_account_by_acc_id_table
     create_mpi_parquet_pm_by_acc_id_table >> bucket_mpi_parquet_pm_by_acc_id_table
     create_patient_account_latest_past36months_table >> populate_patient_account_latest_past36months_table
-    bucket_patient_account_by_acc_id_table >> populate_patient_account_latest_past36months_table
+    drop_cardinality_patient_account_latest_past36months_mpi_pm_table >> create_cardinality_patient_account_latest_past36months_mpi_pm_table
+    bucket_patient_account_by_acc_id_table >> create_cardinality_patient_account_latest_past36months_mpi_pm_table >> populate_patient_account_latest_past36months_table
     create_patient_account_latest_past36months_mpi_pm_table >> populate_patient_account_latest_past36months_mpi_pm_table
     populate_patient_account_latest_past36months_table >> populate_patient_account_latest_past36months_mpi_pm_table
     bucket_mpi_parquet_pm_by_acc_id_table >> populate_patient_account_latest_past36months_mpi_pm_table
