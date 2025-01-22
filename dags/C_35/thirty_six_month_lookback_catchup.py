@@ -242,6 +242,7 @@ FROM (
   FROM hive.parquet_master_data.patient_account_parquet_pm_by_accid
   WHERE CAST(DATE_PARSE(index_update || '-01', '%Y-%m-%d') AS date) >= DATE_ADD('month', -36, CAST('<DATEID>' AS date))
   --Filter out high frequency ACCIDs here
+  AND accid != 'HcDAT_HELP_REQUESTED'
   AND admitted <> '1900-00-00 00:00:00' AND admitted <> '0000-00-00 00:00:00' 
   AND CAST(admitted AS timestamp) >= DATE_ADD('month', -36, CAST('<DATEID>' AS date))
   
