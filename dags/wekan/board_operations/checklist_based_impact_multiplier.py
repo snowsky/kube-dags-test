@@ -80,7 +80,7 @@ def list_boards_and_checklists():
                 for card in swimlane.get("cards", []):
                     card_checklists = card.get("checklists", [])
                     checklists.extend(card_checklists)
-
+        logging.info(f'Checklists: {checklists}')
         return checklists
 
     configuration = login_user(
