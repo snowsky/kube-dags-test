@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import timedelta, datetime
 from airflow import XComArg
 from airflow.decorators import dag, task
@@ -35,7 +36,9 @@ def list_boards_and_checklists():
         error = response.get("error")
 
         if error:
+            logging.info(f"error: {error}")
             print(f"error: {error}")
+            logging.info(f"response: {response} {type(response)}")
             print(f"response: {response} {type(response)}")
             error_dict = {
                 "status_code": error,
@@ -87,7 +90,7 @@ def list_boards_and_checklists():
 
     populated_boards = get_populated_boards(configuration=configuration)
     checklists = list_checklists(populated_boards=populated_boards)
-
+    logging.info(f'Checklists: {checklists}')
     print(f'Checklists: {checklists}')
 
 list_boards_and_checklists_dag = list_boards_and_checklists()
