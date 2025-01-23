@@ -1,5 +1,6 @@
 import json
 import logging
+import typing
 from datetime import timedelta, datetime
 from airflow import XComArg
 from airflow.decorators import dag, task
