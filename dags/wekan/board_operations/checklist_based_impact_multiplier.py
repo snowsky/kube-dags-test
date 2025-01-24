@@ -74,11 +74,14 @@ def list_boards_and_checklists():
         """
         parsed_populated_boards = typing.cast(list[PopulatedBoard], populated_boards)
         checklists = []
-
+        
         for board in parsed_populated_boards:
+            logging.info(f'Board: {board}')
             for swimlane in board.get("swimlanes", []):
+                logging.info(f'Swimlane: {swimlane}')
                 for card in swimlane.get("cards", []):
                     card_checklists = card.get("checklists", [])
+                    logging.info(f'Card_checklists: {card_checklists}')
                     checklists.extend(card_checklists)
         logging.info(f'Checklists: {checklists}')
         return checklists
