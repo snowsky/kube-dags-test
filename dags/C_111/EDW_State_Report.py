@@ -32,8 +32,8 @@ class KonzaTrinoOperator(PythonOperator):
 
             try:
                 # the .replace is a no-op if ds not present in query
-                cursor.execute(self.query.replace('<DATEID>', ds))
-                print(f"Executed query: {self.query}")
+                cursor.execute(query.replace('<DATEID>', ds))
+                print(f"Executed query: {query}")
                 
                 # Check the status of the query
                 query_id = cursor.query_id
