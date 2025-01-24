@@ -1,5 +1,6 @@
 from airflow.hooks.base import BaseHook
 import trino
+import logging
 import mysql.connector
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -29,12 +30,24 @@ class KonzaTrinoOperator(PythonOperator):
             )
             cursor = trino_conn.cursor()
 
-            # the .replace is a no-op if ds not present in query
-            cursor.execute(query.replace('<DATEID>', ds))
-            print(f"Executed query: {query}")
+            try:
+                # the .replace is a no-op if ds not present in query
+                cursor.execute(self.query.replace('<DATEID>', ds))
+                print(f"Executed query: {self.query}")
+                
+                # Check the status of the query
+                query_id = cursor.query_id
+                cursor.execute(f"SELECT state FROM system.runtime.queries WHERE query_id = '{query_id}'")
+                status = cursor.fetchone()[0]
 
-            cursor.close()
-            trino_conn.close()
+                if status != 'FINISHED':
+                    raise AirflowException(f"Query did not finish successfully. Status: {status}")
+
+            except trino.exceptions.TrinoQueryError as e:
+                raise AirflowException(f"Query failed: {str(e)}")
+            finally:
+                cursor.close()
+                trino_conn.close()
 
         super(KonzaTrinoOperator, self).__init__(
             python_callable=execute_trino_query,
