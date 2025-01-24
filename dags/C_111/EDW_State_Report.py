@@ -124,7 +124,7 @@ with DAG(
         WHEN state IN ('CH') THEN 'Switzerland'
         WHEN state IN ('CHIH') THEN 'Mexico'
         WHEN state IN ('CHINA', 'CN') THEN 'China'
-        WHEN state IN ('CI') THEN 'Côte d'Ivoire'
+        WHEN state IN ('CI') THEN 'Cote dIvoire'
         WHEN state IN ('CL') THEN 'Chile'
         WHEN state IN ('CP') THEN 'Clipperton Island'
         WHEN state IN ('CR') THEN 'Costa Rica'
