@@ -394,7 +394,7 @@ state varchar)
     drop_mpi_accid_final = KonzaTrinoOperator(
         task_id='drop_mpi_accid_final',
         query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_accid_final)
+        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_accid_final
         """,
     )
     create_mpi_accid_final = KonzaTrinoOperator(
