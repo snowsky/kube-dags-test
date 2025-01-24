@@ -271,8 +271,8 @@ FROM patient_contact_parquet_pm)
         (select * from sup_12760_c59_accid_by_state_prep__final where state <> '')
         """,
     )
-    drop_accid_by_state_final = KonzaTrinoOperator(
-        task_id='drop_accid_by_state_final',
+    drop_accid_by_state_distinct__final = KonzaTrinoOperator(
+        task_id='drop_accid_by_state_distinct__final',
         query="""
         DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_accid_by_state_distinct__final
         """,
