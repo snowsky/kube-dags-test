@@ -436,7 +436,7 @@ state varchar)
         task_id='insert_mpi_accid_final',
         query="""
         INSERT INTO hive.parquet_master_data.sup_12760_c59_mpi_accid_final
-    (select accid_ref, mpi from hive.parquet_master_data.sup_12760_c59_mpi_accid_no_blanks)
+    (select * from (select accid_ref, mpi, ROW_NUMBER() AS row_num from hive.parquet_master_data.sup_12760_c59_mpi_accid_no_blanks) as subquery WHERE row_num = 1)
         """,
     )
     drop_accid_state_distinct_rank_1_mpi_final = KonzaTrinoOperator(
