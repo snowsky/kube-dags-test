@@ -35,7 +35,7 @@ class KonzaTrinoOperator(PythonOperator):
                 # the .replace is a no-op if ds not present in query
                 cursor.execute(query.replace('<DATEID>', ds))
                 print(f"Executed query: {query}")
-                
+                logging.info(f'Executed query: {query}')
                 # Check the status of the query
                 query_id = cursor.query_id
                 cursor.execute(f"SELECT state FROM system.runtime.queries WHERE query_id = '{query_id}'")
@@ -47,6 +47,7 @@ class KonzaTrinoOperator(PythonOperator):
                 cursor.execute("SELECT count(*) FROM system.runtime.nodes WHERE coordinator = false")
                 active_workers = cursor.fetchone()[0]
                 print(f"Number of active workers: {active_workers}")
+                logging.info(f'Number of active workers: {active_workers}')
 
             except trino.exceptions.TrinoQueryError as e:
                 raise AirflowException(f"Query failed: {str(e)}")
