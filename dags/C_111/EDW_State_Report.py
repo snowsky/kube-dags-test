@@ -6,7 +6,11 @@ import mysql.connector
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-
+default_args = {
+    'owner': 'airflow',
+    'retries': 2,  # Set the number of retries to 2
+    'retry_delay': timedelta(minutes=5)  # Optional: Set the delay between retries
+}
 
 class KonzaTrinoOperator(PythonOperator):
 
