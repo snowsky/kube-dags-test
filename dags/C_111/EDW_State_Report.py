@@ -1,5 +1,6 @@
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowException
+from datetime import timedelta
 import trino
 import logging
 import mysql.connector
