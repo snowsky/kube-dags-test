@@ -429,7 +429,7 @@ state varchar)
         mpi varchar) WITH (
         bucketed_by = ARRAY['accid_ref'], 
             sorted_by = ARRAY['accid_ref'],
-            bucket_count = 64 )
+            bucket_count = 32 )
         """,
     )
     insert_mpi_accid_final = KonzaTrinoOperator(
