@@ -292,7 +292,7 @@ FROM patient_contact_parquet_pm)
         task_id='insert_accid_by_state_final',
         query="""
         INSERT INTO hive.parquet_master_data.sup_12760_c59_accid_by_state_final
-        (select * from sup_12760_c59_accid_by_state_prep__final where state <> '')
+        (select * from sup_12760_c59_accid_by_state_prep__final)
         """,
     )
     drop_accid_by_state_distinct__final = KonzaTrinoOperator(
