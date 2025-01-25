@@ -426,14 +426,17 @@ state varchar)
         query="""
         CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_accid_final
         (accid_ref varchar, 
-        mpi varchar)
+        mpi varchar) WITH (
+        bucketed_by = ARRAY['accid_ref'], 
+            sorted_by = ARRAY['accid_ref'],
+            bucket_count = 64 )
         """,
     )
     insert_mpi_accid_final = KonzaTrinoOperator(
         task_id='insert_mpi_accid_final',
         query="""
         INSERT INTO hive.parquet_master_data.sup_12760_c59_mpi_accid_final
-    (select distinct accid_ref, mpi from hive.parquet_master_data.sup_12760_c59_mpi_accid_no_blanks)
+    (select accid_ref, mpi from hive.parquet_master_data.sup_12760_c59_mpi_accid_no_blanks)
         """,
     )
     drop_accid_state_distinct_rank_1_mpi_final = KonzaTrinoOperator(
