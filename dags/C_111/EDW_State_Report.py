@@ -90,17 +90,6 @@ with DAG(
 )
         """,
     )
-    delete_from_accid_by_state_prep__final = KonzaTrinoOperator(
-        task_id='delete_from_accid_by_state_prep__final',
-        query="""
-        DELETE FROM hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final
-WHERE patient_id IN (
-    SELECT DISTINCT s.patient_id
-    FROM patient_contact_parquet_pm s 
-    WHERE concat(index_update,'-01') = concat(substring('<DATEID>', 1, length('<DATEID>') - 3),'-01')
-)
-        """,
-    )
     insert_accid_by_state_prep__final = KonzaTrinoOperator(
         task_id='insert_accid_by_state_prep__final',
         query="""
@@ -284,10 +273,7 @@ WHERE patient_id IN (
     END AS state_standardized,
     s.index_update
 FROM patient_contact_parquet_pm s 
-LEFT JOIN hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final t
-ON s.patient_id = t.patient_id
         WHERE concat(index_update,'-01') = concat(substring('<DATEID>', 1, length('<DATEID>') - 3),'-01')
-        and t.patient_id IS NULL
         """,
     )
     drop_accid_by_state_final = KonzaTrinoOperator(
