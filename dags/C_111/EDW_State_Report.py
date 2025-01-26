@@ -86,7 +86,13 @@ with DAG(
         CREATE TABLE hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final
         ( patient_id varchar, 
         index_update_dt_tm varchar, 
-        state varchar)
+        state varchar, 
+        index_update varchar) WITH (
+    partitioned_by = ARRAY['index_update'], 
+    bucketed_by = ARRAY['patient_id'], 
+    sorted_by = ARRAY['patient_id'],
+    bucket_count = 64
+)
         """,
     )
     insert_accid_by_state_prep__final = KonzaTrinoOperator(
