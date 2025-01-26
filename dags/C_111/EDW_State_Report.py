@@ -273,7 +273,7 @@ with DAG(
     END AS state_standardized,
     index_update
 FROM patient_contact_parquet_pm 
-        WHERE concat(index_update,'-01') = '<DATEID>')
+        WHERE concat(index_update,'-01') = concat(substring(<DATEID>, 1, length(<DATEID>) - 3),'-01'))
         """,
     )
     drop_accid_by_state_final = KonzaTrinoOperator(
