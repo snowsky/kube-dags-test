@@ -275,7 +275,8 @@ with DAG(
         WHEN state IN ('55', 'WI', 'wi', 'wI', 'Wi', 'WI ', 'Wisconsin') THEN 'Wisconsin'
         WHEN state IN ('56', 'WY', 'wy', 'WY ') THEN 'Wyoming'
         ELSE 'UNKNOWN'
-    END AS state_standardized
+    END AS state_standardized,
+    index_update
 FROM patient_contact_parquet_pm)
         """,
     )
