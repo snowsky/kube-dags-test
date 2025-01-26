@@ -373,24 +373,17 @@ state varchar)
     create_mpi_accid_prep_final = KonzaTrinoOperator(
         task_id='create_mpi_accid_prep_final',
         query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final
-        (mpi varchar, 
-        accid_ref varchar, 
-        index_update varchar
-        WITH ( 
-        partitioned_by = ARRAY['index_update'], 
-            bucketed_by = ARRAY['accid_ref'], 
-            sorted_by = ARRAY['accid_ref'],
-            bucket_count = 64 )
-        #partition_projection_format = 'yyyy-MM', 
-        #partition_projection_interval = 1, 
-        #partition_projection_interval_unit = 'DAYS', 
-        #partition_projection_range = ARRAY['2023-03','2024-10'], --'NOW' --can be used if in the current month EG. if there is no month folder for 2024-08, and it is August, must set a range to the prior month
-        #partition_projection_type = 'DATE' ) ) WITH 
-        #( external_location = 'abfs://content@reportwriterstorage.dfs.core.windows.net/parquet-master-data/mpi',
-        #format = 'PARQUET', partition_projection_enabled = true, 
-        #partition_projection_location_template = 'abfs://content@reportwriterstorage.dfs.core.windows.net/parquet-master-data/mpi/${index_update}', 
-        #partitioned_by = ARRAY['index_update'] )
+        CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final (
+    mpi varchar, 
+    accid_ref varchar, 
+    index_update varchar
+)
+WITH (
+    partitioned_by = ARRAY['index_update'], 
+    bucketed_by = ARRAY['accid_ref'], 
+    sorted_by = ARRAY['accid_ref'],
+    bucket_count = 64
+)
         """,
     )
     drop_mpi_accid_no_blanks = KonzaTrinoOperator(
