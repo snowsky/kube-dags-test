@@ -285,7 +285,13 @@ FROM patient_contact_parquet_pm)
               CREATE TABLE hive.parquet_master_data.sup_12760_c59_accid_by_state_final
       ( patient_id varchar, 
       index_update_dt_tm varchar, 
-      state varchar)
+      state varchar, 
+        index_update varchar) WITH (
+    partitioned_by = ARRAY['index_update'], 
+    bucketed_by = ARRAY['patient_id'], 
+    sorted_by = ARRAY['patient_id'],
+    bucket_count = 64
+)
         """,
     )
     insert_accid_by_state_final = KonzaTrinoOperator(
@@ -307,7 +313,13 @@ FROM patient_contact_parquet_pm)
         CREATE TABLE hive.parquet_master_data.sup_12760_c59_accid_by_state_distinct__final
         ( patient_id varchar, 
         index_update_dt_tm varchar, 
-        state varchar)
+        state varchar, 
+        index_update varchar) WITH (
+    partitioned_by = ARRAY['index_update'], 
+    bucketed_by = ARRAY['patient_id'], 
+    sorted_by = ARRAY['patient_id'],
+    bucket_count = 64
+)
         """,
     )
     insert_accid_by_state_distinct__final = KonzaTrinoOperator(
@@ -330,7 +342,13 @@ FROM patient_contact_parquet_pm)
 (rank bigint,
 patient_id varchar, 
 index_update_dt_tm varchar, 
-state varchar)
+state varchar,
+index_update varchar) WITH (
+    partitioned_by = ARRAY['index_update'], 
+    bucketed_by = ARRAY['patient_id'], 
+    sorted_by = ARRAY['patient_id'],
+    bucket_count = 64
+)
         """,
     )
     insert_accid_state_distinct_rank_final = KonzaTrinoOperator(
@@ -353,7 +371,13 @@ state varchar)
         (rank bigint,
         patient_id varchar, 
         index_update_dt_tm varchar, 
-        state varchar)
+        state varchar,
+        index_update varchar) WITH (
+    partitioned_by = ARRAY['index_update'], 
+    bucketed_by = ARRAY['patient_id'], 
+    sorted_by = ARRAY['patient_id'],
+    bucket_count = 64
+)
         """,
     )
     insert_accid_state_distinct_rank_1_final = KonzaTrinoOperator(
@@ -454,14 +478,20 @@ WHERE row_num = 1 """,
         patient_id varchar, 
         index_update_dt_tm varchar, 
         state varchar,
-        mpi varchar)
+        mpi varchar,
+        index_update varchar) WITH (
+    partitioned_by = ARRAY['index_update'], 
+    bucketed_by = ARRAY['patient_id'], 
+    sorted_by = ARRAY['patient_id'],
+    bucket_count = 64
+)
         """,
     )
     insert_accid_state_distinct_rank_1_mpi_final = KonzaTrinoOperator(
         task_id='insert_accid_state_distinct_rank_1_mpi_final',
         query="""
         INSERT INTO hive.parquet_master_data.sup_12760_c59_accid_state_distinct_rank_1_mpi_final
-        (select ST.*, MPI.mpi from sup_12760_c59_accid_state_distinct_rank_1_final ST
+        (select ST.*, MPI.mpi, MPI.index_update from sup_12760_c59_accid_state_distinct_rank_1_final ST
         JOIN sup_12760_c59_mpi_accid_final MPI on ST.patient_id = MPI.accid_ref)
         """,
     )
@@ -477,14 +507,20 @@ WHERE row_num = 1 """,
         CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_state_index
         (mpi varchar,
         state varchar, 
-        index_update_dt_tm varchar)
+        index_update_dt_tm varchar, 
+        index_update varchar)  WITH (
+    partitioned_by = ARRAY['index_update'], 
+    bucketed_by = ARRAY['mpi'], 
+    sorted_by = ARRAY['mpi'],
+    bucket_count = 64
+)
         """,
     )
     insert_mpi_state_index = KonzaTrinoOperator(
         task_id='insert_mpi_state_index',
         query="""
         INSERT INTO hive.parquet_master_data.sup_12760_c59_mpi_state_index
-        (select mpi, state, index_update_dt_tm from sup_12760_c59_accid_state_distinct_rank_1_mpi_final)
+        (select mpi, state, index_update_dt_tm, index_update from sup_12760_c59_accid_state_distinct_rank_1_mpi_final)
         """,
     )
     drop_mpi_state_index_distinct_final = KonzaTrinoOperator(
