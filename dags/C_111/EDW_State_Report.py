@@ -93,8 +93,7 @@ with DAG(
     insert_accid_by_state_prep__final = KonzaTrinoOperator(
         task_id='insert_accid_by_state_prep__final',
         query="""
-        MERGE INTO hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final t 
-        USING (
+        INSERT INTO hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final t 
       SELECT distinct
     patient_id, 
     index_update_dt_tm, 
@@ -273,17 +272,11 @@ with DAG(
         ELSE 'UNKNOWN'
     END AS state_standardized,
     index_update
-FROM patient_contact_parquet_pm 
-        WHERE concat(index_update,'-01') = concat(substring('<DATEID>', 1, length('<DATEID>') - 3),'-01'))) s
-        ON t.patient_id = s.patient_id
-        WHEN MATCHED THEN
-    UPDATE SET
-        t.index_update_dt_tm = s.index_update_dt_tm,
-        t.state = s.state,
-        t.index_update = s.index_update
-WHEN NOT MATCHED THEN
-    INSERT (patient_id, index_update_dt_tm, state, index_update)
-    VALUES (s.patient_id, s.index_update_dt_tm, s.state, s.index_update)
+FROM patient_contact_parquet_pm s 
+LEFT JOIN hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final t
+ON s.patient_id = t.patient_id
+        WHERE concat(index_update,'-01') = concat(substring('<DATEID>', 1, length('<DATEID>') - 3),'-01')
+        and t.patient_id IS NULL
         """,
     )
     drop_accid_by_state_final = KonzaTrinoOperator(
