@@ -91,7 +91,7 @@ with DAG(
         """,
     )
     delete_from_accid_by_state_prep__final = KonzaTrinoOperator(
-        task_id='create_accid_by_state_prep__final',
+        task_id='delete_from_accid_by_state_prep__final',
         query="""
         DELETE FROM hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final
 WHERE patient_id IN (
