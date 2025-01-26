@@ -74,16 +74,10 @@ with DAG(
     catchup=True,
     max_active_runs=1,
 ) as dag:
-    drop_accid_by_state_prep__final = KonzaTrinoOperator(
-        task_id='drop_accid_by_state_prep__final',
-        query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final
-        """,
-    )
     create_accid_by_state_prep__final = KonzaTrinoOperator(
         task_id='create_accid_by_state_prep__final',
         query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final
+        CREATE TABLE IF NOT EXISTS hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final
         ( patient_id varchar, 
         index_update_dt_tm varchar, 
         state varchar, 
