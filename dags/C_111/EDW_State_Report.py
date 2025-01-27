@@ -431,7 +431,7 @@ WITH (
         """,
     )
     insert_mpi_accid_prep_final = KonzaTrinoOperator(
-        task_id='drop_mpi_accid_no_blanks',
+        task_id='insert_mpi_accid_prep_final',
         query="""
         insert into hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final
 select mpi, accid_ref, index_update from mpi_parquet_pm
