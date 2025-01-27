@@ -85,3 +85,22 @@ with DAG(
     catchup=True,
     max_active_runs=1,
 ) as dag:
+    create_patient_account_by_acc_id_table = KonzaTrinoOperator(
+        task_id='create_patient_account_by_acc_id_table',
+        query="""
+        CREATE TABLE IF NOT EXISTS 
+        hive.parquet_master_data.patient_account_parquet_pm_by_accid ( 
+            admitted VARCHAR, 
+            source VARCHAR, 
+            unit_id VARCHAR, 
+            related_provider_id VARCHAR, 
+            accid VARCHAR, 
+            index_update VARCHAR 
+        ) WITH (
+            partitioned_by = ARRAY['index_update'], 
+            bucketed_by = ARRAY['accid'], 
+            sorted_by = ARRAY['accid'],
+            bucket_count = 64 
+        )
+        """,
+    )
