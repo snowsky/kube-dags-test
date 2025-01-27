@@ -80,28 +80,17 @@ def check_run_date(**kwargs):
 with DAG(
     dag_id='EDW_State_Report',
     schedule_interval='@monthly',
-    tags=['C-111'],
+    tags=['C-35'],
     start_date=datetime(2018, 6, 1),
     catchup=True,
     max_active_runs=1,
 ) as dag:
-    create_patient_account_by_acc_id_table = KonzaTrinoOperator(
+    insert_into_mpi_accid_prep_final = KonzaTrinoOperator(
         task_id='create_patient_account_by_acc_id_table',
         query="""
-        CREATE TABLE IF NOT EXISTS 
-        hive.parquet_master_data.patient_account_parquet_pm_by_accid ( 
-            admitted VARCHAR, 
-            source VARCHAR, 
-            unit_id VARCHAR, 
-            related_provider_id VARCHAR, 
-            accid VARCHAR, 
-            index_update VARCHAR 
-        ) WITH (
-            partitioned_by = ARRAY['index_update'], 
-            bucketed_by = ARRAY['accid'], 
-            sorted_by = ARRAY['accid'],
-            bucket_count = 64 
-        )
+        insert into hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final
+select mpi, accid_ref, index_update from mpi_parquet_pm
+where index_update = '2025-01'
         """,
     )
-    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final
+    insert_into_mpi_accid_prep_final
