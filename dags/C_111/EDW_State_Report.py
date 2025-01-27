@@ -320,7 +320,7 @@ index_update varchar) WITH (
         task_id='insert_accid_state_distinct_rank_final',
         query="""
         INSERT INTO hive.parquet_master_data.sup_12760_c59_accid_state_distinct_rank_final
-    (select DENSE_RANK() OVER(Partition by T.patient_id ORDER BY T.index_update_dt_tm DESC) as rank,* from sup_12760_c59_accid_by_state_distinct__final T)
+    (select DENSE_RANK() OVER(Partition by T.patient_id ORDER BY T.index_update_dt_tm DESC) as rank,* from hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final T)
         """,
     )
     drop_accid_state_distinct_rank_1_final = KonzaTrinoOperator(
