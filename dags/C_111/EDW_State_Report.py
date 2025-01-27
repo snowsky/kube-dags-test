@@ -45,14 +45,18 @@ class KonzaTrinoOperator(PythonOperator):
                 query_id = cursor.query_id
                 cursor.execute(f"SELECT state FROM system.runtime.queries WHERE query_id = '{query_id}'")
                 status = cursor.fetchone()[0]
-
+                
                 if status != 'FINISHED':
-                    # Get the number of active workers
-                    cursor.execute("SELECT count(*) FROM system.runtime.nodes WHERE coordinator = false")
-                    active_workers = cursor.fetchone()[0]
-                    print(f"Number of active workers: {active_workers}")
-                    logging.info(f'Number of active workers: {active_workers}')
-                    raise AirflowException(f"Query did not finish successfully. Status: {status}")
+                    time.sleep(5)
+                    cursor.execute(f"SELECT state FROM system.runtime.queries WHERE query_id = '{query_id}'")
+                    status = cursor.fetchone()[0]
+                    if status != 'FINISHED':
+                        # Get the number of active workers
+                        cursor.execute("SELECT count(*) FROM system.runtime.nodes WHERE coordinator = false")
+                        active_workers = cursor.fetchone()[0]
+                        print(f"Number of active workers: {active_workers}")
+                        logging.info(f'Number of active workers: {active_workers}')
+                        raise AirflowException(f"Query did not finish successfully. Status: {status}")
                 
 
             except trino.exceptions.TrinoQueryError as e:
