@@ -104,3 +104,4 @@ with DAG(
         )
         """,
     )
+    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final
