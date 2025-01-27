@@ -223,31 +223,43 @@ index_update_dt_tm ,
         task_id='populate_patient_account_latest_past36months_table',
         query="""
         INSERT INTO parquet_master_data.patient_account_latest_past36months
-SELECT 
-  CAST(accid AS varchar) AS accid,
-  CAST(latest_known_admitted AS varchar) AS latest_known_admitted,
-  CAST(latest_known_source AS varchar) AS latest_known_source,
-  CAST(latest_known_unit_id AS varchar) AS latest_known_unit_id,
-  CAST(latest_known_related_provider_id AS varchar) AS latest_known_related_provider_id,
-  CAST('<DATEID>' AS varchar) AS ds,
-  CAST('' AS varchar) AS mpi -- Add a placeholder column if needed
-FROM (
   SELECT
     accid,
-    admitted AS latest_known_admitted,
-    source AS latest_known_source,
-    unit_id AS latest_known_unit_id,
-    related_provider_id AS latest_known_related_provider_id,
-    ROW_NUMBER() OVER (PARTITION BY accid ORDER BY CAST(DATE_PARSE(index_update || '-01', '%Y-%m-%d') AS date) DESC) AS row_num
-  FROM hive.parquet_master_data.patient_account_parquet_pm_by_accid
-  WHERE CAST(DATE_PARSE(index_update || '-01', '%Y-%m-%d') AS date) >= DATE_ADD('month', -36, CAST('<DATEID>' AS date))
-  --Filter out high frequency ACCIDs here
-  AND accid != 'HcDAT_HELP_REQUESTED'
-  AND admitted <> '1900-00-00 00:00:00' AND admitted <> '0000-00-00 00:00:00' 
-  AND CAST(admitted AS timestamp) >= DATE_ADD('month', -36, CAST('<DATEID>' AS date))
-  
-) subquery
-WHERE row_num = 1
+    MAX_BY(admitted, index_update) AS latest_known_admitted,
+    MAX_BY(source, index_update) AS latest_known_source,
+    MAX_BY(unit_id, index_update) AS latest_known_unit_id,
+    MAX_BY(related_provider_id, index_update) AS latest_known_related_provider_id,
+    MAX(index_update) AS latest_index_update,
+    '<DATEID>' as ds
+  FROM (
+      SELECT
+        accid,
+        admitted,
+        source,
+        unit_id,
+        related_provider_id,
+        CAST(DATE_PARSE(index_update || '-01', '%Y-%m-%d') AS date) as index_update
+      FROM hive.parquet_master_data.patient_account_parquet_pm_by_accid
+      WHERE CAST(DATE_PARSE(index_update || '-01', '%Y-%m-%d') AS date) = '<DATEID>'
+
+      UNION ALL
+
+      SELECT 
+        accid, 
+        latest_known_admitted AS admitted, 
+        latest_known_source AS source, 
+        latest_known_unit_id AS unit_id, 
+        latest_known_related_provider_id AS related_provider_id, 
+        latest_index_update AS index_update
+      FROM parquet_master_data.patient_account_latest_past36months
+      WHERE ds = DATE_ADD('month', -1, '<DATEID>')
+      AND latest_known_index_update >= DATE_ADD('month', -36, '<DATEID>')
+      ) subquery2
+    WHERE accid != 'HcDAT_HELP_REQUESTED'
+    AND TRY_CAST(admitted AS timestamp) IS NOT NULL
+    --AND admitted <> '1900-00-00 00:00:00' AND admitted <> '0000-00-00 00:00:00' 
+    AND CAST(admitted AS timestamp) >= DATE_ADD('month', -36, CAST('<DATEID>' AS date))
+    GROUP BY accid
         """,
     )
     drop_cardinality_patient_account_latest_past36months_mpi_pm_table = KonzaTrinoOperator(
