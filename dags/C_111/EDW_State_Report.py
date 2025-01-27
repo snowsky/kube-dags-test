@@ -433,7 +433,7 @@ WITH (
     insert_mpi_accid_prep_final = KonzaTrinoOperator(
         task_id='drop_mpi_accid_no_blanks',
         query="""
-        into hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final
+        insert into hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final
 select mpi, accid_ref, index_update from mpi_parquet_pm
 WHERE concat(index_update,'-01') = concat(substring('<DATEID>', 1, length('<DATEID>') - 3),'-01')
         """,
