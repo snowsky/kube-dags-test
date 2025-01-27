@@ -5,7 +5,7 @@ import trino
 import logging
 import mysql.connector
 from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.operators.python import ShortCircuitOperator, PythonOperator
 from datetime import datetime
 default_args = {
     'owner': 'airflow',
@@ -70,12 +70,17 @@ class KonzaTrinoOperator(PythonOperator):
             provide_context=True,
             **kwargs
         )
+def check_run_date(**kwargs):
+    execution_date = kwargs['execution_date']
+    one_month_ago = datetime.now() - timedelta(days=30)
+    return execution_date >= one_month_ago
+
 
 with DAG(
     dag_id='EDW_State_Report',
     schedule_interval='@monthly',
     tags=['C-111'],
-    start_date=datetime(2025, 1, 1),
+    start_date=datetime(2018, 6, 1),
     catchup=True,
     max_active_runs=1,
 ) as dag:
@@ -279,6 +284,13 @@ with DAG(
 FROM patient_contact_parquet_pm s 
         WHERE concat(index_update,'-01') = concat(substring('<DATEID>', 1, length('<DATEID>') - 3),'-01')
         """,
+    )
+    ##Only run these below if the run date is recent enough
+    check_date = ShortCircuitOperator(
+        task_id='check_run_date',
+        python_callable=check_run_date,
+        provide_context=True,
+        dag=dag,
     )
     drop_accid_by_state_final = KonzaTrinoOperator(
         task_id='drop_accid_by_state_final',
@@ -598,4 +610,4 @@ WHERE row_num = 1 """,
         (select * from sup_12760_c59_mpi_state_index_distinct_rank_final where rank_per_mpi = 1)
         """,
     )
-    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final >> drop_accid_by_state_final >> create_accid_by_state_final >> insert_accid_by_state_final >> drop_accid_by_state_distinct__final >> create_accid_by_state_distinct__final >> insert_accid_by_state_distinct__final >> drop_accid_state_distinct_rank_final >> create_accid_state_distinct_rank_final >> insert_accid_state_distinct_rank_final >> drop_accid_state_distinct_rank_1_final >> create_accid_state_distinct_rank_1_final >> insert_accid_state_distinct_rank_1_final >> drop_mpi_accid_prep_final >> create_mpi_accid_prep_final >> drop_mpi_accid_no_blanks >> create_mpi_accid_no_blanks >> insert_mpi_accid_no_blanks >> drop_mpi_accid_final >> create_mpi_accid_final >> insert_mpi_accid_final >> drop_accid_state_distinct_rank_1_mpi_final >> create_accid_state_distinct_rank_1_mpi_final >> insert_accid_state_distinct_rank_1_mpi_final >> drop_mpi_state_index >> create_mpi_state_index >> insert_mpi_state_index >> drop_mpi_state_index_distinct_final >> create_mpi_state_index_distinct_final >> insert_mpi_state_index_distinct_final >> drop_mpi_state_index_distinct_rank_final >> create_mpi_state_index_distinct_rank_final >> insert_mpi_state_index_distinct_rank_final >> drop_mpi_state_index_distinct_rank_1_final >> create_mpi_state_index_distinct_rank_1_final >> insert_mpi_state_index_distinct_rank_1_final
+    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final >> check_date >> drop_accid_by_state_final >> create_accid_by_state_final >> insert_accid_by_state_final >> drop_accid_by_state_distinct__final >> create_accid_by_state_distinct__final >> insert_accid_by_state_distinct__final >> drop_accid_state_distinct_rank_final >> create_accid_state_distinct_rank_final >> insert_accid_state_distinct_rank_final >> drop_accid_state_distinct_rank_1_final >> create_accid_state_distinct_rank_1_final >> insert_accid_state_distinct_rank_1_final >> drop_mpi_accid_prep_final >> create_mpi_accid_prep_final >> drop_mpi_accid_no_blanks >> create_mpi_accid_no_blanks >> insert_mpi_accid_no_blanks >> drop_mpi_accid_final >> create_mpi_accid_final >> insert_mpi_accid_final >> drop_accid_state_distinct_rank_1_mpi_final >> create_accid_state_distinct_rank_1_mpi_final >> insert_accid_state_distinct_rank_1_mpi_final >> drop_mpi_state_index >> create_mpi_state_index >> insert_mpi_state_index >> drop_mpi_state_index_distinct_final >> create_mpi_state_index_distinct_final >> insert_mpi_state_index_distinct_final >> drop_mpi_state_index_distinct_rank_final >> create_mpi_state_index_distinct_rank_final >> insert_mpi_state_index_distinct_rank_final >> drop_mpi_state_index_distinct_rank_1_final >> create_mpi_state_index_distinct_rank_1_final >> insert_mpi_state_index_distinct_rank_1_final
