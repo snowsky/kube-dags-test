@@ -56,7 +56,7 @@ class KonzaTrinoOperator(PythonOperator):
                         active_workers = cursor.fetchone()[0]
                         print(f"Number of active workers: {active_workers}")
                         logging.info(f'Number of active workers: {active_workers}')
-                        raise AirflowException(f"Query did not finish successfully. Status: {status}")
+                        raise AirflowException(f"Query did not finish successfully. Status: {status} - Query: {query}")
                 
 
             except trino.exceptions.TrinoQueryError as e:
