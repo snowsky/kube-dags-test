@@ -78,7 +78,7 @@ def check_run_date(**kwargs):
 
 
 with DAG(
-    dag_id='EDW_State_Report',
+    dag_id='EDW_Data_Load_Maintenance',
     schedule_interval='@monthly',
     tags=['C-35'],
     start_date=datetime(2018, 6, 1),
