@@ -1,3 +1,4 @@
+import time
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowException
 from datetime import timedelta
