@@ -240,7 +240,7 @@ index_update_dt_tm ,
         related_provider_id,
         CAST(DATE_PARSE(index_update || '-01', '%Y-%m-%d') AS date) as index_update
       FROM hive.parquet_master_data.patient_account_parquet_pm_by_accid
-      WHERE CAST(DATE_PARSE(index_update || '-01', '%Y-%m-%d') AS date) = '<DATEID>'
+      WHERE CAST(DATE_PARSE(index_update || '-01', '%Y-%m-%d') AS date) = CAST('<DATEID>' AS date)
 
       UNION ALL
 
