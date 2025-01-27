@@ -294,62 +294,6 @@ FROM patient_contact_parquet_pm s
         provide_context=True,
         dag=dag,
     )
-    drop_accid_by_state_final = KonzaTrinoOperator(
-        task_id='drop_accid_by_state_final',
-        query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_accid_by_state_final
-        """,
-    )
-    create_accid_by_state_final = KonzaTrinoOperator(
-        task_id='create_accid_by_state_final',
-        query="""
-              CREATE TABLE hive.parquet_master_data.sup_12760_c59_accid_by_state_final
-      ( patient_id varchar, 
-      index_update_dt_tm varchar, 
-      state varchar, 
-        index_update varchar) WITH (
-    partitioned_by = ARRAY['index_update'], 
-    bucketed_by = ARRAY['patient_id'], 
-    sorted_by = ARRAY['patient_id'],
-    bucket_count = 64
-)
-        """,
-    )
-    insert_accid_by_state_final = KonzaTrinoOperator(
-        task_id='insert_accid_by_state_final',
-        query="""
-        INSERT INTO hive.parquet_master_data.sup_12760_c59_accid_by_state_final
-        (select * from sup_12760_c59_accid_by_state_prep__final)
-        """,
-    )
-    drop_accid_by_state_distinct__final = KonzaTrinoOperator(
-        task_id='drop_accid_by_state_distinct__final',
-        query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_accid_by_state_distinct__final
-        """,
-    )
-    create_accid_by_state_distinct__final = KonzaTrinoOperator(
-        task_id='create_accid_by_state_distinct__final',
-        query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_accid_by_state_distinct__final
-        ( patient_id varchar, 
-        index_update_dt_tm varchar, 
-        state varchar, 
-        index_update varchar) WITH (
-    partitioned_by = ARRAY['index_update'], 
-    bucketed_by = ARRAY['patient_id'], 
-    sorted_by = ARRAY['patient_id'],
-    bucket_count = 64
-)
-        """,
-    )
-    insert_accid_by_state_distinct__final = KonzaTrinoOperator(
-        task_id='insert_accid_by_state_distinct__final',
-        query="""
-        INSERT INTO hive.parquet_master_data.sup_12760_c59_accid_by_state_distinct__final
-      (select distinct * from hive.parquet_master_data.sup_12760_c59_accid_by_state_final)
-        """,
-    )
     drop_accid_state_distinct_rank_final = KonzaTrinoOperator(
         task_id='drop_accid_state_distinct_rank_final',
         query="""
@@ -620,4 +564,4 @@ WHERE row_num = 1 """,
         (select * from sup_12760_c59_mpi_state_index_distinct_rank_final where rank_per_mpi = 1)
         """,
     )
-    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final >> check_date >> drop_accid_by_state_final >> create_accid_by_state_final >> insert_accid_by_state_final >> drop_accid_by_state_distinct__final >> create_accid_by_state_distinct__final >> insert_accid_by_state_distinct__final >> drop_accid_state_distinct_rank_final >> create_accid_state_distinct_rank_final >> insert_accid_state_distinct_rank_final >> drop_accid_state_distinct_rank_1_final >> create_accid_state_distinct_rank_1_final >> insert_accid_state_distinct_rank_1_final >> drop_mpi_accid_prep_final >> create_mpi_accid_prep_final >> insert_mpi_accid_prep_final >> drop_mpi_accid_no_blanks >> create_mpi_accid_no_blanks >> insert_mpi_accid_no_blanks >> drop_mpi_accid_final >> create_mpi_accid_final >> insert_mpi_accid_final >> drop_accid_state_distinct_rank_1_mpi_final >> create_accid_state_distinct_rank_1_mpi_final >> insert_accid_state_distinct_rank_1_mpi_final >> drop_mpi_state_index >> create_mpi_state_index >> insert_mpi_state_index >> drop_mpi_state_index_distinct_final >> create_mpi_state_index_distinct_final >> insert_mpi_state_index_distinct_final >> drop_mpi_state_index_distinct_rank_final >> create_mpi_state_index_distinct_rank_final >> insert_mpi_state_index_distinct_rank_final >> drop_mpi_state_index_distinct_rank_1_final >> create_mpi_state_index_distinct_rank_1_final >> insert_mpi_state_index_distinct_rank_1_final
+    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final >> check_date >> drop_accid_state_distinct_rank_final >> create_accid_state_distinct_rank_final >> insert_accid_state_distinct_rank_final >> drop_accid_state_distinct_rank_1_final >> create_accid_state_distinct_rank_1_final >> insert_accid_state_distinct_rank_1_final >> drop_mpi_accid_prep_final >> create_mpi_accid_prep_final >> insert_mpi_accid_prep_final >> drop_mpi_accid_no_blanks >> create_mpi_accid_no_blanks >> insert_mpi_accid_no_blanks >> drop_mpi_accid_final >> create_mpi_accid_final >> insert_mpi_accid_final >> drop_accid_state_distinct_rank_1_mpi_final >> create_accid_state_distinct_rank_1_mpi_final >> insert_accid_state_distinct_rank_1_mpi_final >> drop_mpi_state_index >> create_mpi_state_index >> insert_mpi_state_index >> drop_mpi_state_index_distinct_final >> create_mpi_state_index_distinct_final >> insert_mpi_state_index_distinct_final >> drop_mpi_state_index_distinct_rank_final >> create_mpi_state_index_distinct_rank_final >> insert_mpi_state_index_distinct_rank_final >> drop_mpi_state_index_distinct_rank_1_final >> create_mpi_state_index_distinct_rank_1_final >> insert_mpi_state_index_distinct_rank_1_final
