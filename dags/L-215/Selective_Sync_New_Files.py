@@ -25,7 +25,7 @@ dag = DAG(
     schedule_interval='@hourly',  # Set to run hourly
     start_date=datetime(2024, 11, 4),  # Set to today
     catchup=False,  # Disable catchup
-    tags=['L-215'],
+    tags=['L-215','C-205'],
 )
 
 # Define the S3 bucket name and subfolder
