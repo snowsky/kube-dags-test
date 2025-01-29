@@ -301,7 +301,7 @@ FROM patient_contact_parquet_pm s
         """,
     )
     create_mpi_accid_prep_final_repartitioned_bogdan = KonzaTrinoOperator(
-        task_id='create_accid_state_distinct_rank_final',
+        task_id='create_mpi_accid_prep_final_repartitioned_bogdan',
         query="""
         CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned_bogdan ( mpi varchar, accid_ref varchar) WITH ( bucket_count = 64, bucketed_by = ARRAY['accid_ref'], bucketing_version = 1, sorted_by = ARRAY['accid_ref'] )
         """,
