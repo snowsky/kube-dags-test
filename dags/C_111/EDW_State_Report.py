@@ -294,274 +294,40 @@ FROM patient_contact_parquet_pm s
         provide_context=True,
         dag=dag,
     )
-    drop_accid_state_distinct_rank_final = KonzaTrinoOperator(
-        task_id='drop_accid_state_distinct_rank_final',
+    drop_mpi_accid_prep_final_repartitioned_bogdan = KonzaTrinoOperator(
+        task_id='drop_mpi_accid_prep_final_repartitioned_bogdan',
         query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_accid_state_distinct_rank_final
+        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned_bogdan
         """,
     )
-    create_accid_state_distinct_rank_final = KonzaTrinoOperator(
+    create_mpi_accid_prep_final_repartitioned_bogdan = KonzaTrinoOperator(
         task_id='create_accid_state_distinct_rank_final',
         query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_accid_state_distinct_rank_final
-(rank bigint,
-patient_id varchar, 
-index_update_dt_tm varchar, 
-state varchar,
-index_update varchar) WITH (
-    partitioned_by = ARRAY['index_update'], 
-    bucketed_by = ARRAY['patient_id'], 
-    sorted_by = ARRAY['patient_id'],
-    bucket_count = 64
-)
+        CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned_bogdan ( mpi varchar, accid_ref varchar) WITH ( bucket_count = 64, bucketed_by = ARRAY['accid_ref'], bucketing_version = 1, sorted_by = ARRAY['accid_ref'] )
         """,
     )
-    insert_accid_state_distinct_rank_final = KonzaTrinoOperator(
-        task_id='insert_accid_state_distinct_rank_final',
+    insert_mpi_accid_prep_final_repartitioned_bogdan = KonzaTrinoOperator(
+        task_id='insert_mpi_accid_prep_final_repartitioned_bogdan',
         query="""
-        INSERT INTO hive.parquet_master_data.sup_12760_c59_accid_state_distinct_rank_final
-    (select DENSE_RANK() OVER(Partition by T.patient_id ORDER BY T.index_update_dt_tm DESC) as rank,* from hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final T)
+        insert into hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned_bogdan
+select accid_ref, arbitrary(mpi) as mpi from hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned
+group by accid_ref
         """,
     )
-    drop_accid_state_distinct_rank_1_final = KonzaTrinoOperator(
-        task_id='drop_accid_state_distinct_rank_1_final',
+    drop_query_dataset_final = KonzaTrinoOperator(
+        task_id='drop_query_dataset_final',
         query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_accid_state_distinct_rank_1_final
+        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_query_dataset_final
         """,
     )
-    create_accid_state_distinct_rank_1_final = KonzaTrinoOperator(
-        task_id='create_accid_state_distinct_rank_1_final',
+    create_query_dataset_final = KonzaTrinoOperator(
+        task_id='create_query_dataset_final',
         query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_accid_state_distinct_rank_1_final
-        (rank bigint,
-        patient_id varchar, 
-        index_update_dt_tm varchar, 
-        state varchar,
-        index_update varchar) WITH (
-    partitioned_by = ARRAY['index_update'], 
-    bucketed_by = ARRAY['patient_id'], 
-    sorted_by = ARRAY['patient_id'],
-    bucket_count = 64
-)
+        create table sup_12760_c59_query_dataset_final
+SELECT PC.*, MPI.mpi as mpi_mpi 
+FROM hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final PC 
+LEFT JOIN hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned_bogdan MPI 
+ON MPI.accid_ref = PC.patient_id
         """,
     )
-    insert_accid_state_distinct_rank_1_final = KonzaTrinoOperator(
-        task_id='insert_accid_state_distinct_rank_1_final',
-        query="""
-        INSERT INTO hive.parquet_master_data.sup_12760_c59_accid_state_distinct_rank_1_final
-(select * from sup_12760_c59_accid_state_distinct_rank_final where rank = 1)
-        """,
-    )
-    drop_mpi_accid_prep_final = KonzaTrinoOperator(
-        task_id='drop_mpi_accid_prep_final',
-        query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final
-        """,
-    )
-    ## Seems like this is not used initially
-    create_mpi_accid_prep_final = KonzaTrinoOperator(
-        task_id='create_mpi_accid_prep_final',
-        query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final (
-    mpi varchar, 
-    accid_ref varchar, 
-    index_update varchar
-)
-WITH (
-    partitioned_by = ARRAY['index_update'], 
-    bucketed_by = ARRAY['accid_ref'], 
-    sorted_by = ARRAY['accid_ref'],
-    bucket_count = 64
-)
-        """,
-    )
-    insert_mpi_accid_prep_final = KonzaTrinoOperator(
-        task_id='insert_mpi_accid_prep_final',
-        query="""
-        insert into hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final
-select mpi, accid_ref, index_update from mpi_parquet_pm
-WHERE concat(index_update,'-01') = concat(substring('<DATEID>', 1, length('<DATEID>') - 3),'-01')
-        """,
-    )
-    drop_mpi_accid_no_blanks = KonzaTrinoOperator(
-        task_id='drop_mpi_accid_no_blanks',
-        query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_accid_no_blanks
-        """,
-    )
-    create_mpi_accid_no_blanks = KonzaTrinoOperator(
-        task_id='create_mpi_accid_no_blanks',
-        query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_accid_no_blanks
-        (mpi varchar, 
-        accid_ref varchar, 
-        index_update varchar)
-        """,
-    )
-    insert_mpi_accid_no_blanks = KonzaTrinoOperator(
-        task_id='insert_mpi_accid_no_blanks',
-        query="""
-        INSERT INTO hive.parquet_master_data.sup_12760_c59_mpi_accid_no_blanks
-        (select * from hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final
-        where mpi <> ''
-        and accid_ref <> ''
-        and accid_ref <> 'None'
-        and index_update <> '')
-        """,
-    )
-    drop_mpi_accid_final = KonzaTrinoOperator(
-        task_id='drop_mpi_accid_final',
-        query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_accid_final
-        """,
-    )
-    create_mpi_accid_final = KonzaTrinoOperator(
-        task_id='create_mpi_accid_final',
-        query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_accid_final
-        (accid_ref varchar, 
-        mpi varchar) WITH (
-        bucketed_by = ARRAY['accid_ref'], 
-            sorted_by = ARRAY['accid_ref'],
-            bucket_count = 32 )
-        """,
-    )
-    insert_mpi_accid_final = KonzaTrinoOperator(
-        task_id='insert_mpi_accid_final',
-        query="""
-        INSERT INTO hive.parquet_master_data.sup_12760_c59_mpi_accid_final
-SELECT accid_ref, mpi
-FROM (
-    SELECT accid_ref, mpi, ROW_NUMBER() OVER (PARTITION BY accid_ref) AS row_num
-    FROM hive.parquet_master_data.sup_12760_c59_mpi_accid_no_blanks
-) AS subquery
-WHERE row_num = 1 """,
-    )
-    drop_accid_state_distinct_rank_1_mpi_final = KonzaTrinoOperator(
-        task_id='drop_accid_state_distinct_rank_1_mpi_final',
-        query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_accid_state_distinct_rank_1_mpi_final
-        """,
-    )
-    create_accid_state_distinct_rank_1_mpi_final = KonzaTrinoOperator(
-        task_id='create_accid_state_distinct_rank_1_mpi_final',
-        query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_accid_state_distinct_rank_1_mpi_final
-        (rank bigint,
-        patient_id varchar, 
-        index_update_dt_tm varchar, 
-        state varchar,
-        mpi varchar,
-        index_update varchar) WITH (
-    partitioned_by = ARRAY['index_update'], 
-    bucketed_by = ARRAY['patient_id'], 
-    sorted_by = ARRAY['patient_id'],
-    bucket_count = 64
-)
-        """,
-    )
-    insert_accid_state_distinct_rank_1_mpi_final = KonzaTrinoOperator(
-        task_id='insert_accid_state_distinct_rank_1_mpi_final',
-        query="""
-        INSERT INTO hive.parquet_master_data.sup_12760_c59_accid_state_distinct_rank_1_mpi_final
-        (select ST.*, MPI.mpi, MPI.index_update from sup_12760_c59_accid_state_distinct_rank_1_final ST
-        JOIN sup_12760_c59_mpi_accid_final MPI on ST.patient_id = MPI.accid_ref)
-        """,
-    )
-    drop_mpi_state_index = KonzaTrinoOperator(
-        task_id='drop_mpi_state_index',
-        query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_state_index
-        """,
-    )
-    create_mpi_state_index = KonzaTrinoOperator(
-        task_id='create_mpi_state_index',
-        query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_state_index
-        (mpi varchar,
-        state varchar, 
-        index_update_dt_tm varchar, 
-        index_update varchar)  WITH (
-    partitioned_by = ARRAY['index_update'], 
-    bucketed_by = ARRAY['mpi'], 
-    sorted_by = ARRAY['mpi'],
-    bucket_count = 64
-)
-        """,
-    )
-    insert_mpi_state_index = KonzaTrinoOperator(
-        task_id='insert_mpi_state_index',
-        query="""
-        INSERT INTO hive.parquet_master_data.sup_12760_c59_mpi_state_index
-        (select mpi, state, index_update_dt_tm, index_update from sup_12760_c59_accid_state_distinct_rank_1_mpi_final)
-        """,
-    )
-    drop_mpi_state_index_distinct_final = KonzaTrinoOperator(
-        task_id='drop_mpi_state_index_distinct_final',
-        query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_state_index_distinct_final
-        """,
-    )
-    create_mpi_state_index_distinct_final = KonzaTrinoOperator(
-        task_id='create_mpi_state_index_distinct_final',
-        query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_state_index_distinct_final
-        (mpi varchar,
-        state varchar, 
-        index_update_dt_tm varchar)
-        """,
-    )
-    insert_mpi_state_index_distinct_final = KonzaTrinoOperator(
-        task_id='insert_mpi_state_index_distinct_final',
-        query="""
-        INSERT INTO hive.parquet_master_data.sup_12760_c59_mpi_state_index_distinct_final
-(select DISTINCT * from sup_12760_c59_mpi_state_index)
-        """,
-    )
-    drop_mpi_state_index_distinct_rank_final = KonzaTrinoOperator(
-        task_id='drop_mpi_state_index_distinct_rank_final',
-        query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_state_index_distinct_rank_final
-        """,
-    )
-    create_mpi_state_index_distinct_rank_final = KonzaTrinoOperator(
-        task_id='create_mpi_state_index_distinct_rank_final',
-        query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_state_index_distinct_rank_final
-        (rank_per_mpi bigint,
-        mpi varchar, 
-        state varchar, 
-        index_update_dt_tm varchar)
-        """,
-    )
-    insert_mpi_state_index_distinct_rank_final = KonzaTrinoOperator(
-        task_id='insert_mpi_state_index_distinct_rank_final',
-        query="""
-        INSERT INTO hive.parquet_master_data.sup_12760_c59_mpi_state_index_distinct_rank_final
-        (select row_number() OVER(Partition by T.mpi ORDER BY T.index_update_dt_tm DESC) as rank_per_mpi,* from sup_12760_c59_mpi_state_index_distinct_final T)
-        """,
-    )
-    drop_mpi_state_index_distinct_rank_1_final = KonzaTrinoOperator(
-        task_id='drop_mpi_state_index_distinct_rank_1_final',
-        query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_state_index_distinct_rank_1_final
-        """,
-    )
-    create_mpi_state_index_distinct_rank_1_final = KonzaTrinoOperator(
-        task_id='create_mpi_state_index_distinct_rank_1_final',
-        query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_state_index_distinct_rank_1_final
-        (rank_per_mpi bigint,
-        mpi varchar, 
-        state varchar, 
-        index_update_dt_tm varchar)
-        """,
-    )
-    insert_mpi_state_index_distinct_rank_1_final = KonzaTrinoOperator(
-        task_id='insert_mpi_state_index_distinct_rank_1_final',
-        query="""
-        INSERT INTO hive.parquet_master_data.sup_12760_c59_mpi_state_index_distinct_rank_1_final
-        (select * from sup_12760_c59_mpi_state_index_distinct_rank_final where rank_per_mpi = 1)
-        """,
-    )
-    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final >> check_date >> drop_accid_state_distinct_rank_final >> create_accid_state_distinct_rank_final >> insert_accid_state_distinct_rank_final >> drop_accid_state_distinct_rank_1_final >> create_accid_state_distinct_rank_1_final >> insert_accid_state_distinct_rank_1_final >> drop_mpi_accid_prep_final >> create_mpi_accid_prep_final >> insert_mpi_accid_prep_final >> drop_mpi_accid_no_blanks >> create_mpi_accid_no_blanks >> insert_mpi_accid_no_blanks >> drop_mpi_accid_final >> create_mpi_accid_final >> insert_mpi_accid_final >> drop_accid_state_distinct_rank_1_mpi_final >> create_accid_state_distinct_rank_1_mpi_final >> insert_accid_state_distinct_rank_1_mpi_final >> drop_mpi_state_index >> create_mpi_state_index >> insert_mpi_state_index >> drop_mpi_state_index_distinct_final >> create_mpi_state_index_distinct_final >> insert_mpi_state_index_distinct_final >> drop_mpi_state_index_distinct_rank_final >> create_mpi_state_index_distinct_rank_final >> insert_mpi_state_index_distinct_rank_final >> drop_mpi_state_index_distinct_rank_1_final >> create_mpi_state_index_distinct_rank_1_final >> insert_mpi_state_index_distinct_rank_1_final
+    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final >> check_date >> drop_mpi_accid_prep_final_repartitioned_bogdan >> create_mpi_accid_prep_final_repartitioned_bogdan >> insert_mpi_accid_prep_final_repartitioned_bogdan >> drop_query_dataset_final >> create_query_dataset_final
