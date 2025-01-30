@@ -314,20 +314,26 @@ select accid_ref, arbitrary(mpi) as mpi from hive.parquet_master_data.sup_12760_
 group by accid_ref
         """,
     )
-    drop_query_dataset_final = KonzaTrinoOperator(
-        task_id='drop_query_dataset_final',
+    drop_mpi_accid_state_final_join = KonzaTrinoOperator(
+        task_id='drop_mpi_accid_state_final_join',
         query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_query_dataset_final
+        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_accid_state_final_join
         """,
     )
-    create_query_dataset_final = KonzaTrinoOperator(
-        task_id='create_query_dataset_final',
+    create_mpi_accid_state_final_join = KonzaTrinoOperator(
+        task_id='create_mpi_accid_state_final_join',
         query="""
-        create table sup_12760_c59_query_dataset_final
-SELECT PC.*, MPI.mpi as mpi_mpi 
+        CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_accid_state_final_join ( state varchar, accid_ref varchar, mpi varchar) WITH ( bucket_count = 64, bucketed_by = ARRAY['accid_ref'], bucketing_version = 1, sorted_by = ARRAY['accid_ref'] )
+        """,
+    )
+    insert_mpi_accid_state_final_join = KonzaTrinoOperator(
+        task_id='insert_mpi_accid_state_final_join',
+        query="""
+        insert into hive.parquet_master_data.sup_12760_c59_mpi_accid_state_final_join
+SELECT PC.state,PC.patient_id, MPI.mpi as mpi_mpi 
 FROM hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final PC 
 LEFT JOIN hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned_bogdan MPI 
 ON MPI.accid_ref = PC.patient_id
         """,
     )
-    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final >> check_date >> drop_mpi_accid_prep_final_repartitioned_bogdan >> create_mpi_accid_prep_final_repartitioned_bogdan >> insert_mpi_accid_prep_final_repartitioned_bogdan >> drop_query_dataset_final >> create_query_dataset_final
+    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final >> check_date >> drop_mpi_accid_prep_final_repartitioned_bogdan >> create_mpi_accid_prep_final_repartitioned_bogdan >> insert_mpi_accid_prep_final_repartitioned_bogdan >> drop_mpi_accid_state_final_join >> create_mpi_accid_state_final_join >> insert_mpi_accid_state_final_join
