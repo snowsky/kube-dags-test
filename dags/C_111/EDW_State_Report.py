@@ -351,7 +351,7 @@ LEFT JOIN hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitio
 ON MPI.accid_ref = PC.patient_id
         """,
     )
-    create_accid_by_state_prep__final_task >> insert_accid_by_state_prep__final_task >> check_run_date >> [
+    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final >> check_run_date >> [
         drop_mpi_accid_prep_final_repartitioned_bogdan,
         create_mpi_accid_prep_final_repartitioned_bogdan,
         insert_mpi_accid_prep_final_repartitioned_bogdan,
