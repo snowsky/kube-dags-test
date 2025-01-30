@@ -294,6 +294,21 @@ FROM patient_contact_parquet_pm s
         provide_context=True,
         dag=dag,
     )
+    drop_mpi_accid_prep_final_repartitioned_cardinality_check = KonzaTrinoOperator(
+        task_id='drop_mpi_accid_prep_final_repartitioned_cardinality_check',
+        query="""
+        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned_bogdan
+        """,
+    )
+    create_mpi_accid_prep_final_repartitioned_cardinality_check = KonzaTrinoOperator(
+        task_id='create_mpi_accid_prep_final_repartitioned_cardinality_check',
+        query="""
+        create table hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned_cardinality_check as
+select frequency, count(*) as num_rows from (select accid_ref, count(*) as frequency from hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned
+group by 1) subquery
+group by 1
+        """,
+    )
     drop_mpi_accid_prep_final_repartitioned_bogdan = KonzaTrinoOperator(
         task_id='drop_mpi_accid_prep_final_repartitioned_bogdan',
         query="""
@@ -336,4 +351,4 @@ LEFT JOIN hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitio
 ON MPI.accid_ref = PC.patient_id
         """,
     )
-    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final >> check_date >> drop_mpi_accid_prep_final_repartitioned_bogdan >> create_mpi_accid_prep_final_repartitioned_bogdan >> insert_mpi_accid_prep_final_repartitioned_bogdan >> drop_mpi_accid_state_final_join >> create_mpi_accid_state_final_join >> insert_mpi_accid_state_final_join
+    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final >> check_date >> [drop_mpi_accid_prep_final_repartitioned_bogdan, create_mpi_accid_prep_final_repartitioned_bogdan, insert_mpi_accid_prep_final_repartitioned_bogdan, drop_mpi_accid_state_final_join, create_mpi_accid_state_final_join, insert_mpi_accid_state_final_join] >> [drop_mpi_accid_prep_final_repartitioned_cardinality_check, create_mpi_accid_prep_final_repartitioned_cardinality_check]
