@@ -360,5 +360,5 @@ ON MPI.accid_ref = PC.patient_id
         insert_mpi_accid_state_final_join
     ] >> [
         drop_mpi_accid_prep_final_repartitioned_cardinality_check,
-        create_mpi_accid_prep_final_repartitioned_cardinality_check_task
+        create_mpi_accid_prep_final_repartitioned_cardinality_check
     ]
