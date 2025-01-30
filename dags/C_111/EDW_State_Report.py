@@ -351,4 +351,14 @@ LEFT JOIN hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitio
 ON MPI.accid_ref = PC.patient_id
         """,
     )
-    create_accid_by_state_prep__final >> insert_accid_by_state_prep__final >> check_date >> [drop_mpi_accid_prep_final_repartitioned_bogdan, create_mpi_accid_prep_final_repartitioned_bogdan, insert_mpi_accid_prep_final_repartitioned_bogdan, drop_mpi_accid_state_final_join, create_mpi_accid_state_final_join, insert_mpi_accid_state_final_join] >> [drop_mpi_accid_prep_final_repartitioned_cardinality_check, create_mpi_accid_prep_final_repartitioned_cardinality_check]
+    create_accid_by_state_prep__final_task >> insert_accid_by_state_prep__final_task >> check_date_task >> [
+        drop_mpi_accid_prep_final_repartitioned_bogdan_task,
+        create_mpi_accid_prep_final_repartitioned_bogdan_task,
+        insert_mpi_accid_prep_final_repartitioned_bogdan_task,
+        drop_mpi_accid_state_final_join_task,
+        create_mpi_accid_state_final_join_task,
+        insert_mpi_accid_state_final_join_task
+    ] >> [
+        drop_mpi_accid_prep_final_repartitioned_cardinality_check_task,
+        create_mpi_accid_prep_final_repartitioned_cardinality_check_task
+    ]
