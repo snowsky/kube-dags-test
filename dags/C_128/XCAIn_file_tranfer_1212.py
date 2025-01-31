@@ -9,7 +9,8 @@ from datetime import datetime
 from typing import List
 from concurrent.futures import ThreadPoolExecutor as PoolExecutor, as_completed
 from functools import partial
-import os
+import os 
+import re
 from airflow.models.param import Param
 
 
@@ -34,6 +35,7 @@ dag = DAG(
 ENV = 'Prod'
 BUCKET_NAME = 'konzaandssigrouppipelines'
 S3_SUBFOLDER = 'XCAIn/'
+##S3_SUBFOLDER = 'HL7v3In/XCAIn_test/'
 LOCAL_DIR = '/source-biakonzasftp/C-128/archive/XCAIn'
 #LOCAL_DIR = '/data/biakonzasftp/C-128/archive/XCAIn_AA'
 
@@ -49,6 +51,8 @@ def list_files_in_s3():
 def filter_xml_files(files):
     xml_files = [file for file in files if file.endswith('.xml')]
     logging.info(f'Filtered XML Files: {xml_files}')
+    if not xml_files:
+        logging.warning("No XML files found. Check S3 structure!")
     return xml_files
 
 def get_sftp():
@@ -86,129 +90,115 @@ def get_sftp_test():
     return sftp, transport
 
 def ensure_directories_exist(file_key):
+    """
+    Ensure 2-folder structure exists in SFTP.
+    - Works for folder1 and folder2.
+    - No renaming of folder names.
+    - Creates folders sequentially.
+    """
     parts = file_key.split('/')
-    folder1 = parts[-4].split('=')[1]
-    folder2 = parts[-3].split('=')[1]
-    sftp, transport = get_sftp()
-    logging.info(f'sftp type: {type(sftp)}, transport type: {type(transport)}')
+    if len(parts) < 3:
+        logging.error(f"Invalid file structure for {file_key}. Expected at least 3 parts.")
+        return
 
     try:
-        if ENV == 'Dev':
+        folder1 = parts[-4].split('=')[1]
+        folder2 = parts[-3].split('=')[1]
+    except IndexError:
+        logging.error(f"Error extracting folder structure from {file_key}.")
+        return
+
+    logging.info(f"Extracted Folders: folder1='{folder1}', folder2='{folder2}'")
+
+    sftp, transport = get_sftp()
+
+    try:
+        base_path = "C-128/C_128_test_delivery/XCAIn" if ENV == "Dev" else "inbound"
+
+        # Construct directory paths
+        level1 = f"{base_path}/{folder1}"
+        level2 = f"{level1}/{folder2}"
+
+        # Create directories sequentially
+        for path in [level1, level2]:
             try:
-                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}')
-            except IOError:
-                sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}')
-            try:
-                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}')
-            except IOError:
-                sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}')
-        if ENV == 'Prod':
-            try:
-                sftp.chdir(f'inbound/{folder1}')
-            except IOError:
-                sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'inbound/{folder1}')
-            try:
-                sftp.chdir(f'inbound/{folder1}/{folder2}')
-            except IOError:
-                sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'inbound/{folder1}/{folder2}')
+                sftp.stat(path)  # Check if directory exists
+                logging.info(f"Directory exists: {path}")
+            except FileNotFoundError:
+                logging.info(f"Creating missing folder: {path}")
+                sftp.mkdir(path)
+
     except Exception as e:
-        logging.error(f'Error ensuring directories exist: {e}')
+        logging.error(f"Error ensuring directories exist: {e}")
     finally:
-        if sftp:
-            sftp.close()
-        if transport:
-            transport.close()
+        sftp.close()
+        transport.close()
+
+
 
 def ensure_directories_exist_test(file_key):
+    """
+    Ensure 3-level folder structure exists in SFTP.
+    - Works for 3 folders only (folder1, folder2, folder3)
+    - No renaming of folder names
+    - Creates folders sequentially
+    """
     parts = file_key.split('/')
-
-    # Ensure that the file_key has at least 4 parts
     if len(parts) < 4:
         logging.error(f"Invalid file structure for {file_key}. Expected at least 4 parts.")
         return
 
-    folder1 = parts[-4].split('=')[1]
-    folder2 = parts[-3].split('=')[1]
-    # Initialize folder3 as None by default
-    folder3 = None
-    # If there are at least 5 parts, extract folder3
-    if len(parts) > 4:
-        # Ensure the second-to-last part contains '=' before splitting
-        if '=' in parts[-2]:
-            folder3 = parts[-2].split('=')[1]
-        else:
-            logging.warning(f"Invalid format for folder3 in {file_key}. Skipping extraction.")
-            folder3 = None
-
-    file_name = parts[-1]
-    # Log extracted values
-    logging.info(f"folder1: {folder1}, folder2: {folder2}, folder3: {folder3}, file_name: {file_name}")
-    sftp, transport = get_sftp_test()
-    
     try:
-        if ENV == 'Dev':
-            try:
-                # Change XCAIn directory to XCAIn_test_3_folder : which is a folder I have created in My DEV SFTP location
-                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}')
-            except IOError:
-                sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}')
-                logging.info("first folder is created")
+        folder1 = parts[-4].split('=')[1] + "_3F"  #  Add _3F suffix as a unique identifier
+        folder2 = parts[-3].split('=')[1]
+        folder3 = parts[-2].split('=')[1] if len(parts) > 4 and '=' in parts[-2] else None
+    except IndexError:
+        logging.error(f"Error extracting folder structure from {file_key}.")
+        return
 
-            try:
-                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}')
-            except IOError:
-                sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}')
-                logging.info("second folder is created")
+    logging.info(f"Extracted Folders: folder1='{folder1}', folder2='{folder2}', folder3='{folder3}'")
 
-            
-            if folder3:  # Only attempt to create folder3 if it exists
-                try:
-                    sftp.chdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}/{folder3}')
-                except IOError:
-                    sftp.chdir(sftp.normalize('.'))
-                    sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}/{folder3}')
-                    logging.info("Third folder is created")
+    sftp, transport = get_sftp_test()
 
-        
-        if ENV == 'Prod':
-            try:
-                # Please change the inbound folder to a folder name that is created at the client SFTP location. 
-                sftp.chdir(f'inbound/{folder1}')
-            except IOError:
-                sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'inbound/{folder1}')
-                logging.info("first folder is created")
+    try:
+        base_path = "C-128/C_128_test_delivery/XCAIn" if ENV == "Dev" else "inbound"
+        level1 = f"{base_path}/{folder1}"
+        level2 = f"{level1}/{folder2}"
+        level3 = f"{level2}/{folder3}" if folder3 else None
 
-            
+        # Ensure level1 (Folder1) exists
+        try:
+            sftp.stat(level1)
+            logging.info(f"Directory exists: {level1}")
+        except FileNotFoundError:
+            logging.info(f"Creating missing folder: {level1}")
+            sftp.mkdir(level1)
+
+        # Ensure level2 (Folder2) exists
+        try:
+            sftp.stat(level2)
+            logging.info(f"Directory exists: {level2}")
+        except FileNotFoundError:
+            logging.info(f"Creating missing folder: {level2}")
+            sftp.mkdir(level2)
+
+        # Only create level3 (Folder3) **if the file path explicitly contains it**
+        if folder3:
             try:
-                sftp.chdir(f'inbound/{folder1}/{folder2}')
-            except IOError:
-                sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'inbound/{folder1}/{folder2}')
-                logging.info("second folder is created")
-                
-            
-            if folder3:  # Only attempt to create folder3 if it exists
-                try:
-                    sftp.chdir(f'inbound/{folder1}/{folder2}/{folder3}')
-                except IOError:
-                    sftp.chdir(sftp.normalize('.'))
-                    sftp.mkdir(f'inbound/{folder1}/{folder2}/{folder3}')
-                    logging.info("third folder is created")
+                sftp.stat(level3)
+                logging.info(f"Directory exists: {level3}")
+            except FileNotFoundError:
+                logging.info(f"Creating missing folder: {level3}")
+                sftp.mkdir(level3)
+        else:
+            logging.warning(f"Skipping Folder3 because it's not present in the file path.")
 
     except Exception as e:
-        logging.error(f'Error ensuring directories exist: {e}')
+        logging.error(f"Error ensuring directories exist: {e}")
     finally:
-        if sftp:
-            sftp.close()
-        if transport:
-            transport.close()
+        sftp.close()
+        transport.close()
+
 
 def transfer_file_to_sftp(file_key):
     logging.info(f'Starting transfer for: {file_key}')
@@ -251,41 +241,13 @@ def transfer_file_to_sftp_test(file_key):
         return
 
     parts = file_key.split('/')
-    
-    # Ensure that folder1 and folder2 exist before accessing them
-    if len(parts) < 4:
-        logging.error(f'Invalid file structure for {file_key}. Expected at least 4 parts.')
-        return
-
-    folder1 = parts[-4].split('=')[1]  # Assumes this folder always exists
-    folder2 = parts[-3].split('=')[1]  # Assumes this folder always exists
-
-    # Check if folder3 exists (with appropriate bounds check)
-    folder3 = None
-    if len(parts) > 4:  # Check if there are more than 4 parts
-        if '=' in parts[-2]:  # Ensure the second-to-last part contains '=' before splitting
-            folder3 = parts[-2].split('=')[1]
-        else:
-            logging.warning(f"Invalid format for folder3 in {file_key}. Skipping extraction.")
-            folder3 = None
-
+    folder1 = parts[-4].split('=')[1] + "_3F"  # Add _3F suffix
+    folder2 = parts[-3].split('=')[1]
+    folder3 = parts[-2].split('=')[1] if len(parts) > 4 and '=' in parts[-2] else None
     file_name = parts[-1]
 
-        # Construct the SFTP path based on the environment
-    if ENV == 'Dev':
-        if folder3:
-            sftp_path = f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}/{folder3}/{file_name}'
-        else:
-            sftp_path = f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{folder1}/{folder2}/{file_name}'
-    elif ENV == 'Prod':
-        if folder3:
-            sftp_path = f'inbound/{folder1}/{folder2}/{folder3}/{file_name}'
-        else:
-            sftp_path = f'inbound/{folder1}/{folder2}/{file_name}'
-    else:
-        logging.error(f"Unsupported environment: {ENV}")
-        return
-
+    sftp_path = f"C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{folder3}/{file_name}" if folder3 else f"C-128/C_128_test_delivery/XCAIn/{folder1}/{folder2}/{file_name}"
+    
     logging.info(f'SFTP Path: {sftp_path}')
     sftp, transport = get_sftp_test()
 
@@ -294,24 +256,56 @@ def transfer_file_to_sftp_test(file_key):
         s3_object = s3_hook.get_key(file_key, BUCKET_NAME)
 
         with s3_object.get()['Body'] as s3_file:
-            sftp.putfo(s3_file, sftp_path)
-            logging.info(f'Transferred file: {file_name} to {sftp_path}')
-        return file_key
+            try:
+                sftp.putfo(s3_file, sftp_path)
+                logging.info(f'Transferred file: {file_name} to {sftp_path}')
+            except IOError as e:
+                if "No such file" in str(e) or e.errno == 2:  
+                    logging.warning(f"Directory missing. Creating directories and retrying...")
+                    ensure_directories_exist_test(file_key)  # Create folders
+                    with s3_object.get()['Body'] as retry_s3_file:
+                        sftp.putfo(retry_s3_file, sftp_path)  # Retry transfer
+                    logging.info(f'Retry successful: Transferred {file_name}')
+                else:
+                    logging.error(f"Unexpected error during transfer: {e}")
+                    raise
     except Exception as e:
         logging.error(f'Error during file transfer: {e}')
-        return None
     finally:
-        if sftp:
-            sftp.close()
-        if transport:
-            transport.close()       
+        sftp.close()
+        transport.close()
+
+
 @task(dag=dag)
-def transfer_batch_to_sftp(batch: List[str]):
+def transfer_batch_to_sftp_2_folder(batch: List[str]):
     for file_key in batch:
-        ensure_directories_exist(file_key)
-        #ensure_directories_exist_test(file_key)
-        transfer_file_to_sftp(file_key)
-        transfer_file_to_sftp_test(file_key)
+        parts = file_key.split('/')
+        
+        is_two_folder_structure = len(parts) > 3 and '=' in parts[-3]
+
+        if is_two_folder_structure:
+            logging.info(f"Detected **2-folder** structure for: {file_key}")
+            ensure_directories_exist(file_key)  
+            transfer_file_to_sftp(file_key)  
+        else:
+            logging.warning(f"File does NOT belong to 2-folder structure, skipping: {file_key}")
+
+@task(dag=dag)
+def transfer_batch_to_sftp_3_folder(batch: List[str]):
+    for file_key in batch:
+        parts = file_key.split('/')
+        
+        is_three_folder_structure = len(parts) > 4 and '=' in parts[-2]
+
+        if is_three_folder_structure:
+            logging.info(f"Detected **3-folder** structure for: {file_key}")
+
+            ensure_directories_exist_test(file_key)  # This now checks if Folder3 is needed
+
+            transfer_file_to_sftp_test(file_key)  
+        else:
+            logging.warning(f"File does NOT belong to 3-folder structure, skipping: {file_key}")
+
 
 
 @task(dag=dag)
@@ -358,6 +352,7 @@ def download_files_to_local(xml_files, local_dir, aws_conn_id, bucket_name, max_
             except Exception as e:
                 logging.error(f"Failed to download {file_key}: {e}")
 
+
 @task(dag=dag)
 def delete_files_from_s3(xml_files, aws_conn_id, bucket_name):
     s3_hook = S3Hook(aws_conn_id=aws_conn_id)
@@ -401,18 +396,19 @@ def delete_files_from_s3(xml_files, aws_conn_id, bucket_name):
                     deleted_directories.add(dir_path)
         except Exception as e:
             logging.error(f"Failed to delete directory {file_key}: {e}")
-
-
+            
 # Define the workflow
 files = list_files_in_s3()
 xml_files = filter_xml_files(files)
 batches = divide_files_into_batches(xml_files, batch_size="{{ params.batch_size }}")
-transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
+#transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
 download_files = download_files_to_local(xml_files, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME, max_workers="{{ params.max_workers }}")
+transfer_tasks_2_folder = transfer_batch_to_sftp_2_folder.expand(batch=batches)
+transfer_tasks_3_folder = transfer_batch_to_sftp_3_folder.expand(batch=batches)
 delete_files = delete_files_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 
-files >> xml_files >> batches >> transfer_tasks >> download_files >> delete_files
-#files >> xml_files >> batches >> transfer_tasks >> download_files 
+files >> xml_files >> batches >> transfer_tasks_2_folder >> transfer_tasks_3_folder >> download_files >> delete_files
+#files >> xml_files >> batches >> transfer_tasks_2_folder >> transfer_tasks_3_folder >> download_files 
 
 if __name__ == "__main__":
     dag.cli()
