@@ -43,7 +43,7 @@ LOCAL_DIR = '/source-biakonzasftp/C-128/archive/XCAIn'
 @task(dag=dag)
 def list_files_in_s3():
     hook = S3Hook(aws_conn_id='konzaandssigrouppipelines')
-    files = hook.list_keys(bucket_name=BUCKET_NAME, prefix=S3_SUBFOLDER)[:
+    files = hook.list_keys(bucket_name=BUCKET_NAME, prefix=S3_SUBFOLDER)
     logging.info(f'Files in S3: {files}')
     return files
 
