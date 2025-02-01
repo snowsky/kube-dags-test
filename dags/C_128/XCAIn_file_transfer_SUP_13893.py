@@ -64,7 +64,7 @@ def delete_single_file_from_s3(file_key, aws_conn_id, bucket_name):
         # Extract base directory path
         base_directory_path = '/'.join(file_key.split('/')[:-1]) + '/'
         if base_directory_path == S3_SUBFOLDER:
-            break  # Skip the root folder (S3_SUBFOLDER)
+            assert False  # Skip the root folder (S3_SUBFOLDER)
         logging.info(f"Checking directory: {base_directory_path}")
             
         # List objects within the directory
@@ -80,7 +80,7 @@ def delete_single_file_from_s3(file_key, aws_conn_id, bucket_name):
         for i in range(len(parts) - 1, 0, -1):
             dir_path = '/'.join(parts[:i]) + '/'
             if dir_path == S3_SUBFOLDER or dir_path in deleted_directories:
-                break  # Skip root folder or already deleted directories
+                assert False  # Skip root folder or already deleted directories
             # Check if the parent directory is empty
             objects_in_parent_dir = s3_hook.list_keys(bucket_name=bucket_name, prefix=dir_path)
             if not objects_in_parent_dir:
