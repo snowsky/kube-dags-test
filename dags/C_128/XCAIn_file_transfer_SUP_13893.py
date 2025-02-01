@@ -63,14 +63,15 @@ def _download_file_from_s3(local_dir, aws_conn_id, bucket_name, file_key):
     return file_key
 
 def download_single_file_to_local(file_key, local_dir, aws_conn_id, bucket_name):
-    future_file_dict = {executor.submit(partial(_download_file_from_s3, local_dir, aws_conn_id, bucket_name), file_key): file_key}
-    for future in as_completed(future_file_dict):
-        file_key = future_file_dict[future]
-        try:
-            future.result()
-            logging.info(f"Downloaded {file_key} to {local_dir}")
-        except Exception as e:
-            logging.error(f"Failed to download {file_key}: {e}")
+    with ThreadPoolExecutor() as executor:
+        future_file_dict = {executor.submit(partial(_download_file_from_s3, local_dir, aws_conn_id, bucket_name), file_key): file_key}
+        for future in as_completed(future_file_dict):
+            file_key = future_file_dict[future]
+            try:
+                future.result()
+                logging.info(f"Downloaded {file_key} to {local_dir}")
+            except Exception as e:
+                logging.error(f"Failed to download {file_key}: {e}")
 def delete_single_file_from_s3(file_key, aws_conn_id, bucket_name):
     s3_hook = S3Hook(aws_conn_id=aws_conn_id)
     s3_client = s3_hook.get_conn()
