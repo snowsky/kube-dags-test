@@ -112,7 +112,7 @@ def delete_single_file_from_s3(file_key, aws_conn_id, bucket_name):
 @task(dag=dag)
 def list_files_in_s3():
     hook = S3Hook(aws_conn_id='konzaandssigrouppipelines')
-    files = hook.list_keys(bucket_name=BUCKET_NAME, prefix=S3_SUBFOLDER)[:300]
+    files = hook.list_keys(bucket_name=BUCKET_NAME, prefix=S3_SUBFOLDER)#[:300]#Can be used to limit how many files to try to process, however should always be removed due after testing smaller load since large loads are expected
     logging.info(f'Files in S3: {files}')
     return files
 
