@@ -38,7 +38,7 @@ LOCAL_DIR = '/source-biakonzasftp/C-128/archive/XCAIn'
 #LOCAL_DIR = '/data/biakonzasftp/C-128/archive/XCAIn_AA'
 
 #s3://konzaandssigrouppipelines/HL7v3In/XCAIn_test/
-def download_single_file_to_local(file_key, xml_files, local_dir, aws_conn_id, bucket_name):
+def download_single_file_to_local(file_key, local_dir, aws_conn_id, bucket_name):
     future_file_dict = {executor.submit(partial(_download_file_from_s3, local_dir, aws_conn_id, bucket_name), file_key): file_key}
     for future in as_completed(future_file_dict):
         file_key = future_file_dict[future]
