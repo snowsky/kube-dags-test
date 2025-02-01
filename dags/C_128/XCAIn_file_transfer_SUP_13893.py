@@ -18,7 +18,7 @@ default_args = {
     'owner': 'airflow',
 }
 dag = DAG(
-    'XCAIn_s3_to_sftp_with_oid_folder_copy_to_archive',
+    'XCAIn_Critical_Data_Pipeline',
     default_args=default_args,
     description='Retrieve files from S3 and deliver to SFTP with OID folder structure implemented and delivered to archive folder and delete from s3 after transfer(s)',
     schedule_interval='@hourly',
