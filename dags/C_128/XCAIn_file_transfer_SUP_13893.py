@@ -47,17 +47,6 @@ def download_single_file_to_local(file_key, xml_files, local_dir, aws_conn_id, b
             logging.info(f"Downloaded {file_key} to {local_dir}")
         except Exception as e:
             logging.error(f"Failed to download {file_key}: {e}")
-def download_files_to_local(xml_files, local_dir, aws_conn_id, bucket_name, max_workers: str):
-    max_workers = int(max_workers)  # Convert max_workers to integer
-    with PoolExecutor(max_workers=max_workers) as executor:
-        future_file_dict = {executor.submit(partial(_download_file_from_s3, local_dir, aws_conn_id, bucket_name), file_key): file_key for file_key in xml_files}
-        for future in as_completed(future_file_dict):
-            file_key = future_file_dict[future]
-            try:
-                future.result()
-                logging.info(f"Downloaded {file_key} to {local_dir}")
-            except Exception as e:
-                logging.error(f"Failed to download {file_key}: {e}")
 def delete_single_file_from_s3(file_key, aws_conn_id, bucket_name):
     s3_hook = S3Hook(aws_conn_id=aws_conn_id)
     s3_client = s3_hook.get_conn()
@@ -75,7 +64,7 @@ def delete_single_file_from_s3(file_key, aws_conn_id, bucket_name):
         # Extract base directory path
         base_directory_path = '/'.join(file_key.split('/')[:-1]) + '/'
         if base_directory_path == S3_SUBFOLDER:
-            continue  # Skip the root folder (S3_SUBFOLDER)
+            break  # Skip the root folder (S3_SUBFOLDER)
         logging.info(f"Checking directory: {base_directory_path}")
             
         # List objects within the directory
@@ -91,7 +80,7 @@ def delete_single_file_from_s3(file_key, aws_conn_id, bucket_name):
         for i in range(len(parts) - 1, 0, -1):
             dir_path = '/'.join(parts[:i]) + '/'
             if dir_path == S3_SUBFOLDER or dir_path in deleted_directories:
-                continue  # Skip root folder or already deleted directories
+                break  # Skip root folder or already deleted directories
             # Check if the parent directory is empty
             objects_in_parent_dir = s3_hook.list_keys(bucket_name=bucket_name, prefix=dir_path)
             if not objects_in_parent_dir:
@@ -101,49 +90,6 @@ def delete_single_file_from_s3(file_key, aws_conn_id, bucket_name):
     except Exception as e:
         logging.error(f"Failed to delete directory {file_key}: {e}")
             
-def delete_files_from_s3(xml_files, aws_conn_id, bucket_name):
-    s3_hook = S3Hook(aws_conn_id=aws_conn_id)
-    s3_client = s3_hook.get_conn()
-    # Step 1: Delete XML files
-    for file_key in xml_files:
-        try:
-            s3_client.delete_object(Bucket=bucket_name, Key=file_key)
-            logging.info(f"Deleted file: {file_key}")
-        except Exception as e:
-            logging.error(f"Failed to delete file {file_key}: {e}")
-    # Step 2: Delete empty directories, skipping the S3_SUBFOLDER
-    deleted_directories = set()
-    for file_key in xml_files:
-        try:
-            # Extract base directory path
-            base_directory_path = '/'.join(file_key.split('/')[:-1]) + '/'
-            if base_directory_path == S3_SUBFOLDER:
-                continue  # Skip the root folder (S3_SUBFOLDER)
-            logging.info(f"Checking directory: {base_directory_path}")
-            
-            # List objects within the directory
-            objects_in_dir = s3_hook.list_keys(bucket_name=bucket_name, prefix=base_directory_path)
-            if not objects_in_dir:
-                # Directory is empty, delete it
-                s3_client.delete_object(Bucket=bucket_name, Key=base_directory_path)
-                logging.info(f"Deleted empty directory: {base_directory_path}")
-                deleted_directories.add(base_directory_path)
-            
-            # Check parent directories recursively
-            parts = base_directory_path.split('/')
-            for i in range(len(parts) - 1, 0, -1):
-                dir_path = '/'.join(parts[:i]) + '/'
-                if dir_path == S3_SUBFOLDER or dir_path in deleted_directories:
-                    continue  # Skip root folder or already deleted directories
-                # Check if the parent directory is empty
-                objects_in_parent_dir = s3_hook.list_keys(bucket_name=bucket_name, prefix=dir_path)
-                if not objects_in_parent_dir:
-                    s3_client.delete_object(Bucket=bucket_name, Key=dir_path)
-                    logging.info(f"Deleted empty parent directory: {dir_path}")
-                    deleted_directories.add(dir_path)
-        except Exception as e:
-            logging.error(f"Failed to delete directory {file_key}: {e}")
-
 @task(dag=dag)
 def list_files_in_s3():
     hook = S3Hook(aws_conn_id='konzaandssigrouppipelines')
