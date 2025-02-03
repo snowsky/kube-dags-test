@@ -14,6 +14,16 @@ In mature data pipelines there will typically three levels of testing:
 
 ## Library code testing
 
+Put reusable code into the library in the following location (DRY - Don't repeat yourself principle):
+
+/dags/lib/
+
+import these packages with code:
+```
+from lib.operators
+```
+(eg. from lib.operators import konza_trino_operator.py)
+
 Oftentimes an Airflow data pipeline begins life as a set of disparate Python functions, which Airflow will stitch together. Before writing the Airflow DAG it makes sense to consider writing tests that verify the functionality of various bits of individual code. This is best done using a framework like `pytest`, and does not really involve Airflow itself.
 
 Good, trustworthy DAGs will feature thoroughly unit-tested "business-logic" functions -- it is typically much easier to debug a broken function using a unit test than it is in the context of an Airflow DAG.
