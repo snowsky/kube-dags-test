@@ -12,7 +12,7 @@ In mature data pipelines there will typically three levels of testing:
 - DAG local testing
 - DAG remote testing
 
-## Library code testing
+## Library code use and testing
 
 Put reusable code into the library in the following location (DRY - Don't repeat yourself principle):
 
