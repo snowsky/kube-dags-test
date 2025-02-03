@@ -22,7 +22,10 @@ import these packages with code:
 ```
 from lib.operators
 ```
-(eg. from lib.operators import konza_trino_operator.py)
+For example:
+```
+from lib.operators.konza_trino_operator import KonzaTrinoOperator
+```
 
 Oftentimes an Airflow data pipeline begins life as a set of disparate Python functions, which Airflow will stitch together. Before writing the Airflow DAG it makes sense to consider writing tests that verify the functionality of various bits of individual code. This is best done using a framework like `pytest`, and does not really involve Airflow itself.
 
