@@ -241,7 +241,7 @@ FROM patient_contact_parquet_pm s
     drop_mpi_accid_prep_final_repartitioned_cardinality_check = KonzaTrinoOperator(
         task_id='drop_mpi_accid_prep_final_repartitioned_cardinality_check',
         query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned_bogdan
+        DROP TABLE IF EXISTS hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned_cardinality_check
         """,
     )
     create_mpi_accid_prep_final_repartitioned_cardinality_check = KonzaTrinoOperator(
