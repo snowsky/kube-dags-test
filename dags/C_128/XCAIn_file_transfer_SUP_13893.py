@@ -1,17 +1,17 @@
+import os
+import paramiko
+import json
+import logging
 from airflow import DAG
 from airflow.decorators import task
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.hooks.base import BaseHook
-import paramiko
-import json
-import logging
 from datetime import datetime
 from typing import List
 from concurrent.futures import ThreadPoolExecutor as PoolExecutor, as_completed
 from functools import partial
-import os
 from airflow.models.param import Param
-
+from airflow.utils.trigger_rule import TriggerRule
 
 # Define the DAG
 default_args = {
@@ -444,6 +444,7 @@ batches = divide_files_into_batches(xml_files, batch_size="{{ params.batch_size 
 transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
 #download_files = download_files_to_local(xml_files, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME, max_workers="{{ params.max_workers }}")
 delete_empty_directories_from_s3 = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
+delete_empty_directories_from_s3.trigger_rule = TriggerRule.ONE_SUCCESS
 files >> xml_files >> batches >> transfer_tasks >> delete_empty_directories_from_s3
 #files >> xml_files >> batches >> transfer_tasks >> download_files >> delete_files
 #files >> xml_files >> batches >> transfer_tasks >> download_files 
