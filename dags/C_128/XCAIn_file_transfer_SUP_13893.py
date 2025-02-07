@@ -112,7 +112,50 @@ def delete_single_file_from_s3(file_key, aws_conn_id, bucket_name):
 #        logging.error(f"Failed to delete directory {file_key}: {e}")
 
 @task(dag=dag)
+
 def delete_empty_directories_from_s3(xml_files, aws_conn_id, bucket_name):
+    s3_hook = S3Hook(aws_conn_id=aws_conn_id)
+    s3_client = s3_hook.get_conn()
+    deleted_directories = set()
+    temp_location = "temp/"
+
+    for file_key in xml_files:
+        try:
+            # Extract base directory path
+            base_directory_path = '/'.join(file_key.split('/')[:-1]) + '/'
+            if base_directory_path == S3_SUBFOLDER:
+                continue  # Skip the root folder (S3_SUBFOLDER)
+            logging.info(f"Checking directory: {base_directory_path}")
+
+            # Move directory to a temporary location
+            temp_directory_path = temp_location + base_directory_path
+            s3_client.copy_object(Bucket=bucket_name, CopySource={'Bucket': bucket_name, 'Key': base_directory_path}, Key=temp_directory_path)
+            s3_client.delete_object(Bucket=bucket_name, Key=base_directory_path)
+
+            # List objects within the temporary directory
+            objects_in_temp_dir = s3_hook.list_keys(bucket_name=bucket_name, prefix=temp_directory_path)
+            if not objects_in_temp_dir:
+                # Directory is empty, delete it
+                s3_client.delete_object(Bucket=bucket_name, Key=temp_directory_path)
+                logging.info(f"Deleted empty directory: {temp_directory_path}")
+                deleted_directories.add(temp_directory_path)
+
+            # Check parent directories recursively
+            parts = base_directory_path.split('/')
+            for i in range(len(parts) - 1, 0, -1):
+                dir_path = '/'.join(parts[:i]) + '/'
+                if dir_path == S3_SUBFOLDER or dir_path in deleted_directories:
+                    continue  # Skip root folder or already deleted directories
+                # Check if the parent directory is empty
+                objects_in_parent_dir = s3_hook.list_keys(bucket_name=bucket_name, prefix=dir_path)
+                if not objects_in_parent_dir:
+                    s3_client.delete_object(Bucket=bucket_name, Key=dir_path)
+                    logging.info(f"Deleted empty parent directory: {dir_path}")
+                    deleted_directories.add(dir_path)
+        except Exception as e:
+            logging.error(f"Failed to delete directory {file_key}: {e}")
+
+def delete_empty_directories_from_s3_prev(xml_files, aws_conn_id, bucket_name):
     s3_hook = S3Hook(aws_conn_id=aws_conn_id)
     s3_client = s3_hook.get_conn()
     deleted_directories = set()
@@ -441,10 +484,11 @@ xml_files = filter_xml_files(files)
 batches = divide_files_into_batches(xml_files, batch_size="{{ params.batch_size }}")
 transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
 #download_files = download_files_to_local(xml_files, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME, max_workers="{{ params.max_workers }}")
-delete_empty_directories_from_s3 = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
+delete_empty_directories_from_s3_during = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
+delete_empty_directories_from_s3_end = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 #delete_empty_directories_from_s3.trigger_rule = TriggerRule.ONE_SUCCESS
-files >> xml_files >> batches >> transfer_tasks >> delete_empty_directories_from_s3
-batches >> delete_empty_directories_from_s3
+files >> xml_files >> batches >> transfer_tasks >> delete_empty_directories_from_s3_end
+batches >> delete_empty_directories_from_s3_during
 #files >> xml_files >> batches >> transfer_tasks
 #files >> xml_files >> batches >> transfer_tasks >> download_files >> delete_files
 #files >> xml_files >> batches >> transfer_tasks >> download_files 
