@@ -29,7 +29,7 @@ dag = DAG(
     catchup=False,
     params={
         "max_workers": Param(5, type="integer", minimum=1),
-        "batch_size": Param(100, type="integer", minimum=1)
+        "batch_size  - Warning do not set higher than 500 (testing on 2/7 around duration greater than 1 hour hitting timeout defined below)": Param(100, type="integer", minimum=1)
     }
 )
 ENV = 'Prod'
@@ -442,6 +442,8 @@ files = list_files_in_s3()
 xml_files = filter_xml_files(files)
 batches = divide_files_into_batches(xml_files, batch_size="{{ params.batch_size }}")
 transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
+for task in transfer_tasks:
+    task.execution_timeout = timedelta(minutes=60)  # Set timeout for each mapped task
 #download_files = download_files_to_local(xml_files, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME, max_workers="{{ params.max_workers }}")
 delete_empty_directories_from_s3 = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 delete_empty_directories_from_s3.trigger_rule = TriggerRule.ONE_SUCCESS
