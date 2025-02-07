@@ -113,7 +113,7 @@ def delete_single_file_from_s3(file_key, aws_conn_id, bucket_name):
 
 @task(dag=dag)
 
-def delete_empty_directories_from_s3(xml_files, aws_conn_id, bucket_name):
+def delete_empty_directories_from_s3_temp_move(xml_files, aws_conn_id, bucket_name):
     s3_hook = S3Hook(aws_conn_id=aws_conn_id)
     s3_client = s3_hook.get_conn()
     deleted_directories = set()
@@ -155,7 +155,7 @@ def delete_empty_directories_from_s3(xml_files, aws_conn_id, bucket_name):
         except Exception as e:
             logging.error(f"Failed to delete directory {file_key}: {e}")
 
-def delete_empty_directories_from_s3_prev(xml_files, aws_conn_id, bucket_name):
+def delete_empty_directories_from_s3(xml_files, aws_conn_id, bucket_name):
     s3_hook = S3Hook(aws_conn_id=aws_conn_id)
     s3_client = s3_hook.get_conn()
     deleted_directories = set()
