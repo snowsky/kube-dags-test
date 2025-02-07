@@ -65,8 +65,8 @@ def download_single_file_to_local(file_key, local_dir, aws_conn_id, bucket_name 
         )
         logging.info(f"File downloaded to: {local_path}")
     except Exception as e:
-        logging.error(f"Failed to download file: {e}")
-        assert False, f"Batch job failed due to download error: {e}"
+        logging.error(f"Failed to download file: {file_key}")
+        assert False, f"Batch job failed due to download error, killing to avoid data loss: {e}"
 
 def delete_single_file_from_s3(file_key, aws_conn_id, bucket_name):
     s3_hook = S3Hook(aws_conn_id=aws_conn_id)
@@ -441,10 +441,11 @@ xml_files = filter_xml_files(files)
 batches = divide_files_into_batches(xml_files, batch_size="{{ params.batch_size }}")
 transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
 #download_files = download_files_to_local(xml_files, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME, max_workers="{{ params.max_workers }}")
-#delete_empty_directories_from_s3 = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
+delete_empty_directories_from_s3 = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 #delete_empty_directories_from_s3.trigger_rule = TriggerRule.ONE_SUCCESS
-#files >> xml_files >> batches >> transfer_tasks >> delete_empty_directories_from_s3
-files >> xml_files >> batches >> transfer_tasks
+files >> xml_files >> batches >> transfer_tasks >> delete_empty_directories_from_s3
+batches >> delete_empty_directories_from_s3
+#files >> xml_files >> batches >> transfer_tasks
 #files >> xml_files >> batches >> transfer_tasks >> download_files >> delete_files
 #files >> xml_files >> batches >> transfer_tasks >> download_files 
 
