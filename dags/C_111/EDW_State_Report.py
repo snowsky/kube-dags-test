@@ -262,7 +262,7 @@ group by 1
     create_mpi_accid_prep_final_repartitioned_bogdan = KonzaTrinoOperator(
         task_id='create_mpi_accid_prep_final_repartitioned_bogdan',
         query="""
-        CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned_bogdan ( mpi varchar, accid_ref varchar) WITH ( bucket_count = 64, bucketed_by = ARRAY['accid_ref'], bucketing_version = 1, sorted_by = ARRAY['accid_ref'] )
+        CREATE TABLE hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned_bogdan ( accid_ref varchar, mpi varchar) WITH ( bucket_count = 64, bucketed_by = ARRAY['accid_ref'], bucketing_version = 1, sorted_by = ARRAY['accid_ref'] )
         """,
     )
     insert_mpi_accid_prep_final_repartitioned_bogdan = KonzaTrinoOperator(
@@ -289,10 +289,10 @@ group by accid_ref
         task_id='insert_mpi_accid_state_final_join',
         query="""
         insert into hive.parquet_master_data.sup_12760_c59_mpi_accid_state_final_join
-SELECT PC.state,PC.patient_id, MPI.mpi as mpi_mpi 
+SELECT PC.state,PC.patient_id, MPI.accid_ref as mpi_mpi 
 FROM hive.parquet_master_data.sup_12760_c59_accid_by_state_prep__final PC 
 LEFT JOIN hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned_bogdan MPI 
-ON MPI.accid_ref = PC.patient_id
+ON MPI.mpi = PC.patient_id
         """,
     )
     create_accid_by_state_prep__final >> insert_accid_by_state_prep__final >> check_run_date
