@@ -25,12 +25,12 @@ dag = DAG(
     schedule_interval='@hourly',
     max_active_runs=1,
     concurrency=100,
-    start_date=datetime(2024, 12, 13), 
+    start_date=datetime(2025, 2, 7), 
     tags=['C-128'],
     catchup=False,
     params={
         "max_workers": Param(5, type="integer", minimum=1),
-        "batch_size": Param(250, type="integer", minimum=1) #  - Warning do not set higher than 500 (testing on 2/7 around duration greater than 1 hour hitting timeout defined below)
+        "batch_size": Param(100, type="integer", minimum=1) #  - Warning do not set higher than 500 (testing on 2/7 around duration greater than 1 hour hitting timeout defined below)
     }
 )
 ENV = 'Prod'
