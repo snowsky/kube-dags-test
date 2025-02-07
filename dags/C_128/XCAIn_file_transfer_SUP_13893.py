@@ -438,8 +438,9 @@ def divide_files_into_batches(xml_files: List[str], batch_size: str) -> List[Lis
 files = list_files_in_s3()
 xml_files = filter_xml_files(files)
 batches = divide_files_into_batches(xml_files, batch_size="{{ params.batch_size }}")
-transfer_tasks = transfer_batch_to_sftp.expand_kwargs(batch=batches).set(
-        execution_timeout=timedelta(minutes=60))
+transfer_tasks = transfer_batch_to_sftp.expand(
+        kwargs=[{'batch': batch, 'execution_timeout': timedelta(minutes=10)} for batch in batches]
+    )
 #download_files = download_files_to_local(xml_files, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME, max_workers="{{ params.max_workers }}")
 delete_empty_directories_from_s3 = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 delete_empty_directories_from_s3.trigger_rule = TriggerRule.ONE_SUCCESS
