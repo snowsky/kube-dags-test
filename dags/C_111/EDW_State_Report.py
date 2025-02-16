@@ -451,7 +451,7 @@ with DAG(
         """,
     )
     populate_agg_state_assignment_count = KonzaTrinoOperator(
-        task_id='create_agg_state_assignment_count',
+        task_id='populate_agg_state_assignment_count',
         query="""
         INSERT INTO hive.parquet_master_data.agg_state_assignment_count
         SELECT 
