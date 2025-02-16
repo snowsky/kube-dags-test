@@ -360,7 +360,7 @@ with DAG(
         """,
     )
     populate_inc_accid_state_assignment_latest_with_mpi = KonzaTrinoOperator(
-        task_id='create_inc_accid_state_assignment_latest_with_mpi',
+        task_id='populate_inc_accid_state_assignment_latest_with_mpi',
         query="""
         INSERT INTO hive.parquet_master_data.inc_accid_state_assignment_latest_with_mpi
         SELECT 
@@ -386,7 +386,7 @@ with DAG(
         """,
     )
     create_inc_accid_state_assignment_latest_by_mpi = KonzaTrinoOperator(
-        task_id='create_inc_accid_state_assignment_latest_with_mpi',
+        task_id='create_inc_accid_state_assignment_latest_by_mpi',
         query="""
         CREATE TABLE IF NOT EXISTS hive.parquet_master_data.inc_accid_state_assignment_latest_by_mpi
         (     
