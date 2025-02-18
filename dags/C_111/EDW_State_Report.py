@@ -465,8 +465,8 @@ with DAG(
     )
 
  
-    create_dim_accid_state_assignment >> delete_partition_dim_accid_state_assignment_if_exists >> populate_dim_accid_state_assignment
-    create_inc_accid_state_assignment >> delete_latest_partition_inc_accid_state_assignment_if_exists >> populate_inc_accid_state_assignment
+    create_inc_accid_state_assignment_latest >> delete_partition_dim_accid_state_assignment_if_exists >> populate_dim_accid_state_assignment
+    create_inc_accid_state_assignment_latest >> delete_latest_partition_inc_accid_state_assignment_if_exists >> populate_inc_accid_state_assignment
     populate_dim_accid_state_assignment >> populate_inc_accid_state_assignment
     
     create_dim_accid_to_mpi >> delete_latest_partition_dim_accid_to_mpi >> populate_dim_accid_to_mpi
