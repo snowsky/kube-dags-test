@@ -25,7 +25,7 @@ with DAG(
     'populate_test_data',
     default_args=default_args,
     schedule=None,
-    tags=['example', 'population-definitions'],
+    tags=['example', 'population-definitions-dev'],
 ) as dag:
 
     @dag.task

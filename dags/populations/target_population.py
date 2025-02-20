@@ -38,7 +38,7 @@ with DAG(
                 task_id='reset_client_frequency',
                 mysql_conn_id=client_profile.conn_id,
                 sql=f"""
-                update _dashboard_requests.clients_to_process_pf1447
+                update _dashboard_requests.clients_to_process
                 set frequency = ''
                 where `folder_name` = '{client_profile.client_name}';
                 """,
@@ -48,6 +48,26 @@ with DAG(
         else:
             raise AirflowSkipException
 
+    @task(map_index_template="{{ client_name }}")
+    def reset_client_frequency_hierarchy_task(**kwargs):
+        client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'))
+        client_frequency = kwargs['dag_run'].conf.get('frequency')
+        if client_frequency == 'Approved' or 'Revised':
+
+            mysql_op = MySqlOperator(
+                task_id='reset_client_frequency_hierarchy',
+                mysql_conn_id=client_profile.conn_id,
+                sql=f"""
+                update clientresults.client_hierarchy
+                set frequency = ''
+                where `folder_name` = '{client_profile.client_name}';
+                """,
+                dag=dag
+            )
+            mysql_op.execute(dict())
+        else:
+            raise AirflowSkipException
+            
     @task(map_index_template="{{ client_name }}", trigger_rule=TriggerRule.NONE_FAILED)
     def process_population_data_task(**kwargs):
         client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'))
@@ -124,6 +144,7 @@ with DAG(
 
     assess_client_frequency = assess_client_frequency_task()
     reset_client_frequency = reset_client_frequency_task()
+    reset_client_frequency_hierarchy = reset_client_frequency_hierarchy_task()
     target_population = process_population_data_task()
     clear_results_table_by_client_csg = \
         task(task_id=f'clear_results_table_by_client-{csg_table}',
@@ -136,5 +157,6 @@ with DAG(
     extract_client_security_groupings = extract_client_security_groupings_task.expand(approved_suffix=assess_client_frequency)
     extract_mpi_crosswalk = extract_mpi_crosswalk_task()
 
-    assess_client_frequency >> reset_client_frequency >> target_population >>  (clear_results_table_by_client_csg >> extract_client_security_groupings,
+    assess_client_frequency >> reset_client_frequency >> reset_client_frequency_hierarchy >> target_population >>  (clear_results_table_by_client_csg >> extract_client_security_groupings,
                                                                                    clear_results_table_by_client_mpi_cw >> extract_mpi_crosswalk)
+

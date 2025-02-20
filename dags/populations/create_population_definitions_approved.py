@@ -24,11 +24,11 @@ default_args = {
     'owner': 'airflow',
 }
 with DAG(
-    'create_population_definitions',
+    'create_population_definitions_approved',
     default_args=default_args,
     schedule=None,
-    #schedule_interval='@monthly',
-    #start_date=datetime(2025, 2, 1),
+    #schedule_interval='@hourly',  # Set to run hourly
+    #start_date=datetime(2025,2,12),
     tags=['example', 'population-definitions'],
 ) as dag:
 
@@ -56,7 +56,10 @@ with DAG(
 
         WHERE folder_name is not null and active = 1 and airflow = 1
         AND (
-            frequency = ''
+            frequency = 'Daily' OR
+            frequency = 'Revised' OR
+            frequency = 'Approved' OR
+            frequency = 'Extract'  
         )
         """,
         dag=dag
