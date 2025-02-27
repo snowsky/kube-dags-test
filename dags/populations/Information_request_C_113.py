@@ -112,7 +112,8 @@ default_args = {
 
 CONN_ID = 'formoperations_prd_az1_opssql_database_windows_net'
 #directory = '/data/biakonzasftp/C-113/'
-directory = '/source-biakonzasftp/biakonzasftp/C-113/'
+directory = '/source-biakonzasftp/C-113/'
+
 
 columns_to_keep = ['Name', 'HCID', 'Street', 'City', 'State', 'Zip', 'Country', 'Part of HCID', 'Sequoia Org Type', 'Active', 'QHIN HCID', 'LastUpdated', 'POU', 'FirstSeenDate', 'LastSeenDate', 'PartOfName', 'QHIN_Name', 'file_date']
 
