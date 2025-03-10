@@ -107,7 +107,7 @@ default_args = {
     'depends_on_past': False,
     'email_on_failure': False,
     'email_on_retry': False,
-    #'start_date': datetime(2025, 2, 27),  
+    'start_date': datetime(2025, 2, 27),  
 }
 
 CONN_ID = 'formoperations_prd_az1_opssql_database_windows_net'
