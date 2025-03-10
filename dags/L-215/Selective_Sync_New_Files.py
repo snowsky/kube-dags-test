@@ -32,6 +32,8 @@ dag = DAG(
 BUCKET_NAME = 'konzaandssigroupncqa'
 APPROVED_CSQL_VERSION = 'VCQL20241104_4656'
 APPROVED_RESULTS_VERSION = 'VRESULTS20241104_5129'
+QA_APPROVED_CSQL_VERSION = 'VCQL20241104_4656'
+QA_APPROVED_RESULTS_VERSION = 'VRESULTS20241104_5129'
 S3_SUBFOLDER = ''
 LOCAL_DESTINATION = '/source-biakonzasftp/L-215/'  # PRD is '/source-biakonzasftp/C-9/optout_load/' #DEV is '/data/biakonzasftp/L-215/'
 TEMP_DIRECTORY = '/source-biakonzasftp/airflow_temp/'
@@ -105,7 +107,7 @@ def move_files_to_local(**kwargs):
             
             # Check if the temporary file exists before moving
             if os.path.exists(temp_file_path):
-                # Modify the file name if it comes from NCQAResults/ and is a .csv file
+                # Modify the file name if it comes from NCQAResults/ or NCQAResultsTEST/ and is a .csv file
                 if file_key.startswith('NCQAResults/') and file_key.endswith('.csv'):
                     base_name = os.path.basename(file_key)
                     name, ext = os.path.splitext(base_name)
@@ -115,6 +117,19 @@ def move_files_to_local(**kwargs):
                         new_name = f"{name}_{APPROVED_CSQL_VERSION}{ext}"
                     elif '_Results_' in base_name:
                         new_name = f"{name}_{APPROVED_RESULTS_VERSION}{ext}"
+                    else:
+                        new_name = base_name
+                    
+                    local_file_path = os.path.join(local_dir, new_name)
+                if file_key.startswith('NCQAResultsTEST/') and file_key.endswith('.csv'):
+                    base_name = os.path.basename(file_key)
+                    name, ext = os.path.splitext(base_name)
+                    
+                    # Check if the file name contains _CQL_ or _Results_
+                    if '_CQL_' in base_name:
+                        new_name = f"{name}_{QA_APPROVED_CSQL_VERSION}{ext}"
+                    elif '_Results_' in base_name:
+                        new_name = f"{name}_{QA_APPROVED_RESULTS_VERSION}{ext}"
                     else:
                         new_name = base_name
                     
