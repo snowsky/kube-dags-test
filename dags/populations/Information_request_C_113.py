@@ -107,15 +107,14 @@ default_args = {
     'depends_on_past': False,
     'email_on_failure': False,
     'email_on_retry': False,
-    'start_date': datetime(2025, 2, 27),  
+    #'start_date': datetime(2025, 2, 27),  
 }
 
 CONN_ID = 'formoperations_prd_az1_opssql_database_windows_net'
 #directory = '/data/biakonzasftp/C-113/'
 directory = '/source-biakonzasftp/C-113/'
 
-
-columns_to_keep = ['Name', 'HCID', 'Street', 'City', 'State', 'Zip', 'Country', 'Part of HCID', 'Sequoia Org Type', 'Active', 'QHIN HCID', 'LastUpdated', 'POU', 'FirstSeenDate', 'LastSeenDate', 'PartOfName', 'QHIN_Name', 'file_date']
+columns_to_keep = ['Name', 'HCID', 'Street', 'City', 'State', 'Zip', 'Country', 'Part of HCID', 'Sequoia Org Type', 'Active', 'QHIN HCID', 'LastUpdated', 'POU', 'FirstSeenDate', 'PartOfName', 'QHIN_Name', 'file_date']
 
 # DAG Definition
 with DAG(
@@ -165,7 +164,6 @@ with DAG(
 
             file_date = file_date.date()
             raw_file_new = read_and_clean_csv(file_path, columns_to_keep)
-            raw_file_new['LastSeenDate'] = ''
 
             mssql_hook = MsSqlHook(mssql_conn_id=CONN_ID)
             connection = mssql_hook.get_conn()
@@ -177,7 +175,7 @@ with DAG(
 
             raw_file_second_edit = raw_file_new.copy()
             raw_file_second_edit['Part of HCID'] = raw_file_second_edit['Part of HCID'].apply(lambda x: x.split('/')[1] if '/' in x else x)
-            raw_file_second_edit['QHIN HCID'] = raw_file_second_edit['QHIN HCID'].str.split('/').str.get(1)
+            raw_file_second_edit['QHIN HCID'] = raw_file_second_edit['QHIN HCID']
 
             hcid_to_name = pd.Series(raw_file_new['Name'].values, index=raw_file_new['HCID']).to_dict() 
             logging.info (hcid_to_name)
@@ -188,4 +186,4 @@ with DAG(
             insert_dataframe_to_sql(raw_file_second_edit, db_table_name, CONN_ID)
             logging.info(f"Inserted data from {file_name} into SQL Server.")
 
-    process_files_task = process_files(directory=directory, db_table_name='c_113_rce_file_prep')
+    process_files_task = process_files(directory=directory, db_table_name='c_113_rce_file')
