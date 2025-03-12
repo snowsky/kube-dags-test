@@ -10,6 +10,7 @@ def _get_engine_from_conn(conn_id):
     from airflow.providers.mysql.hooks.mysql import MySqlHook as hook
     db_hook = hook(mysql_conn_id=conn_id)
     engine = db_hook.get_sqlalchemy_engine()
+    engine = _fix_engine_if_invalid_params(engine)
     return engine
 
 def output_df_to_target_tbl(output_df, schema, target_table, conn_id):
@@ -19,6 +20,10 @@ def output_df_to_target_tbl(output_df, schema, target_table, conn_id):
 def _fix_engine_if_invalid_params(engine):
     invalid_param = '__extra__'
     query_items = engine.url.query.items()
+    extra = {}
+    for k, v in query_items:
+        if k == invalid_param:
+            extra = v
     if invalid_param in [k for (k, v) in query_items]:
         from sqlalchemy.engine.url import URL
         from sqlalchemy.engine import create_engine
@@ -35,7 +40,10 @@ def _fix_engine_if_invalid_params(engine):
             query=modified_query_items
         )
         logging.info(f'Note: {invalid_param} removed from {query_items} in engine url')
-        engine = create_engine(modified_url)
+        logging.info(f'Extra: {extra}')
+        #engine = create_engine(modified_url, connect_args=extra)
+        #engine = create_engine(modified_url, connect_args={"ssl": {"ca": "/home/jovyan/ssl/PRD-AZ1-SQLW3.pem"}})
+        engine = create_engine(modified_url, connect_args={"ssl": {"ca": "/source-biakonzasftp/C-126/test/prd-az1-sqlw3.crt.pem"}})
     return engine
 
 def get_latest_csv(source_path):
