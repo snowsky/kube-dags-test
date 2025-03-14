@@ -33,7 +33,7 @@ dag = DAG(
 )
 
 CONN_ID = 'formoperations_prd_az1_opssql_database_windows_net'
-LAST_PROCESSED_ID_FILE = "/data/biakonzasftp/SLA-33/last_processed_id.txt"
+LAST_PROCESSED_ID_FILE = "/source-biakonzasftp/SLA-33/last_processed_id.txt"
 EMAIL_RECIPIENT = "aagarwal@konza.org"
 
 @task(dag=dag)
