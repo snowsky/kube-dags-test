@@ -18,7 +18,8 @@ def failure_callback(context):
     dag_name = context['dag'].dag_id
     dag_file_path = context['dag'].fileloc
     send_email(
-        to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
+        #to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
+        to='ethompson@konza.org',
         subject=f'Task Failed in DAG: {dag_name}',
         html_content=f"Task {context['task_instance_key_str']} failed in DAG: {dag_name}. DAG source file: {dag_file_path}. Check the logs for more details."
     )
@@ -43,7 +44,7 @@ dag = DAG(
 
 @task(dag=dag)
 def crawler_reference_alert(**kwargs):    
-    sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-airflowconnection")  # Replace with your connection ID
+    sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")  # Replace with your connection ID
     query = "SELECT (md5(client_security_groupings_admins_name)) as ConnectionID_md5 FROM _dashboard_maintenance.crawler_reference_table where client_reference_folder IS NOT NULL;"  # Replace with your SQL query
     dfCrawlerAudit = sql_hook.get_pandas_df(query)
     for index, row in dfCrawlerAudit.iterrows():
