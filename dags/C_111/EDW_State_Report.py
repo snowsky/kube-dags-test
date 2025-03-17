@@ -327,7 +327,7 @@ with DAG(
         """,
     )
     create_dim_accid_to_mpi_grouped = KonzaTrinoOperator(
-        task_id='create_dim_accid_to_mpi',
+        task_id='create_dim_accid_to_mpi_grouped',
         query="""
         CREATE TABLE hive.parquet_master_data.tmp_dim_accid_to_mpi_grouped
         WITH (format = 'PARQUET')
