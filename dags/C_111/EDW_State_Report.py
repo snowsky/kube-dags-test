@@ -326,11 +326,12 @@ with DAG(
         FROM hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned
         """,
     )
-    populate_dim_accid_to_mpi = KonzaTrinoOperator(
-        task_id='populate_dim_accid_to_mpi',
+    create_dim_accid_to_mpi_grouped = KonzaTrinoOperator(
+        task_id='create_dim_accid_to_mpi',
         query="""
-        INSERT INTO hive.parquet_master_data.dim_accid_to_mpi
-        SELECT 
+        CREATE TABLE hive.parquet_master_data.tmp_dim_accid_to_mpi_grouped
+        WITH (format = 'PARQUET')
+        AS SELECT 
            accid_ref, 
            ARBITRARY(mpi) as mpi,
            COUNT(DISTINCT mpi) AS num_mpis_should_be_1,
@@ -339,7 +340,15 @@ with DAG(
         GROUP BY accid_ref
         """,
     )
-    
+    populate_dim_accid_to_mpi = KonzaTrinoOperator(
+        task_id='populate_dim_accid_to_mpi',
+        query="""
+        INSERT INTO hive.parquet_master_data.tmp_dim_accid_to_mpi_grouped
+        SELECT accid_ref, mpi, '<DATEID>' AS ds
+        FROM hive.parquet_master_data.tmp_dim_accid_to_mpi_grouped
+        """,
+    )
+    create_dim_accid_to_mpi_grouped >> populate_dim_accid_to_mpi
     
     delete_latest_partition_dim_accid_to_mpi = KonzaTrinoOperator(
         task_id='delete_latest_partition_dim_accid_to_mpi',
