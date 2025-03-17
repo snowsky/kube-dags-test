@@ -41,11 +41,11 @@ dag = DAG(
     tags=['C-181'],
 )
 
-
 @task(dag=dag)
 def crawler_reference_alert(**kwargs):    
     sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")  # Replace with your connection ID
-    query = "SELECT (md5(client_security_groupings_admins_name)) as ConnectionID_md5 FROM _dashboard_maintenance.crawler_reference_table where client_reference_folder IS NOT NULL;"  # Replace with your SQL query
+    query = "SELECT (md5(client_reference_folder)) as ConnectionID_md5 FROM _dashboard_maintenance.crawler_reference_table where client_reference_folder IS NOT NULL;"  # Replace with your SQL query
+
     dfCrawlerAudit = sql_hook.get_pandas_df(query)
     for index, row in dfCrawlerAudit.iterrows():
         logging.info(f'row: {row}')
