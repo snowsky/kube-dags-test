@@ -1,12 +1,10 @@
-
-
-## Aishwarya here is a basic template - We would need to build it out, but the connectivity and the table reference are correct for the 2 hour alert described in SUP-10813
-# Needs thorough testing
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
 from airflow.utils.email import send_email
 from airflow.providers.sftp.hooks.sftp import SFTPHook
+from airflow.providers.mysql.hooks.mysql import MySqlHook
+from airflow.decorators import task
 import os
 import pandas as pd
 import logging
@@ -34,14 +32,13 @@ default_args = {
 }
 
 dag = DAG(
-    'RapidAerts_Automated_Notification',
+    'RapidAlerts_Automated_Notification',
     default_args=default_args,
     description='This DAG retrieves the syslog file from a VM where it is collected and stores it for future audits with HITRUST implications',
     schedule_interval='@daily',
     catchup=False,
     tags=['C-181'],
 )
-
 
 
 @task(dag=dag)
@@ -56,9 +53,7 @@ def crawler_reference_alert(**kwargs):
 
 crawler_alert = crawler_reference_alert()
 
-
 crawler_alert
-    
+
 if __name__ == "__main__":
     dag.cli()
-
