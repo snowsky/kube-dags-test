@@ -476,16 +476,16 @@ with DAG(
 
  
     create_inc_accid_state_assignment_latest >> delete_partition_dim_accid_state_assignment_if_exists >> populate_dim_accid_state_assignment
-    create_inc_accid_state_assignment_latest >> delete_latest_partition_inc_accid_state_assignment_if_exists >> populate_inc_accid_state_assignment
-    populate_dim_accid_state_assignment >> populate_inc_accid_state_assignment
+    create_inc_accid_state_assignment_latest >> delete_latest_partition_inc_accid_state_assignment_if_exists >> populate_inc_accid_state_assignment_latest
+    populate_dim_accid_state_assignment >> populate_inc_accid_state_assignment_latest
     
     create_dim_accid_to_mpi >> delete_latest_partition_dim_accid_to_mpi >> populate_dim_accid_to_mpi
     create_inc_accid_state_assignment_latest_with_mpi >> delete_latest_partition_dim_accid_to_mpi  >> populate_inc_accid_state_assignment_latest_with_mpi
     populate_inc_accid_state_assignment >> populate_inc_accid_state_assignment_latest_with_mpi
-    create_tmp_dim_accid_to_mpi >> populate_dim_accid_to_mpi >> populate_inc_accid_state_assignment
+    create_tmp_dim_accid_to_mpi >> populate_dim_accid_to_mpi >> populate_inc_accid_state_assignment_latest
     
     create_inc_accid_state_assignment_latest_by_mpi >> delete_latest_partition_inc_accid_state_assignment_latest_by_mpi >> populate_inc_accid_state_assignment_latest_by_mpi
-    populate_inc_accid_state_assignment >> populate_inc_accid_state_assignment_latest_by_mpi
+    populate_inc_accid_state_assignment_latest >> populate_inc_accid_state_assignment_latest_by_mpi
 
     create_agg_state_assignment_count >> delete_latest_partition_agg_state_assignment_count >> populate_agg_state_assignment_count
     
