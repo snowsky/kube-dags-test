@@ -85,6 +85,8 @@ def crawler_reference_alert(**kwargs):
         except Exception as e:
             logging.error(f'Error Occurred: {e}')
 def send_email_alert(filename, modified_time,client_id):
+    dag_name = context['dag'].dag_id
+    dag_file_path = context['dag'].fileloc
     send_email(
         #to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
         to='ethompson@konza.org',
