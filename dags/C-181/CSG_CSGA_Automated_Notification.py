@@ -8,6 +8,7 @@ from airflow.decorators import task
 import os
 import pandas as pd
 import logging
+import traceback
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -77,7 +78,9 @@ def crawler_reference_alert(**kwargs):
                 update_query = f"REPLACE INTO clientresults.csg_modification_table (Client,CSG_or_CSGA, modified_date,client_id_md5) VALUES ('{Client}','{CSG_or_CSGA}',  '{modified_time}', '{md5}')"
                 sql_hook.run(update_query)
         except Exception as e:
-            logging.error(f'Error Occurred: {e}')
+            tb = traceback.format_exc()
+            logging.error(f'Error Occurred: {e}\nTraceback:\n{tb}')
+
 
 
         try:
@@ -101,7 +104,10 @@ def crawler_reference_alert(**kwargs):
                 update_query = f"REPLACE INTO clientresults.csg_modification_table (Client,CSG_or_CSGA, modified_date,client_id_md5) VALUES ('{Client}','{CSG_or_CSGA}',  '{modified_time}', '{md5}')"
                 sql_hook.run(update_query)
         except Exception as e:
-            logging.error(f'Error Occurred: {e}')
+            tb = traceback.format_exc()
+            logging.error(f'Error Occurred: {e}\nTraceback:\n{tb}')
+
+
        
 def send_email_alert(CSG_or_CSGA_indicator,modified_time,client_id):
     send_email(
