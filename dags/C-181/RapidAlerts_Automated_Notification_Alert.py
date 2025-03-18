@@ -52,18 +52,25 @@ def crawler_reference_alert(**kwargs):
         logging.info(f'Processing connection ID: {connection_id_md5}')
 
         try:
-        # Use ssh_conn_id instead of sftp_conn_id
+            # Use ssh_conn_id instead of sftp_conn_id
             sftp_hook = SFTPHook(ssh_conn_id=connection_id_md5)
-        except:
-            sftp_hook = SFTPHook(sftp_conn_id=connection_id_md5)
+        except Exception as e:
+            logging.warning(f'Failed to use ssh_conn_id: {e}')
+            try:
+                sftp_hook = SFTPHook(sftp_conn_id=connection_id_md5)
+            except Exception as e:
+                logging.error(f'Failed to use sftp_conn_id: {e}')
+                continue
 
-
-        with sftp_hook.get_conn() as sftp_client:
-            # Check for CSV files in the SFTP directory
-            files = sftp_client.listdir()
-            csv_files = [file for file in files if file.endswith('.csv')]
-            logging.info(f'CSV files found: {csv_files}')
-            # Additional processing can be done here
+        try:
+            with sftp_hook.get_conn() as sftp_client:
+                # Check for CSV files in the SFTP directory
+                files = sftp_client.listdir()
+                csv_files = [file for file in files if file.endswith('.csv')]
+                logging.info(f'CSV files found: {csv_files}')
+                # Additional processing can be done here
+        except Exception as e:
+            logging.error(f'Failed to connect to SFTP server: {e}')
 
 crawler_alert = crawler_reference_alert()
 
