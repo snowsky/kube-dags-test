@@ -58,10 +58,10 @@ def crawler_reference_alert(**kwargs):
         logging.info(f'Processing connection ID: {client_md5} for Client Folder Reference {client_reference_folder}')
         try:
             # Check against database entry in production W3 CSGA
-            db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings_approved  WHERE client_id_md5 = '{client_md5}' LIMIT 1"
+            db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings_approved  WHERE md5(Client) = '{client_md5}' LIMIT 1"
             dfCurrentCSGA = sql_hook.get_pandas_df(db_query)
             if dfCurrentCSGA.empty: #Use the old DB W2 if needed
-                db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings_approved  WHERE client_id_md5 = '{client_md5}' LIMIT 1"
+                db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings_approved  WHERE md5(Client) = '{client_md5}' LIMIT 1"
                 dfCurrentCSGA = sql_hook_old.get_pandas_df(db_query)
             Client = dfCurrentCSGA['Client']
             CSG_or_CSGA = 'CSGA'
@@ -82,10 +82,10 @@ def crawler_reference_alert(**kwargs):
 
         try:
             # Check against database entry in production W3 CSGA
-            db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings  WHERE client_id_md5 = '{client_md5}' LIMIT 1"
+            db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings  WHERE md5(Client) = '{client_md5}' LIMIT 1"
             dfCurrentCSG = sql_hook.get_pandas_df(db_query)
             if dfCurrentCSG.empty: #Use the old DB W2 if needed
-                db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings  WHERE client_id_md5 = '{client_md5}' LIMIT 1"
+                db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings  WHERE md5(Client) = '{client_md5}' LIMIT 1"
                 dfCurrentCSG = sql_hook_old.get_pandas_df(db_query)
             Client = dfCurrentCSG['Client']
             CSG_or_CSGA = 'CSG'
