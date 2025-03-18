@@ -77,13 +77,20 @@ def crawler_reference_alert(**kwargs):
                     dfFileMod = sql_hook.get_pandas_df(db_query)
                     
                     if dfFileMod.empty or modified_time > dfFileMod['modified_date'].max():
-                        send_email_alert(file.filename, modified_time)
+                        send_email_alert(file.filename, modified_time,client_reference_folder)
                         
                         # Update the database with the new modified date
                         update_query = f"REPLACE INTO file_modification_table (filename, modified_date) VALUES ('{file.filename}', '{modified_time}')"
                         sql_hook.run(update_query)
         except Exception as e:
             logging.error(f'Failed to connect to SFTP server: {e}')
+def send_email_alert(filename, modified_time,client_id):
+    send_email(
+        #to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
+        to='ethompson@konza.org',
+        subject=f'KONZA has received a new file to the SFTP for Client ID {client_id} (C-181)',
+        html_content=f"Newly Modified or New CSV File: {filename} - Client Identifier/Folder Name {client_id} - Reporting DAG: {dag_name}. DAG source file: {dag_file_path}. Check the logs for more details."
+    )
 
 crawler_alert = crawler_reference_alert()
 
