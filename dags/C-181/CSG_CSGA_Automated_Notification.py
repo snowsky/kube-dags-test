@@ -34,9 +34,9 @@ default_args = {
 }
 
 dag = DAG(
-    'RapidAlerts_Automated_Notification',
+    'CSG_CSGA_Automated_Notification',
     default_args=default_args,
-    description='This DAG Sends emails to a group tracking the Rapid Alerts clients to indicate new panels are available on the corresponding SFTPs',
+    description='',
     schedule_interval='@daily',
     catchup=False,
     tags=['C-181'],
