@@ -64,7 +64,7 @@ def crawler_reference_alert(**kwargs):
 
         try:
             with sftp_hook.get_conn() as sftp_client:
-                files = sftp_client.listdir_attr(client_reference_folder)
+                files = sftp_client.listdir_attr()
                 csv_files = [file for file in files if file.filename.endswith('.csv')]
                 logging.info(f'CSV files found: {csv_files}')
                 
@@ -83,7 +83,7 @@ def crawler_reference_alert(**kwargs):
                         update_query = f"REPLACE INTO file_modification_table (filename, modified_date) VALUES ('{file.filename}', '{modified_time}')"
                         sql_hook.run(update_query)
         except Exception as e:
-            logging.error(f'Failed to connect to SFTP server: {e}')
+            logging.error(f'Error Occurred: {e}')
 def send_email_alert(filename, modified_time,client_id):
     send_email(
         #to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
