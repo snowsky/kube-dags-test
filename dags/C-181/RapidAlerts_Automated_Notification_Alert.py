@@ -51,10 +51,9 @@ def crawler_reference_alert(**kwargs):
         connection_id_md5 = row['ConnectionID_md5']
         logging.info(f'Processing connection ID: {connection_id_md5}')
         
-        # Assuming you have a way to map md5 to actual SFTP connection IDs
-        sftp_conn_id = map_md5_to_sftp_conn_id(connection_id_md5)
-        
-        sftp_hook = SFTPHook(sftp_conn_id=sftp_conn_id)
+
+        sftp_hook = SFTPHook(sftp_conn_id=connection_id_md5)
+
         with sftp_hook.get_conn() as sftp_client:
             # Check for CSV files in the SFTP directory
             files = sftp_client.listdir()
