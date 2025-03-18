@@ -56,50 +56,50 @@ def crawler_reference_alert(**kwargs):
         client_md5 = row['client_md5']
         client_reference_folder = row['client_reference_folder']
         logging.info(f'Processing connection ID: {client_md5} for Client Folder Reference {client_reference_folder}')
-
-        # Check against database entry in production W3 CSGA
-        db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings_approved  WHERE client_id_md5 = '{client_md5}' LIMIT 1"
-        dfCurrentCSGA = sql_hook.get_pandas_df(db_query)
-        if dfCurrentCSGA.empty: #Use the old DB W2 if needed
+        try:
+            # Check against database entry in production W3 CSGA
             db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings_approved  WHERE client_id_md5 = '{client_md5}' LIMIT 1"
-            dfCurrentCSGA = sql_hook_old.get_pandas_df(db_query)
-        Client = dfCurrentCSGA['Client']
-        CSG_or_CSGA = 'CSGA'
-        modified_time = dfCurrentCSGA['event_timestamp']
-        md5 = dfCurrentCSGA['md5']
-        # Check against database entry
-        db_query = f"SELECT modified_date FROM clientresults.csg_modification_table WHERE client_id_md5 = '{client_md5}'"
-        dfModificationCheck = sql_hook.get_pandas_df(db_query)
-        if dfModificationCheck.empty or modified_time > dfModificationCheck['modified_date'].max():
-            send_email_alert(CSG_or_CSGA, modified_time,Client)
-                        
-            # Update the database with the new modified date
-            update_query = f"REPLACE INTO clientresults.csg_modification_table (Client,CSG_or_CSGA, modified_date,client_id_md5) VALUES ('{Client}','{CSG_or_CSGA}',  '{modified_time}', '{md5}')"
-            sql_hook.run(update_query)
+            dfCurrentCSGA = sql_hook.get_pandas_df(db_query)
+            if dfCurrentCSGA.empty: #Use the old DB W2 if needed
+                db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings_approved  WHERE client_id_md5 = '{client_md5}' LIMIT 1"
+                dfCurrentCSGA = sql_hook_old.get_pandas_df(db_query)
+            Client = dfCurrentCSGA['Client']
+            CSG_or_CSGA = 'CSGA'
+            modified_time = dfCurrentCSGA['event_timestamp']
+            md5 = dfCurrentCSGA['md5']
+            # Check against database entry
+            db_query = f"SELECT modified_date FROM clientresults.csg_modification_table WHERE client_id_md5 = '{client_md5}'"
+            dfModificationCheck = sql_hook.get_pandas_df(db_query)
+            if dfModificationCheck.empty or modified_time > dfModificationCheck['modified_date'].max():
+                send_email_alert(CSG_or_CSGA, modified_time,Client)
+                            
+                # Update the database with the new modified date
+                update_query = f"REPLACE INTO clientresults.csg_modification_table (Client,CSG_or_CSGA, modified_date,client_id_md5) VALUES ('{Client}','{CSG_or_CSGA}',  '{modified_time}', '{md5}')"
+                sql_hook.run(update_query)
         except Exception as e:
             logging.error(f'Error Occurred: {e}')
 
 
-        
-        # Check against database entry in production W3 CSGA
-        db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings  WHERE client_id_md5 = '{client_md5}' LIMIT 1"
-        dfCurrentCSG = sql_hook.get_pandas_df(db_query)
-        if dfCurrentCSG.empty: #Use the old DB W2 if needed
+        try:
+            # Check against database entry in production W3 CSGA
             db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings  WHERE client_id_md5 = '{client_md5}' LIMIT 1"
-            dfCurrentCSG = sql_hook_old.get_pandas_df(db_query)
-        Client = dfCurrentCSG['Client']
-        CSG_or_CSGA = 'CSG'
-        modified_time = dfCurrentCSG['event_timestamp']
-        md5 = dfCurrentCSG['md5']
-        # Check against database entry
-        db_query = f"SELECT modified_date FROM clientresults.csg_modification_table WHERE client_id_md5 = '{client_md5}'"
-        dfModificationCheck = sql_hook.get_pandas_df(db_query)
-        if dfModificationCheck.empty or modified_time > dfModificationCheck['modified_date'].max():
-            send_email_alert(CSG_or_CSGA, modified_time,Client)
-                        
-            # Update the database with the new modified date
-            update_query = f"REPLACE INTO clientresults.csg_modification_table (Client,CSG_or_CSGA, modified_date,client_id_md5) VALUES ('{Client}','{CSG_or_CSGA}',  '{modified_time}', '{md5}')"
-            sql_hook.run(update_query)
+            dfCurrentCSG = sql_hook.get_pandas_df(db_query)
+            if dfCurrentCSG.empty: #Use the old DB W2 if needed
+                db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings  WHERE client_id_md5 = '{client_md5}' LIMIT 1"
+                dfCurrentCSG = sql_hook_old.get_pandas_df(db_query)
+            Client = dfCurrentCSG['Client']
+            CSG_or_CSGA = 'CSG'
+            modified_time = dfCurrentCSG['event_timestamp']
+            md5 = dfCurrentCSG['md5']
+            # Check against database entry
+            db_query = f"SELECT modified_date FROM clientresults.csg_modification_table WHERE client_id_md5 = '{client_md5}'"
+            dfModificationCheck = sql_hook.get_pandas_df(db_query)
+            if dfModificationCheck.empty or modified_time > dfModificationCheck['modified_date'].max():
+                send_email_alert(CSG_or_CSGA, modified_time,Client)
+                            
+                # Update the database with the new modified date
+                update_query = f"REPLACE INTO clientresults.csg_modification_table (Client,CSG_or_CSGA, modified_date,client_id_md5) VALUES ('{Client}','{CSG_or_CSGA}',  '{modified_time}', '{md5}')"
+                sql_hook.run(update_query)
         except Exception as e:
             logging.error(f'Error Occurred: {e}')
        
