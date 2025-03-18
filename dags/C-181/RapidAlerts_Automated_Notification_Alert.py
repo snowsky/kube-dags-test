@@ -44,12 +44,13 @@ dag = DAG(
 @task(dag=dag)
 def crawler_reference_alert(**kwargs):
     sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
-    query = "SELECT (md5(client_reference_folder)) as ConnectionID_md5 FROM _dashboard_maintenance.crawler_reference_table where client_reference_folder IS NOT NULL;"
+    query = "SELECT (md5(client_reference_folder)) as ConnectionID_md5, client_reference_folder FROM _dashboard_maintenance.crawler_reference_table where client_reference_folder IS NOT NULL;"
     dfCrawlerAudit = sql_hook.get_pandas_df(query)
     
     for index, row in dfCrawlerAudit.iterrows():
         connection_id_md5 = row['ConnectionID_md5']
-        logging.info(f'Processing connection ID: {connection_id_md5}')
+        client_reference_folder = row['client_reference_folder']
+        logging.info(f'Processing connection ID: {connection_id_md5} for Client Folder Reference {client_reference_folder}')
 
         try:
             sftp_hook = SFTPHook(ssh_conn_id=connection_id_md5)
@@ -63,9 +64,24 @@ def crawler_reference_alert(**kwargs):
 
         try:
             with sftp_hook.get_conn() as sftp_client:
-                files = sftp_client.listdir()
-                csv_files = [file for file in files if file.endswith('.csv')]
+                files = sftp_client.listdir_attr(client_reference_folder)
+                csv_files = [file for file in files if file.filename.endswith('.csv')]
                 logging.info(f'CSV files found: {csv_files}')
+                
+                for file in csv_files:
+                    modified_time = pd.to_datetime(file.st_mtime, unit='s')
+                    logging.info(f'File: {file.filename}, Modified Date: {modified_time}')
+                    
+                    # Check against database entry
+                    db_query = f"SELECT modified_date FROM file_modification_table WHERE filename = '{file.filename}'"
+                    dfFileMod = sql_hook.get_pandas_df(db_query)
+                    
+                    if dfFileMod.empty or modified_time > dfFileMod['modified_date'].max():
+                        send_email_alert(file.filename, modified_time)
+                        
+                        # Update the database with the new modified date
+                        update_query = f"REPLACE INTO file_modification_table (filename, modified_date) VALUES ('{file.filename}', '{modified_time}')"
+                        sql_hook.run(update_query)
         except Exception as e:
             logging.error(f'Failed to connect to SFTP server: {e}')
 
