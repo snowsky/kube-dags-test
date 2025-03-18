@@ -12,6 +12,9 @@ import logging
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+# Variable to store the DAG name
+dag_name_base = dag.dag_id
+dag_file_path_base = __file__
 
 # Define the failure callback function
 def failure_callback(context):
@@ -85,13 +88,11 @@ def crawler_reference_alert(**kwargs):
         except Exception as e:
             logging.error(f'Error Occurred: {e}')
 def send_email_alert(filename, modified_time,client_id):
-    dag_name = context['dag'].dag_id
-    dag_file_path = context['dag'].fileloc
     send_email(
         #to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
         to='ethompson@konza.org',
         subject=f'KONZA has received a new file to the SFTP for Client ID {client_id} (C-181)',
-        html_content=f"Newly Modified or New CSV File: {filename} - Client Identifier/Folder Name {client_id} - Reporting DAG: {dag_name}. DAG source file: {dag_file_path}. Check the logs for more details."
+        html_content=f"Newly Modified or New CSV File: {filename} - Client Identifier/Folder Name {client_id} - Reporting DAG: {dag_name_base}. DAG source file: {dag_file_path_base}. Check the logs for more details."
     )
 
 crawler_alert = crawler_reference_alert()
