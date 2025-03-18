@@ -12,9 +12,7 @@ import logging
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-# Variable to store the DAG name
-dag_name_base = dag.dag_id
-dag_file_path_base = __file__
+
 
 # Define the failure callback function
 def failure_callback(context):
@@ -43,6 +41,9 @@ dag = DAG(
     catchup=False,
     tags=['C-181'],
 )
+# Variable to store the DAG name
+dag_name_base = dag.dag_id
+dag_file_path_base = __file__
 
 @task(dag=dag)
 def crawler_reference_alert(**kwargs):
