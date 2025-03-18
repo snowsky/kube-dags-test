@@ -50,9 +50,13 @@ def crawler_reference_alert(**kwargs):
     for index, row in dfCrawlerAudit.iterrows():
         connection_id_md5 = row['ConnectionID_md5']
         logging.info(f'Processing connection ID: {connection_id_md5}')
-        
 
-        sftp_hook = SFTPHook(sftp_conn_id=connection_id_md5)
+        try:
+        # Use ssh_conn_id instead of sftp_conn_id
+            sftp_hook = SFTPHook(ssh_conn_id=connection_id_md5)
+        except:
+            sftp_hook = SFTPHook(sftp_conn_id=connection_id_md5)
+
 
         with sftp_hook.get_conn() as sftp_client:
             # Check for CSV files in the SFTP directory
