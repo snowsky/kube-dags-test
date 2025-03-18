@@ -42,15 +42,25 @@ dag = DAG(
 )
 
 @task(dag=dag)
-def crawler_reference_alert(**kwargs):    
-    sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")  # Replace with your connection ID
-    query = "SELECT (md5(client_reference_folder)) as ConnectionID_md5 FROM _dashboard_maintenance.crawler_reference_table where client_reference_folder IS NOT NULL;"  # Replace with your SQL query
-
+def crawler_reference_alert(**kwargs):
+    sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
+    query = "SELECT (md5(client_reference_folder)) as ConnectionID_md5 FROM _dashboard_maintenance.crawler_reference_table where client_reference_folder IS NOT NULL;"
     dfCrawlerAudit = sql_hook.get_pandas_df(query)
+    
     for index, row in dfCrawlerAudit.iterrows():
-        logging.info(f'row: {row}')
-        print(row)
-        ## Use ConnectionID_md5 to cycle through production connection IDs to connect to SFTPs here
+        connection_id_md5 = row['ConnectionID_md5']
+        logging.info(f'Processing connection ID: {connection_id_md5}')
+        
+        # Assuming you have a way to map md5 to actual SFTP connection IDs
+        sftp_conn_id = map_md5_to_sftp_conn_id(connection_id_md5)
+        
+        sftp_hook = SFTPHook(sftp_conn_id=sftp_conn_id)
+        with sftp_hook.get_conn() as sftp_client:
+            # Check for CSV files in the SFTP directory
+            files = sftp_client.listdir()
+            csv_files = [file for file in files if file.endswith('.csv')]
+            logging.info(f'CSV files found: {csv_files}')
+            # Additional processing can be done here
 
 crawler_alert = crawler_reference_alert()
 
