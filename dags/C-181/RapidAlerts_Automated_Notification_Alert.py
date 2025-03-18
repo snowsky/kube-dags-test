@@ -77,14 +77,14 @@ def crawler_reference_alert(**kwargs):
                     logging.info(f'File: {file.filename}, Modified Date: {modified_time}')
                     
                     # Check against database entry
-                    db_query = f"SELECT modified_date FROM clientresults.file_modification_table WHERE filename = '{file.filename}'"
+                    db_query = f"SELECT modified_date FROM clientresults.file_modification_table WHERE filename = '{file.filename}' and client_id_md5 = '{connection_id_md5}'"
                     dfFileMod = sql_hook.get_pandas_df(db_query)
                     
                     if dfFileMod.empty or modified_time > dfFileMod['modified_date'].max():
                         send_email_alert(file.filename, modified_time,client_reference_folder)
                         
                         # Update the database with the new modified date
-                        update_query = f"REPLACE INTO clientresults.file_modification_table (filename, modified_date) VALUES ('{file.filename}', '{modified_time}')"
+                        update_query = f"REPLACE INTO clientresults.file_modification_table (filename, modified_date,client_id_md5) VALUES ('{file.filename}', '{modified_time}', '{connection_id_md5}')"
                         sql_hook.run(update_query)
         except Exception as e:
             logging.error(f'Error Occurred: {e}')
