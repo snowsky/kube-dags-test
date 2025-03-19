@@ -72,7 +72,7 @@ def crawler_reference_alert(**kwargs):
             db_query = f"SELECT modified_date FROM clientresults.csg_modification_table WHERE client_id_md5 = '{client_md5}'"
             dfModificationCheck = sql_hook.get_pandas_df(db_query)
             if dfModificationCheck.empty or modified_time > dfModificationCheck['modified_date'].max():
-                send_email_alert(CSG_or_CSGA, modified_time,Client)
+                send_email_alert(CSG_or_CSGA, modified_time,client_reference_folder)
                             
                 # Update the database with the new modified date
                 update_query = f"REPLACE INTO clientresults.csg_modification_table (Client,CSG_or_CSGA, modified_date,client_id_md5) VALUES ('{Client}','{CSG_or_CSGA}',  '{modified_time}', '{md5}')"
@@ -98,7 +98,7 @@ def crawler_reference_alert(**kwargs):
             db_query = f"SELECT modified_date FROM clientresults.csg_modification_table WHERE client_id_md5 = '{client_md5}'"
             dfModificationCheck = sql_hook.get_pandas_df(db_query)
             if dfModificationCheck.empty or modified_time > dfModificationCheck['modified_date'].max():
-                send_email_alert(CSG_or_CSGA, modified_time,Client)
+                send_email_alert(CSG_or_CSGA, modified_time,client_reference_folder)
                             
                 # Update the database with the new modified date
                 update_query = f"REPLACE INTO clientresults.csg_modification_table (Client,CSG_or_CSGA, modified_date,client_id_md5) VALUES ('{Client}','{CSG_or_CSGA}',  '{modified_time}', '{md5}')"
