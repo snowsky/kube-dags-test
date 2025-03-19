@@ -111,8 +111,8 @@ def csg_alert(**kwargs):
        
 def send_email_alert(CSG_or_CSGA_indicator,modified_time,client_id):
     send_email(
-        #to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
-        to='ethompson@konza.org',
+        to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
+        #to='ethompson@konza.org',
         subject=f'Newly Modified CSG in Category: {CSG_or_CSGA_indicator} for Client ID {client_id} (C-181)',
         html_content=f"Newly Modified CSG in Category: {CSG_or_CSGA_indicator} - Client Identifier/Folder Name {client_id} - Reporting DAG: {dag_name_base}. DAG source file: {dag_file_path_base}. Check the logs for more details."
     )
