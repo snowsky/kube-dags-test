@@ -64,10 +64,10 @@ def csg_alert(**kwargs):
             if dfCurrentCSGA.empty: #Use the old DB W2 if needed
                 db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings_approved  WHERE md5(Client) = '{client_md5}' LIMIT 1"
                 dfCurrentCSGA = sql_hook_old.get_pandas_df(db_query)
-            Client = dfCurrentCSGA['Client'][0]
+            Client = dfCurrentCSGA['Client'].iloc[0]
             CSG_or_CSGA = 'CSGA'
-            modified_time = dfCurrentCSGA['event_timestamp'][0]
-            md5 = dfCurrentCSGA['md5'][0]
+            modified_time = dfCurrentCSGA['event_timestamp'].iloc[0]
+            md5 = dfCurrentCSGA['md5'].iloc[0]
             # Check against database entry
             db_query = f"SELECT modified_date FROM clientresults.csg_modification_table WHERE client_id_md5 = '{client_md5}'"
             dfModificationCheck = sql_hook.get_pandas_df(db_query)
@@ -90,10 +90,10 @@ def csg_alert(**kwargs):
             if dfCurrentCSG.empty: #Use the old DB W2 if needed
                 db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings  WHERE md5(Client) = '{client_md5}' LIMIT 1"
                 dfCurrentCSG = sql_hook_old.get_pandas_df(db_query)
-            Client = dfCurrentCSG['Client'][0]
+            Client = dfCurrentCSG['Client'].iloc[0]
             CSG_or_CSGA = 'CSG'
-            modified_time = dfCurrentCSG['event_timestamp'][0]
-            md5 = dfCurrentCSG['md5'][0]
+            modified_time = dfCurrentCSG['event_timestamp'].iloc[0]
+            md5 = dfCurrentCSG['md5'].iloc[0]
             # Check against database entry
             db_query = f"SELECT modified_date FROM clientresults.csg_modification_table WHERE client_id_md5 = '{client_md5}'"
             dfModificationCheck = sql_hook.get_pandas_df(db_query)
