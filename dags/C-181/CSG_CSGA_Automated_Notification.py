@@ -47,7 +47,7 @@ dag_name_base = dag.dag_id
 dag_file_path_base = __file__
 
 @task(dag=dag)
-def crawler_reference_alert(**kwargs):
+def csg_alert(**kwargs):
     sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
     sql_hook_old = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
     query = "SELECT (md5(client_reference_folder)) as client_md5, client_reference_folder FROM _dashboard_maintenance.crawler_reference_table where client_reference_folder IS NOT NULL;"
@@ -117,9 +117,9 @@ def send_email_alert(CSG_or_CSGA_indicator,modified_time,client_id):
         html_content=f"Newly Modified CSG in Category: {CSG_or_CSGA_indicator} - Client Identifier/Folder Name {client_id} - Reporting DAG: {dag_name_base}. DAG source file: {dag_file_path_base}. Check the logs for more details."
     )
 
-crawler_alert = crawler_reference_alert()
+csg_alert = csg_alert()
 
-crawler_alert
+csg_alert
 
 if __name__ == "__main__":
     dag.cli()
