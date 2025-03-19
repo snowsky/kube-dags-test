@@ -74,13 +74,13 @@ def csg_alert(**kwargs):
             CSG_or_CSGA = 'CSGA'
             modified_time = dfCurrentCSGA['event_timestamp'].iloc[0]
             md5 = dfCurrentCSGA['md5'].iloc[0]
-            C60popCount = dfCurrentCSGCount['count_distinct_mpi'].iloc[0]
-            C60modified_time = dfCurrentCSGCount['event_timestamp'].iloc[0]
+            C60popCount = dfCurrentCSGACount['count_distinct_mpi'].iloc[0]
+            C60modified_time = dfCurrentCSGACount['event_timestamp'].iloc[0]
             # Check against database entry
             db_query = f"SELECT modified_date FROM clientresults.csg_modification_table WHERE client_id_md5 = '{client_md5}'"
             dfModificationCheck = sql_hook.get_pandas_df(db_query)
             if dfModificationCheck.empty or modified_time > dfModificationCheck['modified_date'].max():
-                send_email_alert(CSG_or_CSGA, modified_time,client_reference_folder)
+                send_email_alert(CSG_or_CSGA, modified_time,client_reference_folder,C60popCount,C60modified_time)
                 # Update the database with the new modified date
                 update_query = f"REPLACE INTO clientresults.csg_modification_table (Client,CSG_or_CSGA, modified_date,client_id_md5) VALUES ('{Client}','{CSG_or_CSGA}',  '{modified_time}', '{md5}')"
                 sql_hook.run(update_query)
@@ -113,7 +113,7 @@ def csg_alert(**kwargs):
             db_query = f"SELECT modified_date FROM clientresults.csg_modification_table WHERE client_id_md5 = '{client_md5}'"
             dfModificationCheck = sql_hook.get_pandas_df(db_query)
             if dfModificationCheck.empty or modified_time > dfModificationCheck['modified_date'].max():
-                send_email_alert(CSG_or_CSGA, modified_time,client_reference_folder)
+                send_email_alert(CSG_or_CSGA, modified_time,client_reference_folder,C60popCount,C60modified_time)
                             
                 # Update the database with the new modified date
                 update_query = f"REPLACE INTO clientresults.csg_modification_table (Client,CSG_or_CSGA, modified_date,client_id_md5) VALUES ('{Client}','{CSG_or_CSGA}',  '{modified_time}', '{md5}')"
