@@ -150,17 +150,25 @@ If a library is used often (either in many tasks or in a task that needs to run 
 - to push the change : git push origin new-branch-name
 
 ## Full Edit Sequence Git
+```
 git checkout main
+
 git pull origin main
+
 git checkout -b [ProjectID+cardID]
-
+```
 # Add your script file to the repository
+```
 git add path/to/your-script.sh
-*** COMPLETE YOUR WORK ON DEV WITH AS MUCH TESTING AS POSSIBLE ***
-git commit -m "Change towards meeting requirements of [ProjectID+cardID]"
-git push origin [ProjectID+cardID]
-gh pr create --title "Change towards meeting requirements of [ProjectID+cardID]" --body "Feature Functions Included" --base main --head [ProjectID+cardID]
 
+*** COMPLETE YOUR WORK ON DEV WITH AS MUCH TESTING AS POSSIBLE ***
+
+git commit -m "Change towards meeting requirements of [ProjectID+cardID]"
+
+git push origin [ProjectID+cardID]
+
+gh pr create --title "Change towards meeting requirements of [ProjectID+cardID]" --body "Feature Functions Included" --base main --head [ProjectID+cardID]
+```
 ## To switch to the main branch from your current branch and ensure you’re tracking the remote origin/main, you can follow these steps:
 
 -Fetch the latest changes from the remote repository to ensure you have the most up-to-date version:git fetch origin
