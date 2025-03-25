@@ -155,7 +155,7 @@ with DAG(
         mysql_hook.run(sql)
         logging.info(f'Deleted ids: {ids_to_delete_str}')
 
-    generate_ids_to_delete_file_task = generate_ids_to_delete_file(max_id_output=max_id.output, dag.params)
+    generate_ids_to_delete_file_task = generate_ids_to_delete_file(max_id_output=max_id.output, params=dag.params)
     get_ids_to_delete_task = get_ids_to_delete(generate_ids_to_delete_file_task)
     delete_ids_from_tbl_task = delete_ids_from_tbl.expand(ids_to_delete=get_ids_to_delete_task)
 
