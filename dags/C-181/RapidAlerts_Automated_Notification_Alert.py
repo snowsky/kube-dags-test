@@ -80,7 +80,7 @@ def crawler_reference_alert(**kwargs):
                     db_query = f"SELECT MAX(modified_date) as modified_date FROM clientresults.file_modification_table WHERE filename = '{file.filename}' and client_id_md5 = '{connection_id_md5}'"
                     logging.info(f'Query: {db_query}')
                     dfFileMod = sql_hook.get_pandas_df(db_query)
-                    
+                    logging.info(f'Checking if file with modified time: {modified_time} seemed greater than the DB modified time: {max_df_file_mod}')
                     if dfFileMod.empty or modified_time > dfFileMod['modified_date']:
                         max_df_file_mod = str(dfFileMod['modified_date'])
                         logging.info(f'File with modified time: {modified_time} seemed greater than the DB modified time: {max_df_file_mod}')
@@ -97,7 +97,7 @@ def send_email_alert(filename, modified_time,client_id):
         #to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
         #to='ethompson@konza.org;tlamond@konza.org;slewis@konza.org;cclark@konza.org',
         subject=f'KONZA has received a new file to the SFTP for Client ID {client_id} (C-181)',
-        html_content=f"Newly Modified or New CSV File: {filename} - Client Identifier/Folder Name {client_id} - Reporting DAG: {dag_name_base}. DAG source file: {dag_file_path_base}. Check the logs for more details."
+        html_content=f"Newly Modified or New CSV File: {filename} - Client Identifier/Folder Name:  {client_id} - Reporting DAG: {dag_name_base}. DAG source file: {dag_file_path_base}. Check the logs for more details."
     )
 
 crawler_alert = crawler_reference_alert()
