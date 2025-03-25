@@ -82,7 +82,7 @@ def crawler_reference_alert(**kwargs):
                     dfFileMod = sql_hook.get_pandas_df(db_query)
                     
                     if dfFileMod.empty or modified_time > dfFileMod['modified_date'].max():
-                        logging.info(f'SFTP: {modified_time} seemed greater than {str(dfFileMod['modified_date'].max())}')
+                        logging.info(f'SFTP: {modified_time} seemed greater than {dfFileMod['modified_date'].max()}')
                         send_email_alert(file.filename, modified_time,client_reference_folder)
                         
                         # Update the database with the new modified date
