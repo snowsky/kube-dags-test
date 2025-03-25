@@ -80,9 +80,9 @@ def crawler_reference_alert(**kwargs):
                     db_query = f"SELECT MAX(modified_date) as modified_date FROM clientresults.file_modification_table WHERE filename = '{file.filename}' and client_id_md5 = '{connection_id_md5}'"
                     logging.info(f'Query: {db_query}')
                     dfFileMod = sql_hook.get_pandas_df(db_query)
-                    max_df_file_mod = str(dfFileMod['modified_date'])
+                    max_df_file_mod = str(dfFileMod['modified_date'][0])
                     logging.info(f'Checking if file with modified time: {modified_time} seemed greater than the DB modified time: {max_df_file_mod}')
-                    if dfFileMod.empty or modified_time > dfFileMod['modified_date']:
+                    if dfFileMod.empty or modified_time > dfFileMod['modified_date'][0]:
                         logging.info(f'File with modified time: {modified_time} seemed greater than the DB modified time: {max_df_file_mod}')
                         send_email_alert(file.filename, modified_time,client_reference_folder)
                         
