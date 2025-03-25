@@ -77,13 +77,13 @@ def crawler_reference_alert(**kwargs):
                     logging.info(f'File: {file.filename}, Modified Date: {modified_time}')
                     
                     # Check against database entry
-                    db_query = f"SELECT modified_date FROM clientresults.file_modification_table WHERE filename = '{file.filename}' and client_id_md5 = '{connection_id_md5}'"
+                    db_query = f"SELECT MAX(modified_date) as modified_date FROM clientresults.file_modification_table WHERE filename = '{file.filename}' and client_id_md5 = '{connection_id_md5}'"
                     logging.info(f'Query: {db_query}')
                     dfFileMod = sql_hook.get_pandas_df(db_query)
                     
-                    if dfFileMod.empty or modified_time > dfFileMod['modified_date'].max():
-                        max_df_file_mod = str(dfFileMod['modified_date'].max())
-                        logging.info(f'SFTP: {modified_time} seemed greater than {max_df_file_mod}')
+                    if dfFileMod.empty or modified_time > dfFileMod['modified_date']:
+                        max_df_file_mod = str(dfFileMod['modified_date'])
+                        logging.info(f'File with modified time: {modified_time} seemed greater than the DB modified time: {max_df_file_mod}')
                         send_email_alert(file.filename, modified_time,client_reference_folder)
                         
                         # Update the database with the new modified date
