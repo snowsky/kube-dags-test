@@ -92,9 +92,19 @@ def crawler_reference_alert(**kwargs):
         except Exception as e:
             logging.error(f'Error Occurred: {e}')
 def send_email_alert(filename, modified_time,client_id):
+    # Check against database entry
+    db_query = f"SELECT id as Client_Numeric_ID FROM _dashboard_requests.clients_to_process WHERE folder_name = '{client_id}'"
+    logging.info(f'Query: {db_query}')
+    dfClientQuery = sql_hook.get_pandas_df(db_query)
+    client_numeric_id = str(dfClientQuery['Client_Numeric_ID'][0])
+    client_distribution_list_notifier = f'RapidAlerts_PM_C-181_{client_numeric_id}@konza.org'
+    logging.info(f'ID Reference Found: {client_numeric_id} on Folder Name: {client_id} and email would be sent to Distribution group: {client_distribution_list_notifier}')
     send_email(
-        #to='ethompson@konza.org',
-        to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
+        to='ethompson@konza.org',
+        ##Internal Testing
+        #to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
+        ##External
+        to=f'{client_distribution_list_notifier};ethompson@konza.org',
         #to='ethompson@konza.org;tlamond@konza.org;slewis@konza.org;cclark@konza.org',
         subject=f'KONZA has received a new file to the SFTP for Client ID {client_id} (C-181)',
         html_content=f"Newly Modified or New CSV File: {filename} - Client Identifier/Folder Name:  {client_id} - Reporting DAG: {dag_name_base}. DAG source file: {dag_file_path_base}. Check the logs for more details."
