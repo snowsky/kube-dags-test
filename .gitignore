@@ -31,3 +31,6 @@ logs/
 
 # auto-generated synthetic data
 test/dags/populations/pop_data/C-9/
+
+# archive subfolders ignored
+**/archive/
