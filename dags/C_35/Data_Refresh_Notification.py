@@ -50,7 +50,7 @@ dag_file_path_base = __file__
 def get_latest_records():
     mysql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
     mssql_hook = MsSqlHook(mssql_conn_id='formoperations_prd_az1_opssql_database_windows_net')
-    engine = hook.get_sqlalchemy_engine()
+    engine = mssql_hook.get_sqlalchemy_engine()
     conn = mssql_hook.get_conn()
     
     # SQL query to get the latest records by max ID grouped by server_dns
@@ -80,7 +80,7 @@ def get_latest_records():
         logging.info(f"Processing server: {server_id}")
         db_query = f"SELECT MAX(data_update_date) as data_update_date FROM clientresults.data_refresh_update_table WHERE filename = '{server_id}'"
         logging.info(f'Query: {db_query}')
-        dfDataMod = sql_hook.get_pandas_df(db_query)
+        dfDataMod = mysql_hook.get_pandas_df(db_query)
         max_df_data_mod = str(dfDataMod['data_update_date'][0])
         logging.info(f'Checking if file with modified time: {data_update_date} seemed greater than the DB modified time: {max_df_data_mod}')
         if dfFileMod.empty or modified_time > dfFileMod['modified_date'][0]:
