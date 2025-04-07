@@ -67,23 +67,18 @@ def get_latest_records():
     
     # Load the query results into a DataFrame
     dfDataRefreshAudit = pd.read_sql(query, conn)
-    
-    # Log the full table name
-    table_name = 'raw_file_second_edit'
-    full_table_name = f"dbo.{table_name}"
-    logging.info(full_table_name)
-    
+        
     # Cycle through the server IDs in a for loop
     for index, row in dfDataRefreshAudit.iterrows():
         server_id = row['server_dns']
         data_update_date = row['data_update_date']
         logging.info(f"Processing server: {server_id}")
-        db_query = f"SELECT MAX(data_update_date) as data_update_date FROM clientresults.data_refresh_update_table WHERE filename = '{server_id}'"
+        db_query = f"SELECT MAX(data_update_date) as data_update_date FROM clientresults.data_refresh_update_table WHERE server_dns = '{server_id}'"
         logging.info(f'Query: {db_query}')
         dfDataMod = mysql_hook.get_pandas_df(db_query)
         max_df_data_mod = str(dfDataMod['data_update_date'][0])
         logging.info(f'Checking if file with modified time: {data_update_date} seemed greater than the DB modified time: {max_df_data_mod}')
-        if dfFileMod.empty or modified_time > dfFileMod['modified_date'][0]:
+        if dfDataMod.empty or data_update_date > dfDataMod['data_update_date'][0]:
             logging.info(f'File with modified time: {modified_time} seemed greater than the DB modified time: {max_df_file_mod}')
             # Update the database with the new update date
             update_query = f"REPLACE INTO clientresults.data_refresh_update_table (server_dns, data_update_date) VALUES ('{server_id}', '{data_update_date}')"
