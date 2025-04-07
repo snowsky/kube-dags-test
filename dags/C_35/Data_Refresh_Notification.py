@@ -77,9 +77,15 @@ def get_latest_records():
         logging.info(f'Query: {db_query}')
         dfDataMod = mysql_hook.get_pandas_df(db_query)
         max_df_data_mod = str(dfDataMod['data_update_date'][0])
+        # Convert the string to a datetime object
+        data_update_date_dt = datetime.strptime(data_update_date, '%Y-%m-%d')
+
+        # Convert the first element of dfDataMod['data_update_date'] to a datetime object
+        dfDataMod_date_dt = datetime.strptime(dfDataMod['data_update_date'][0], '%Y-%m-%d')
+
         logging.info(f'Checking if file with modified time: {data_update_date} seemed greater than the DB modified time: {max_df_data_mod}')
-        if dfDataMod.empty or data_update_date > dfDataMod['data_update_date'][0]:
-            logging.info(f'File with modified time: {modified_time} seemed greater than the DB modified time: {max_df_file_mod}')
+        if dfDataMod.empty or data_update_date_dt > dfDataMod_date_dt:
+            logging.info(f'File with modified time: {data_update_date} seemed greater than the DB modified time: {max_df_file_mod}')
             # Update the database with the new update date
             update_query = f"REPLACE INTO clientresults.data_refresh_update_table (server_dns, data_update_date) VALUES ('{server_id}', '{data_update_date}')"
             mysql_hook.run(update_query)
