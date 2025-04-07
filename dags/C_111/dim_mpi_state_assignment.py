@@ -189,7 +189,7 @@ with DAG(
           COUNT(*) AS number_mpis,
           SUM(number_patient_ids) AS number_patient_ids
         FROM hive.parquet_master_data.dim_mpi_state_assignment
-        GROUP BY mpi
+        GROUP BY imputed_state, used_algorithm
         """,
     )
     
