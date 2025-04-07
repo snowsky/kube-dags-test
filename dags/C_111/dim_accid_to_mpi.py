@@ -92,7 +92,7 @@ with DAG(
 
         Computing this table requires 15-20 trino workers, which should already be scaled
         up by the task populating tmp_dim_accid_to_mpi in the dim_accid_to_mpi airflow pipeline.
-        If these workers aren't available you may need to scale the cluster manually.
+        If these workers are not available you may need to scale the cluster manually.
         '''
         WITH (format = 'PARQUET')
         AS SELECT 
