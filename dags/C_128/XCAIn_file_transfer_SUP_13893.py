@@ -165,26 +165,26 @@ def list_files_in_s3():
     return files
 
 #commenting as per Jody's ask SUP-14660 --
-#@task(dag=dag)
-#def filter_xml_files(files):
-    #xml_files = [file for file in files if file.endswith('.xml')]
-    #logging.info(f'Filtered XML Files: {xml_files}')
-    #return xml_files
-
-# Temp add for SUP-14660
 @task(dag=dag)
 def filter_xml_files(files):
-    # Define folders to skip temporarily
-    excluded_folders = [
-        "XCAIn/homeCommunityId=urn:oid:2.16.840.1.113883.3.8312.2.2.1.1/",
-        "XCAIn/homeCommunityId=urn:oid:2.16.840.1.113883.3.8312.300.2.1.1/"
-    ]
-    xml_files = [
-        file for file in files 
-        if file.endswith('.xml') and not any(file.startswith(f"{S3_SUBFOLDER}{folder}") for folder in excluded_folders)
-    ]
+    xml_files = [file for file in files if file.endswith('.xml')]
     logging.info(f'Filtered XML Files: {xml_files}')
     return xml_files
+
+# Temp add for SUP-14660
+#@task(dag=dag)
+#def filter_xml_files(files):
+    # Define folders to skip temporarily
+    #excluded_folders = [
+        #"XCAIn/homeCommunityId=urn:oid:2.16.840.1.113883.3.8312.2.2.1.1/",
+        #"XCAIn/homeCommunityId=urn:oid:2.16.840.1.113883.3.8312.300.2.1.1/"
+    #]
+    #xml_files = [
+        #file for file in files 
+        #if file.endswith('.xml') and not any(file.startswith(f"{S3_SUBFOLDER}{folder}") for folder in excluded_folders)
+    #]
+    #logging.info(f'Filtered XML Files: {xml_files}')
+    #return xml_files
 
 def get_sftp():
     if ENV == 'Dev':
