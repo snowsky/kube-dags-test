@@ -79,13 +79,13 @@ def get_latest_records():
         max_df_data_mod = str(dfDataMod['data_update_date'][0])
         logging.info(f'Var max_df_data_mod: {max_df_data_mod}')
         # Convert the string to a datetime object
-        data_update_date_dt = datetime.combine(datetime.strptime(data_update_date, '%Y-%m-%d', time(0, 0)))
+        data_update_date_dt = datetime.combine(datetime.strptime(data_update_date, '%Y-%m-%d'), time(0, 0))
         logging.info(f'Var data_update_date_dt: {data_update_date_dt}')
         # Convert the first element of dfDataMod['data_update_date'] to a datetime object
-        dfDataMod_date_dt = datetime.combine(datetime.strptime('1970-01-01', '%Y-%m-%d', time(0, 0)))
+        dfDataMod_date_dt = datetime.combine(datetime.strptime('1970-01-01', '%Y-%m-%d'), time(0, 0))
         logging.info(f'Var dfDataMod_date_dt: {dfDataMod_date_dt}')
         if dfDataMod['data_update_date'][0] is not None:
-            dfDataMod_date_dt = datetime.combine(datetime.strptime(str(dfDataMod['data_update_date'][0]), '%Y-%m-%d', time(0, 0)))
+            dfDataMod_date_dt = datetime.combine(datetime.strptime(str(dfDataMod['data_update_date'][0]), '%Y-%m-%d'), time(0, 0))
             logging.info(f'Var dfDataMod_date_dt after if: {dfDataMod_date_dt}')
 
         logging.info(f'Checking if Data Update with date: {data_update_date} seemed greater than the DB date: {max_df_data_mod}')
