@@ -85,7 +85,7 @@ def get_latest_records():
         dfDataMod_date_dt = datetime.combine(datetime.strptime('1970-01-01', '%Y-%m-%d'), time(0, 0))
         logging.info(f'Var dfDataMod_date_dt: {dfDataMod_date_dt}')
         if dfDataMod['data_update_date'][0] is not None:
-            dfDataMod_date_dt = datetime.strptime(str(dfDataMod['data_update_date'][0]), '%Y-%m-%d')
+            dfDataMod_date_dt = datetime.strptime(str(dfDataMod['data_update_date'][0]), '%Y-%m-%d  %H:%M:%S')
             logging.info(f'Var dfDataMod_date_dt after if: {dfDataMod_date_dt}')
 
         logging.info(f'Checking if Data Update with date: {data_update_date} seemed greater than the DB date: {max_df_data_mod}')
