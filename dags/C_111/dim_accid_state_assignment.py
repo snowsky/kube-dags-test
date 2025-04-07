@@ -47,7 +47,7 @@ with DAG(
 
         The state column is computed using code stored in the dim_accid_state_assignment.py 
         airflow pipeline. Note that this code may / will change over time. "ds" in this context
-        indicates the date the pipeline ran. Each ds should be treated independently of other ds's.
+        indicates the date the pipeline ran. Each ds should be treated independently of other ds-s.
 
         The table processes all index updates available at the time the pipeline runs.
         '''
