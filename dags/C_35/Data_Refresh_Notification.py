@@ -81,10 +81,11 @@ def get_latest_records():
         data_update_date_dt = datetime.strptime(data_update_date, '%Y-%m-%d')
 
         # Convert the first element of dfDataMod['data_update_date'] to a datetime object
-        if not dfDataMod['data_update_date'][0].empty:
+        if dfDataMod['data_update_date'][0] is not None:
             dfDataMod_date_dt = datetime.strptime(dfDataMod['data_update_date'][0], '%Y-%m-%d')
 
         logging.info(f'Checking if file with modified time: {data_update_date} seemed greater than the DB modified time: {max_df_data_mod}')
+        
         if dfDataMod.empty or data_update_date_dt > dfDataMod_date_dt:
             logging.info(f'File with modified time: {data_update_date} seemed greater than the DB modified time: {max_df_file_mod}')
             # Update the database with the new update date
