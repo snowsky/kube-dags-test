@@ -85,10 +85,10 @@ def get_latest_records():
         if dfDataMod['data_update_date'][0] is not None:
             dfDataMod_date_dt = datetime.strptime(dfDataMod['data_update_date'][0], '%Y-%m-%d')
 
-        logging.info(f'Checking if file with modified time: {data_update_date} seemed greater than the DB modified time: {max_df_data_mod}')
+        logging.info(f'Checking if Data Update with date: {data_update_date} seemed greater than the DB date: {max_df_data_mod}')
         
         if dfDataMod.empty or data_update_date_dt > dfDataMod_date_dt:
-            logging.info(f'File with modified time: {data_update_date} seemed greater than the DB modified time: {max_df_file_mod}')
+            logging.info(f'Data Update with date: {data_update_date} seemed greater than the DB date: {max_df_data_mod}')
             # Update the database with the new update date
             update_query = f"REPLACE INTO clientresults.data_refresh_update_table (server_dns, data_update_date) VALUES ('{server_id}', '{data_update_date}')"
             mysql_hook.run(update_query)
