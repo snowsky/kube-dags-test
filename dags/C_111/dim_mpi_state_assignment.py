@@ -175,7 +175,7 @@ with DAG(
         ) 
         COMMENT '[C-111] Distinct MPI and patient ID counts per imputed state and used algorithm.'
         WITH (
-            partitioned_by = ARRAY['ds'], 
+            partitioned_by = ARRAY['ds']
         )
         """,
     )
