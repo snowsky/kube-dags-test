@@ -79,8 +79,9 @@ def get_latest_records():
         max_df_data_mod = str(dfDataMod['data_update_date'][0])
         # Convert the string to a datetime object
         data_update_date_dt = datetime.strptime(data_update_date, '%Y-%m-%d')
-
+        
         # Convert the first element of dfDataMod['data_update_date'] to a datetime object
+        dfDataMod_date_dt = '1970-01-01'
         if dfDataMod['data_update_date'][0] is not None:
             dfDataMod_date_dt = datetime.strptime(dfDataMod['data_update_date'][0], '%Y-%m-%d')
 
