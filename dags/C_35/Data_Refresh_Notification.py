@@ -1,7 +1,7 @@
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.providers.microsoft.mssql.hooks.mssql import MsSqlHook
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from airflow.utils.email import send_email
 from airflow.providers.sftp.hooks.sftp import SFTPHook
 from airflow.providers.mysql.hooks.mysql import MySqlHook
