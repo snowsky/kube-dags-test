@@ -1,3 +1,10 @@
+"""
+dim_accid_state_assignment airflow DAG.
+
+This Airflow DAG produces the dim_accid_state_assignment_latest table,
+keyed on patient_id. This table records the latest known state assignment
+for the patient -- unknown state assignments are ignored.
+"""
 import time
 import trino
 import logging
@@ -10,32 +17,22 @@ from datetime import timedelta
 from airflow import DAG
 from airflow.operators.python import ShortCircuitOperator, PythonOperator
 from datetime import datetime
+
 default_args = {
     'owner': 'airflow',
     'retries': 2,  # Set the number of retries to 2
     'retry_delay': timedelta(minutes=5)  # Optional: Set the delay between retries
 }
 
-def check_run_date(**kwargs):
-    execution_date = kwargs['execution_date']
-    one_month_ago = datetime.now(timezone.utc) - timedelta(days=30)
-    return execution_date >= one_month_ago
-
-
 with DAG(
-    dag_id='EDW_State_Report',
+    dag_id='dim_accid_state_assignment',
     schedule_interval='@monthly',
     tags=['C-111'],
-    start_date=datetime(2018, 6, 1),
+    start_date=datetime(2025, 3, 1),
     catchup=True,
     max_active_runs=1,
 ) as dag:
-    delete_partition_dim_accid_state_assignment_if_exists = KonzaTrinoOperator(
-        task_id='drop_dim_accid_state_assignment_if_exists',
-        query="""
-        DELETE FROM hive.parquet_master_data.dim_accid_state_assignment WHERE ds = '<DATEID>'
-        """
-    )
+    
     create_dim_accid_state_assignment = KonzaTrinoOperator(
         task_id='create_dim_accid_state_assignment',
         query="""
@@ -46,7 +43,14 @@ with DAG(
             state VARCHAR, 
             ds VARCHAR
         ) 
-        COMMENT '[C-111] Standardized state assignment for every account ID and index update.'
+        COMMENT '''[C-111] Standardized state assignment for every account ID and index update.
+
+        The state column is computed using code stored in the dim_accid_state_assignment.py 
+        airflow pipeline. Note that this code may / will change over time. "ds" in this context
+        indicates the date the pipeline ran. Each ds should be treated independently of other ds's.
+
+        The table processes all index updates available at the time the pipeline runs.
+        '''
         WITH (
             partitioned_by = ARRAY['ds'], 
             bucketed_by = ARRAY['patient_id'], 
@@ -55,6 +59,7 @@ with DAG(
         )
         """,
     )
+
     populate_dim_accid_state_assignment = KonzaTrinoOperator(
         task_id='populate_dim_accid_state_assignment',
         query="""
@@ -236,22 +241,15 @@ with DAG(
                 WHEN s.state IN ('56', 'WY', 'wy', 'WY ') THEN 'Wyoming'
                 ELSE 'UNKNOWN'
             END AS state_standardized,
-            s.index_update AS ds
+            '<DATEID>' AS ds
         FROM patient_contact_parquet_pm s 
-        WHERE concat(index_update,'-01') = concat(substring('<DATEID>', 1, length('<DATEID>') - 3),'-01')
         """,
     )
 
-    delete_latest_partition_inc_accid_state_assignment_if_exists = KonzaTrinoOperator(
-        task_id='drop_inc_accid_state_assignment_if_exists',
+    create_dim_accid_state_assignment_latest = KonzaTrinoOperator(
+        task_id='create_dim_accid_state_assignment_latest',
         query="""
-        DELETE FROM hive.parquet_master_data.inc_accid_state_assignment_latest WHERE ds = '<DATEID>'
-        """
-    )
-    create_inc_accid_state_assignment_latest = KonzaTrinoOperator(
-        task_id='create_inc_accid_state_assignment_latest',
-        query="""
-        CREATE TABLE IF NOT EXISTS hive.parquet_master_data.inc_accid_state_assignment_latest
+        CREATE TABLE IF NOT EXISTS hive.parquet_master_data.dim_accid_state_assignment_latest
         (     
             patient_id VARCHAR, 
             latest_index_update_dt_tm VARCHAR, 
@@ -260,7 +258,14 @@ with DAG(
             used_algorithm VARCHAR,
             ds VARCHAR
         ) 
-        COMMENT '[C-111] Latest Standardized state assignment for every account ID'
+        COMMENT '''
+        [C-111] Latest Standardized state assignment for every account ID
+
+        This is computed against all available assignments in dim_accid_state_assignment for the
+        current ds. If the assigned state is not "UNKNOWN" then the very latest state by index updated 
+        is used. Otherwise, the latest state that is not "UNKNOWN" is used. This is recorded in the
+        "algorithm_used" and "used_index_update_dt_tm" columns.
+        '''
         WITH (
             partitioned_by = ARRAY['ds'], 
             bucketed_by = ARRAY['patient_id'], 
@@ -269,10 +274,11 @@ with DAG(
         )
         """,
     )
-    populate_inc_accid_state_assignment_latest = KonzaTrinoOperator(
-        task_id='populate_accid_by_state_prep__final',
+
+    populate_dim_accid_state_assignment_latest = KonzaTrinoOperator(
+        task_id='populate_dim_accid_state_assignment_latest',
         query="""
-        INSERT INTO hive.parquet_master_data.inc_accid_state_assignment_latest
+        INSERT INTO hive.parquet_master_data.dim_accid_state_assignment_latest
         SELECT 
           patient_id,
           latest_index_update_dt_tm,
@@ -292,211 +298,6 @@ with DAG(
         """
     )
     
-    delete_latest_partition_dim_accid_to_mpi = KonzaTrinoOperator(
-        task_id='drop_dim_accid_to_mpi',
-        query="""
-        DELETE FROM hive.parquet_master_data.dim_accid_to_mpi WHERE ds = '<DATEID>'
-        """,
-    )
-    create_dim_accid_to_mpi = KonzaTrinoOperator(
-        task_id='create_dim_accid_to_mpi',
-        query="""
-        CREATE TABLE hive.parquet_master_data.dim_accid_to_mpi ( 
-            accid_ref VARCHAR, 
-            mpi VARCHAR,
-            num_mpis_should_be_1 BIGINT,
-            ds VARCHAR
-        ) 
-        COMMENT '[C-111] Latest known mapping of accid to MPI. Note that num_mpis_should_be_1 should be 1 for all values.'
-        WITH ( 
-          partitioned_by = ARRAY['ds'],
-          bucket_count = 64, 
-          bucketed_by = ARRAY['accid_ref'], 
-          sorted_by = ARRAY['accid_ref']
-        )
-        """,
-    )
-    create_tmp_dim_accid_to_mpi = KonzaTrinoOperator(
-        task_id='create_tmp_dim_accid_to_mpi',
-        query="""
-        CREATE TABLE hive.parquet_master_data.tmp_dim_accid_to_mpi
-        AS SELECT 
-           accid_ref, 
-           mpi
-        FROM hive.parquet_master_data.sup_12760_c59_mpi_accid_prep_final_repartitioned
-        """,
-    )
-    create_dim_accid_to_mpi_grouped = KonzaTrinoOperator(
-        task_id='create_dim_accid_to_mpi_grouped',
-        query="""
-        CREATE TABLE hive.parquet_master_data.tmp_dim_accid_to_mpi_grouped
-        WITH (format = 'PARQUET')
-        AS SELECT 
-           accid_ref, 
-           ARBITRARY(mpi) as mpi,
-           COUNT(DISTINCT mpi) AS num_mpis_should_be_1,
-           '<DATEID>' AS ds
-        FROM hive.parquet_master_data.tmp_dim_accid_to_mpi
-        GROUP BY accid_ref
-        """,
-    )
-    populate_dim_accid_to_mpi = KonzaTrinoOperator(
-        task_id='populate_dim_accid_to_mpi',
-        query="""
-        INSERT INTO hive.parquet_master_data.tmp_dim_accid_to_mpi_grouped
-        SELECT accid_ref, mpi, '<DATEID>' AS ds
-        FROM hive.parquet_master_data.tmp_dim_accid_to_mpi_grouped
-        """,
-    )
-    create_dim_accid_to_mpi_grouped >> populate_dim_accid_to_mpi
-    
-    delete_latest_partition_dim_accid_to_mpi = KonzaTrinoOperator(
-        task_id='delete_latest_partition_dim_accid_to_mpi',
-        query="""
-        DELETE FROM hive.parquet_master_data.inc_accid_state_assignment_latest_with_mpi WHERE ds='<DATEID>'
-        """,
-    )
-    create_inc_accid_state_assignment_latest_with_mpi = KonzaTrinoOperator(
-        task_id='create_inc_accid_state_assignment_latest_with_mpi',
-        query="""
-        CREATE TABLE IF NOT EXISTS hive.parquet_master_data.inc_accid_state_assignment_latest_with_mpi
-        (     
-            patient_id VARCHAR, 
-            latest_index_update_dt_tm VARCHAR, 
-            used_index_update_dt_tm VARCHAR, 
-            imputed_state VARCHAR, 
-            used_algorithm VARCHAR,
-            mpi VARCHAR,
-            ds VARCHAR
-        ) 
-        COMMENT '[C-111] State assignment for every patient with their MPI. One row per patient_id. Note that multiple patient_ids may map to the same MPI.'
-        WITH (
-            partitioned_by = ARRAY['ds'], 
-            bucketed_by = ARRAY['patient_id'], 
-            sorted_by = ARRAY['patient_id'],
-            bucket_count = 64
-        )
-        """,
-    )
-    populate_inc_accid_state_assignment_latest_with_mpi = KonzaTrinoOperator(
-        task_id='populate_inc_accid_state_assignment_latest_with_mpi',
-        query="""
-        INSERT INTO hive.parquet_master_data.inc_accid_state_assignment_latest_with_mpi
-        SELECT 
-          patient_id, 
-          latest_index_update_dt_tm, 
-          used_index_update_dt_tm, 
-          imputed_state, 
-          used_algorithm, 
-          mpi,
-          '<DATEID>' AS ds
-        FROM hive.parquet_master_data.inc_accid_state_assignment_latest t1
-        LEFT JOIN hive.parquet_master_data.dim_accid_to_mpi t2
-        ON t1.patient_id = t2.accid_ref
-        WHERE t1.ds = '<DATEID>'
-        AND t2.ds = '<DATEID>'
-        """,
-    )
-
-    delete_latest_partition_inc_accid_state_assignment_latest_by_mpi = KonzaTrinoOperator(
-        task_id='delete_latest_partition_inc_accid_state_assignment_latest_by_mpi',
-        query="""
-        DELETE FROM hive.parquet_master_data.inc_accid_state_assignment_latest_by_mpi WHERE ds='<DATEID>'
-        """,
-    )
-    create_inc_accid_state_assignment_latest_by_mpi = KonzaTrinoOperator(
-        task_id='create_inc_accid_state_assignment_latest_by_mpi',
-        query="""
-        CREATE TABLE IF NOT EXISTS hive.parquet_master_data.inc_accid_state_assignment_latest_by_mpi
-        (     
-            mpi VARCHAR,
-            latest_index_update_dt_tm VARCHAR, 
-            used_index_update_dt_tm VARCHAR, 
-            imputed_state VARCHAR, 
-            used_algorithm VARCHAR,
-            patient_id_used_for_assignment VARCHAR,
-            number_patient_ids BIGINT,
-            ds VARCHAR
-        ) 
-        COMMENT '[C-111] State assignment for each MPI. One row per MPI. Note that multiple patient_ids may map to the same MPI.'
-        WITH (
-            partitioned_by = ARRAY['ds'], 
-            bucketed_by = ARRAY['mpi'], 
-            sorted_by = ARRAY['mpi'],
-            bucket_count = 64
-        )
-        """,
-    )
-    populate_inc_accid_state_assignment_latest_by_mpi = KonzaTrinoOperator(
-        task_id='populate_inc_accid_state_assignment_latest_by_mpi',
-        query="""
-        INSERT INTO hive.parquet_master_data.inc_accid_state_assignment_latest_by_mpi
-        SELECT 
-          mpi, 
-          MAX(latest_index_update_dt_tm) AS latest_index_update_dt_tm,
-          MAX(used_index_update_dt_tm) AS used_index_update_dt_tm,
-          MAX_BY(imputed_state, used_index_update_dt_tm) AS imputed_state,
-          MAX_BY(used_algorithm, used_index_update_dt_tm) AS used_algorithm,
-          MAX_BY(patient_id, used_index_update_dt_tm) AS patient_id_used_for_assignment,
-          COUNT(*) AS number_patient_ids,
-          '<DATEID>' AS ds
-        FROM hive.parquet_master_data.inc_accid_state_assignment_latest_with_mpi
-        WHERE ds = '<DATEID>'
-        GROUP BY mpi
-        """,
-    )
-
-    delete_latest_partition_agg_state_assignment_count = KonzaTrinoOperator(
-        task_id='delete_latest_partition_agg_state_assignment_count',
-        query="""
-        DELETE FROM hive.parquet_master_data.agg_state_assignment_count WHERE ds='<DATEID>'
-        """,
-    )
-    create_agg_state_assignment_count = KonzaTrinoOperator(
-        task_id='create_agg_state_assignment_count',
-        query="""
-        CREATE TABLE IF NOT EXISTS hive.parquet_master_data.agg_state_assignment_count
-        (     
-            imputed_state VARCHAR, 
-            used_algorithm VARCHAR,
-            number_mpis BIGINT,
-            number_patient_ids BIGINT,
-            ds VARCHAR
-        ) 
-        COMMENT '[C-111] Distinct MPI and patient ID counts per imputed state and used algorithm.'
-        WITH (
-            partitioned_by = ARRAY['ds'], 
-        )
-        """,
-    )
-    populate_agg_state_assignment_count = KonzaTrinoOperator(
-        task_id='populate_agg_state_assignment_count',
-        query="""
-        INSERT INTO hive.parquet_master_data.agg_state_assignment_count
-        SELECT 
-          imputed_state,
-          used_algorithm,
-          COUNT(*) AS number_mpis,
-          SUM(number_patient_ids) AS number_patient_ids
-        FROM hive.parquet_master_data.inc_accid_state_assignment_latest_by_mpi
-        GROUP BY mpi
-        """,
-    )
-
- 
-    create_inc_accid_state_assignment_latest >> delete_partition_dim_accid_state_assignment_if_exists >> populate_dim_accid_state_assignment
-    create_inc_accid_state_assignment_latest >> delete_latest_partition_inc_accid_state_assignment_if_exists >> populate_inc_accid_state_assignment_latest
-    populate_dim_accid_state_assignment >> populate_inc_accid_state_assignment_latest
-    
-    create_dim_accid_to_mpi >> delete_latest_partition_dim_accid_to_mpi >> populate_dim_accid_to_mpi
-    create_inc_accid_state_assignment_latest_with_mpi >> delete_latest_partition_dim_accid_to_mpi  >> populate_inc_accid_state_assignment_latest_with_mpi
-    populate_inc_accid_state_assignment_latest >> populate_inc_accid_state_assignment_latest_with_mpi
-    create_tmp_dim_accid_to_mpi >> populate_dim_accid_to_mpi >> populate_inc_accid_state_assignment_latest
-    
-    create_inc_accid_state_assignment_latest_by_mpi >> delete_latest_partition_inc_accid_state_assignment_latest_by_mpi >> populate_inc_accid_state_assignment_latest_by_mpi
-    populate_inc_accid_state_assignment_latest >> populate_inc_accid_state_assignment_latest_by_mpi
-
-    create_agg_state_assignment_count >> delete_latest_partition_agg_state_assignment_count >> populate_agg_state_assignment_count
-    
-    
- 
+    create_dim_accid_state_assignment >> populate_dim_accid_state_assignment
+    create_dim_accid_state_assignment_latest >> populate_dim_accid_state_assignment_latest
+    populate_dim_accid_state_assignment >> populate_dim_accid_state_assignment_latest 
