@@ -109,7 +109,7 @@ with DAG(
             mysql_op.execute(dict())
             
     @task(map_index_template="{{ client_name }}", trigger_rule=TriggerRule.NONE_FAILED)
-    def c_60_clear_client_security_groupings_task(approved_suffix, **kwargs):
+    def c_60_insert_client_security_groupings_task(approved_suffix, **kwargs):
         client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'), approved_suffix)
         if not _skip_task(csg_table, client_profile):
             mysql_op = MySqlOperator(
@@ -186,8 +186,10 @@ with DAG(
              map_index_template="{{ client_name }}",
              trigger_rule=TriggerRule.NONE_FAILED)(clear_results_table_by_client_task)(table_name=mpi_table, approved_suffix='')
     extract_client_security_groupings = extract_client_security_groupings_task.expand(approved_suffix=assess_client_frequency)
+    c_60_clear_client_security_groupings = c_60_clear_client_security_groupings_task.expand(approved_suffix=assess_client_frequency)
+    c_60_insert_client_security_groupings = c_60_insert_client_security_groupings_task.expand(approved_suffix=assess_client_frequency)
     extract_mpi_crosswalk = extract_mpi_crosswalk_task()
 
     assess_client_frequency >> reset_client_frequency >> reset_client_frequency_hierarchy >> target_population >>  (clear_results_table_by_client_csg >> extract_client_security_groupings,
-                                                                                   clear_results_table_by_client_mpi_cw >> extract_mpi_crosswalk)
+                                                                                   clear_results_table_by_client_mpi_cw >> extract_mpi_crosswalk >> c_60_clear_client_security_groupings >> c_60_insert_client_security_groupings)
 
