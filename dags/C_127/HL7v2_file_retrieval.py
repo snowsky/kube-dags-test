@@ -8,8 +8,8 @@ import math
 # If we want to utilise ProcessPoolExecutor we need to set
 # AIRFLOW__CORE__EXECUTE_TASKS_NEW_PYTHON_INTERPRETER = true
 from concurrent.futures import as_completed, ThreadPoolExecutor as PoolExecutor
-from C_127.utils import execute_query
-
+#from C_127.utils import execute_query
+from airflow.providers.mysql.hooks.mysql import MySqlHook
 
 DEFAULT_DEST_FILES_DIRECTORY = '/data/biakonzasftp/C-127' #ask eric where he wants the files to go
 DEFAULT_AWS_FOLDER = 'HL7v2In' 
@@ -19,7 +19,7 @@ DEFAULT_PAGE_SIZE = 1000 # Splits aws list_keys into batches
 PARALLEL_TASK_LIMIT = 5  # Change this to large number of prod to remove parallel task limit
 DEFAULT_AWS_TAG = 'CPProcessed'
 DEFAULT_DB_CONN_ID = 'prd-az1-sqlw3-mysql-airflowconnection' 
-
+sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
 
 class BucketDetails:
     def __init__(self, aws_conn_id, s3_hook_kwargs):
@@ -40,7 +40,7 @@ default_args = {
     'owner': 'airflow',
 }
 with DAG(
-    dag_id='HL7v2_file_retrieval',
+    dag_id='HL7v2_file_retrieval_from_S3',
     default_args=default_args,
     schedule=None,
     tags=['C-127'],
@@ -66,7 +66,7 @@ with DAG(
     def _archive_results_from_futures(future_file_dict):
         results, exceptions = _get_results_from_futures(future_file_dict)
         batch_values = ', '.join([f"('{value}')" for value in results])
-        execute_query(f"INSERT INTO archive.processed_files (file_key) VALUES {batch_values}", DEFAULT_DB_CONN_ID)
+        query= f"INSERT INTO archive.processed_files (file_key) VALUES {batch_values}", DEFAULT_DB_CONN_ID
         if exceptions:
             raise AirflowFailException(f'exceptions raised: {exceptions}')
 
@@ -83,8 +83,11 @@ with DAG(
 
     @task(task_id='retrieve_file_from_s3')
     def retrieve_file_from_s3_task(batch_id, params: dict):
-        result = execute_query(f"SELECT file_key FROM temp.file_keys_filtered WHERE batch_id={batch_id};",
-                               DEFAULT_DB_CONN_ID)
+        #result = execute_query(f"SELECT file_key FROM temp.file_keys_filtered WHERE batch_id={batch_id};",
+                               #DEFAULT_DB_CONN_ID)
+        query = f"SELECT file_key FROM temp.file_keys_filtered WHERE batch_id={batch_id};"
+        result = sql_hook.get_records(query)
+        
         key_list = [r[0] for r in result]
         bucket_name = params["aws_bucket"]
         bucket = AWS_BUCKETS[bucket_name]
@@ -109,6 +112,7 @@ with DAG(
 
     @task
     def get_file_keys_task(params):
+        #sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
         bucket_name = params["aws_bucket"]
         aws_folder = params["aws_folder"]
         bucket = AWS_BUCKETS[bucket_name]
@@ -116,15 +120,21 @@ with DAG(
         key_list = s3_hook.list_keys(bucket_name=bucket_name, prefix=aws_folder, page_size=params["page_size"])
         batch_key_list = _split_list_into_batches(key_list, params["max_mapped_tasks"])
         batch_values = ', '.join([f"('{b}', '{ind}')" for ind, a in enumerate(batch_key_list) for b in a])
-        execute_query(f"INSERT INTO temp.file_keys (file_key, batch_id) VALUES {batch_values}", DEFAULT_DB_CONN_ID)
+        query = f"INSERT INTO temp.file_keys (file_key, batch_id) VALUES {batch_values};"
+        sql_hook.run(query)
+
         return [i for i in range(0, len(key_list))]
 
     @task
     def filter_file_keys_task(batch_id, params):
-        archive_result = execute_query(f"SELECT file_key FROM archive.processed_files;", DEFAULT_DB_CONN_ID)
+        #archive_result = execute_query(f"SELECT file_key FROM archive.processed_files;", DEFAULT_DB_CONN_ID)
+        query = f"SELECT file_key FROM archive.processed_files;"
+        archive_result = sql_hook.get_records(query)
         database_key_list = [r[0] for r in archive_result]
 
-        aws_result = execute_query(f"SELECT file_key FROM temp.file_keys WHERE batch_id={batch_id};", DEFAULT_DB_CONN_ID)
+        #aws_result = execute_query(f"SELECT file_key FROM temp.file_keys WHERE batch_id={batch_id};", DEFAULT_DB_CONN_ID)
+        query = f"SELECT file_key FROM temp.file_keys WHERE batch_id={batch_id};"
+        aws_result = sql_hook.get_records(query)
         aws_key_list = [r[0] for r in aws_result]
 
         bucket_name = params["aws_bucket"]
@@ -135,11 +145,14 @@ with DAG(
                      any(tag.get("Key") == params["aws_tag"] for tag in conn.get_object_tagging(Bucket=bucket_name, Key=k).get('TagSet', []))]
         if diff_list:
             batch_values = ', '.join([f"('{key}')" for key in diff_list])
-            execute_query(f"INSERT INTO temp.file_keys_filtered (file_key) VALUES {batch_values}", DEFAULT_DB_CONN_ID)
+            query = f"INSERT INTO temp.file_keys_filtered (file_key) VALUES {batch_values};"
+            #, DEFAULT_DB_CONN_ID)
+            sql_hook.run(query)
         return len(diff_list)
 
     @task
     def prep_temp_tables_task():
+        #sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
         query = f"""
                 DROP TABLE IF EXISTS temp.file_keys;
                 CREATE TABLE temp.file_keys (file_key varchar(255), batch_id int);
@@ -148,7 +161,8 @@ with DAG(
                 CREATE TABLE temp.file_keys_filtered (file_key varchar(255), batch_id int);
                 CREATE INDEX batch_id_filtered_index ON temp.file_keys_filtered (batch_id);
                 """
-        execute_query(query, DEFAULT_DB_CONN_ID)
+        #execute_query(query, DEFAULT_DB_CONN_ID)
+        sql_hook.run(query)
 
     @task
     def split_files_into_batches_task(diff_list_lengths, params):
@@ -164,7 +178,8 @@ with DAG(
                     ) n ON t.file_key = n.file_key
                     SET t.batch_id = ((n.row_num - 1) / {chunk_size});
                     """
-            execute_query(query, DEFAULT_DB_CONN_ID)
+            sql_hook.run(query)
+            #execute_query(query, DEFAULT_DB_CONN_ID)
             return [i for i in range(0, math.ceil(diff_list_length / chunk_size))]
         return []
 
