@@ -113,7 +113,7 @@ with DAG(
             os.remove(input_file_path)
 
     
-
+    @task
     def generate_ids_to_delete_file(max_id_output, params: dict):
         output_files_dir = params['output_files_dir_path']
 
