@@ -15,7 +15,7 @@ from airflow.exceptions import AirflowException
 from lib.operators.konza_trino_operator import KonzaTrinoOperator
 from airflow import DAG
 from airflow.operators.python import ShortCircuitOperator, PythonOperator
-import lib.operators.aks_trino_kubernetes import scale_trino_workers
+from lib.operators.aks_trino_kubernetes import scale_trino_workers
 
 default_args = {
     'owner': 'airflow',
