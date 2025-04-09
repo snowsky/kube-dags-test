@@ -13,10 +13,10 @@ from datetime import datetime, timedelta, timezone
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowException
 from lib.operators.konza_trino_operator import KonzaTrinoOperator
-from datetime import timedelta
 from airflow import DAG
 from airflow.operators.python import ShortCircuitOperator, PythonOperator
-from datetime import datetime
+from airflow.operators.python import PythonOperator
+from lib.operators.aks_trino_kubernetes
 
 default_args = {
     'owner': 'airflow',
@@ -32,7 +32,16 @@ with DAG(
     catchup=True,
     max_active_runs=1,
 ) as dag:
-    
+    scale_up_task = PythonOperator(
+        task_id='scale_trino_worker_deployment',
+        python_callable=scale_trino_workers,
+        op_kwargs={
+            'namespace': 'trino',  # Change to your actual namespace
+            'deployment_name': 'trino-worker',
+            'replicas': 5  # Change to desired number of workers
+        },
+        dag=dag,
+    )
     create_dim_accid_state_assignment = KonzaTrinoOperator(
         task_id='create_dim_accid_state_assignment',
         query="""
