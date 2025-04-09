@@ -1,3 +1,7 @@
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime, timedelta
+from kubernetes import client, config
 def scale_trino_workers(namespace="trino", deployment_name="trino-worker", replicas=3):
     """
     Scale a Kubernetes deployment named 'trino-worker' to a specified number of replicas.
