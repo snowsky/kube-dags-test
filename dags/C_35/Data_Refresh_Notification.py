@@ -108,11 +108,11 @@ def send_email_alert(server_id, data_update_date):
                     ##External
                     #to=f'{client_distribution_list_notifier};ethompson@konza.org',
                     ##Internal Testing - 
-                    to='ethompson@konza.org',
-                    #to='QualityTeam@konza.org;ethompson@konza.org',
+                    #to='ethompson@konza.org',
+                    to='QualityTeam@konza.org;ethompson@konza.org',
                     #to='ethompson@konza.org;mtally@konza.org;cclark@konza.org',
                     subject=f'KONZA has refresh the data on {server_id} (C-35)',
-                    html_content=f"Newly Updated Dataset: {server_id} - With Update Date:  {data_update_date} - Reporting DAG: {dag_name_base}. DAG source file: {dag_file_path_base}. Check the logs for more details."
+                    html_content=f"Newly Updated Dataset: {server_id} - With Update Date:  {data_update_date} - Please cross check with the Weekly Newsletter server refresh dates - Reporting DAG: {dag_name_base}. DAG source file: {dag_file_path_base}. Check the logs for more details."
                 )
 
 latest_records = get_latest_records()
