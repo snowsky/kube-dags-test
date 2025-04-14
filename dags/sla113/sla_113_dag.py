@@ -149,11 +149,15 @@ with DAG(
 
     @task
     def delete_ids_from_tbl(ids_to_delete):
-        ids_to_delete_str = f"({','.join(str(n) for n in ids_to_delete )})"
-        mysql_hook = MySqlHook(mysql_conn_id=CONNECTION_NAME)
-        sql = f"DELETE FROM {TARGET_TABLE} WHERE id IN {ids_to_delete_str};"
-        mysql_hook.run(sql)
-        logging.info(f'Deleted ids: {ids_to_delete_str}')
+        def delete_ids_in_batches(ids_to_delete, batch_size=500):
+            for i in range(0, len(ids_to_delete), batch_size):
+                batch = ids_to_delete[i:i + batch_size]
+                delete_statement = f"DELETE FROM {TARGET_TABLE} WHERE id IN ({','.join(map(str, batch))})"
+                mysql_hook = MySqlHook(mysql_conn_id=CONNECTION_NAME)
+                mysql_hook.run(delete_statement)
+                logging.info(f'Deleted ids: {batch}')
+        delete_ids_in_batches(ids_to_delete)
+        logging.info(f'Deleted ids: {ids_to_delete}')
 
     generate_ids_to_delete_file_task = generate_ids_to_delete_file(max_id_output=max_id.output, params=dag.params)
     get_ids_to_delete_task = get_ids_to_delete(generate_ids_to_delete_file_task)
