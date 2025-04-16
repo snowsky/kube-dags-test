@@ -71,7 +71,7 @@ def csg_alert(**kwargs):
             given_timestamp = datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
             # Check if start_time is 5 days ago
             five_days_ago = datetime.now() - timedelta(days=5)
-            is_start_time_5_days_ago = start_time.date() == five_days_ago.date()
+            is_start_time_5_days_ago = given_timestamp.date() == five_days_ago.date()
                 
             # Check if end_time length is less than 6 or is null
             is_end_time_valid = end_time is None or len(str(end_time)) < 6
@@ -128,7 +128,7 @@ def csg_alert(**kwargs):
             given_timestamp = datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
             # Check if start_time is 5 days ago
             five_days_ago = datetime.now() - timedelta(days=5)
-            is_start_time_5_days_ago = start_time.date() == five_days_ago.date()
+            is_start_time_5_days_ago = given_timestamp.date() == five_days_ago.date()
                 
             # Check if end_time length is less than 6 or is null
             is_end_time_valid = end_time is None or len(str(end_time)) < 6
