@@ -177,7 +177,7 @@ def send_email_alert(CSG_or_CSGA_indicator,modified_time,client_id,c60_populatio
         subject=f'Newly Modified CSG in Category: {CSG_or_CSGA_indicator} for Client ID {client_id} (C-181)',
         html_content=f"Newly Modified CSG in Category: {CSG_or_CSGA_indicator} with timestamp {modified_time} - Client Identifier/Folder Name {client_id} - Based on the C-60 project adherence, here is the population count {c60_populationCount} based on the last reported count timestamp of {c60_modified_time} Reporting DAG: {dag_name_base}. If the timestamps do not align within the duration of the population generation, make sure your population definition requests a C-60 table update.  DAG source file: {dag_file_path_base}. Check the logs for more details."
     )
-def send_email_error_alert(CSG_or_CSGA_indicator,started_time,client_id):
+def send_email_error_alert(started_time,client_id):
     send_email(
         to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
         #to='ethompson@konza.org',
