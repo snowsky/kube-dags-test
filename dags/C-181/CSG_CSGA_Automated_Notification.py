@@ -58,6 +58,33 @@ def csg_alert(**kwargs):
         client_reference_folder = row['client_reference_folder']
         logging.info(f'Processing connection ID: {client_md5} for Client Folder Reference {client_reference_folder}')
         try:
+            db_query = """
+                    SELECT table_name, start_time, end_time
+                    FROM clientresults.etl_status
+                    WHERE md5(table_name) = '379bee1ac49a5955fa63ca59b3e795e9'
+                    ORDER BY id DESC
+                    LIMIT 1;
+            """
+            df_etl_status = sql_hook.get_pandas_df(db_query)
+            
+            if df_etl_status.empty:
+                return False
+            
+            # Retrieve the start_time and end_time from the query result
+            start_time = df_etl_status['start_time'].iloc[0]
+            end_time = df_etl_status['end_time'].iloc[0]
+            given_timestamp = datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
+            # Check if start_time is 5 days ago
+            five_days_ago = datetime.now() - timedelta(days=5)
+            is_start_time_5_days_ago = start_time.date() == five_days_ago.date()
+                
+            # Check if end_time length is less than 6 or is null
+            is_end_time_valid = end_time is None or len(str(end_time)) < 6
+            
+            # Return True if both conditions are met
+            if is_start_time_5_days_ago and is_end_time_valid:
+                send_email_error_alert(CSG_or_CSGA_indicator,started_time,client_id)
+            
             # Check against database entry in production W3 CSGA
             db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings_approved  WHERE md5(Client) = '{client_md5}' LIMIT 1"
             dfCurrentCSGA = sql_hook.get_pandas_df(db_query)
@@ -84,6 +111,8 @@ def csg_alert(**kwargs):
                 # Update the database with the new modified date
                 update_query = f"REPLACE INTO clientresults.csg_modification_table (Client,CSG_or_CSGA, modified_date,client_id_md5) VALUES ('{Client}','{CSG_or_CSGA}',  '{modified_time}', '{md5}')"
                 sql_hook.run(update_query)
+            
+
         except Exception as e:
             tb = traceback.format_exc()
             logging.error(f'Error Occurred: {e}\nTraceback:\n{tb}')
@@ -91,6 +120,33 @@ def csg_alert(**kwargs):
 
 
         try:
+            db_query = """
+                    SELECT table_name, start_time, end_time
+                    FROM clientresults.etl_status
+                    WHERE md5(table_name) = '379bee1ac49a5955fa63ca59b3e795e9'
+                    ORDER BY id DESC
+                    LIMIT 1;
+            """
+            df_etl_status = sql_hook.get_pandas_df(db_query)
+            
+            if df_etl_status.empty:
+                return False
+            
+            # Retrieve the start_time and end_time from the query result
+            start_time = df_etl_status['start_time'].iloc[0]
+            end_time = df_etl_status['end_time'].iloc[0]
+            given_timestamp = datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
+            # Check if start_time is 5 days ago
+            five_days_ago = datetime.now() - timedelta(days=5)
+            is_start_time_5_days_ago = start_time.date() == five_days_ago.date()
+                
+            # Check if end_time length is less than 6 or is null
+            is_end_time_valid = end_time is None or len(str(end_time)) < 6
+            
+            # Return True if both conditions are met
+            if is_start_time_5_days_ago and is_end_time_valid:
+                send_email_error_alert(CSG_or_CSGA_indicator,started_time,client_id)
+            
             # Check against database entry in production W3 CSGA
             db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings  WHERE md5(Client) = '{client_md5}' LIMIT 1"
             dfCurrentCSG = sql_hook.get_pandas_df(db_query)
@@ -130,6 +186,13 @@ def send_email_alert(CSG_or_CSGA_indicator,modified_time,client_id,c60_populatio
         #to='ethompson@konza.org',
         subject=f'Newly Modified CSG in Category: {CSG_or_CSGA_indicator} for Client ID {client_id} (C-181)',
         html_content=f"Newly Modified CSG in Category: {CSG_or_CSGA_indicator} with timestamp {modified_time} - Client Identifier/Folder Name {client_id} - Based on the C-60 project adherence, here is the population count {c60_populationCount} based on the last reported count timestamp of {c60_modified_time} Reporting DAG: {dag_name_base}. If the timestamps do not align within the duration of the population generation, make sure your population definition requests a C-60 table update.  DAG source file: {dag_file_path_base}. Check the logs for more details."
+    )
+def send_email_error_alert(CSG_or_CSGA_indicator,started_time,client_id):
+    send_email(
+        to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
+        #to='ethompson@konza.org',
+        subject=f'Client Security Group Alert: 5 Day Overdue Alert in Category: {CSG_or_CSGA_indicator} for Client ID {client_id} (C-181)',
+        html_content=f"Overdue Population Completion Alert, Either the population generation script has failed to generate and needs attention or it is running too long and needs maintenance/refactoring - CSG in Category: {CSG_or_CSGA_indicator} with timestamp {started_time} - Client Identifier/Folder Name {client_id} - Reporting DAG: {dag_name_base}. If the timestamps do not align within the duration of the population generation, make sure your population definition requests a C-60 table update.  DAG source file: {dag_file_path_base}. Check the logs for more details."
     )
 
 csg_alert = csg_alert()
