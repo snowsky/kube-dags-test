@@ -58,22 +58,12 @@ def csg_alert(**kwargs):
         client_reference_folder = row['client_reference_folder']
         logging.info(f'Processing connection ID: {client_md5} for Client Folder Reference {client_reference_folder}')
         try:
-            db_query = f"""
-            SELECT table_name, start_time, end_time
-            FROM clientresults.etl_status
-            WHERE md5(table_name) = '{client_md5}'
-            ORDER BY id DESC
-            LIMIT 1;
-            """
-            logging.info(f'Query: {db_query}')
-            df_etl_status = sql_hook.get_pandas_df(db_query)
-        
-            if df_etl_status.empty:
-                df_etl_status = sql_hook_old.get_pandas_df(db_query)
-        
-            if df_etl_status.empty:
-                return False
-
+            db_query = f"SELECT table_name, start_time, end_time FROM clientresults.etl_status WHERE md5(table_name) = '{client_md5}' ORDER BY id DESC  LIMIT 1;"
+            logging.info(f'Query: {db_query}')
+         df_etl_status = sql_hook.get_pandas_df(db_query)
+            
+            if df_etl_status.empty:
+            df_etl_status = sql_hook_old.get_pandas_df(db_query)
             
             # Retrieve the start_time and end_time from the query result
             start_time = df_etl_status['start_time'].iloc[0]
@@ -116,7 +106,7 @@ def csg_alert(**kwargs):
                 # Update the database with the new modified date
                 update_query = f"REPLACE INTO clientresults.csg_modification_table (Client,CSG_or_CSGA, modified_date,client_id_md5) VALUES ('{Client}','{CSG_or_CSGA}',  '{modified_time}', '{md5}')"
                 sql_hook.run(update_query)
-            
+         
 
         except Exception as e:
             tb = traceback.format_exc()
@@ -127,10 +117,10 @@ def csg_alert(**kwargs):
         try:
             db_query = f"SELECT table_name, start_time, end_time FROM clientresults.etl_status WHERE md5(table_name) = '{client_md5}' ORDER BY id DESC  LIMIT 1;"
             logging.info(f'Query: {db_query}')
-            df_etl_status = sql_hook.get_pandas_df(db_query)
+         df_etl_status = sql_hook.get_pandas_df(db_query)
             
             if df_etl_status.empty:
-                df_etl_status = sql_hook_old.get_pandas_df(db_query)
+            df_etl_status = sql_hook_old.get_pandas_df(db_query)
             
             # Retrieve the start_time and end_time from the query result
             start_time = df_etl_status['start_time'].iloc[0]
