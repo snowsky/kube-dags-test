@@ -68,6 +68,7 @@ def crawler_reference_alert(**kwargs):
 
         try:
             with sftp_hook.get_conn() as sftp_client:
+                sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
                 files = sftp_client.listdir_attr()
                 csv_files = [file for file in files if file.filename.endswith('.csv')]
                 logging.info(f'CSV files found: {csv_files}')
