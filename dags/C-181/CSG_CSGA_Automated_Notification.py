@@ -58,17 +58,11 @@ def csg_alert(**kwargs):
         client_reference_folder = row['client_reference_folder']
         logging.info(f'Processing connection ID: {client_md5} for Client Folder Reference {client_reference_folder}')
         try:
-            db_query = """
-                    SELECT table_name, start_time, end_time
-                    FROM clientresults.etl_status
-                    WHERE md5(table_name) = '379bee1ac49a5955fa63ca59b3e795e9'
-                    ORDER BY id DESC
-                    LIMIT 1;
-            """
+            db_query = f"SELECT table_name, start_time, end_time FROM clientresults.etl_status WHERE md5(table_name) = '{client_md5}' ORDER BY id DESC  LIMIT 1;"
             df_etl_status = sql_hook.get_pandas_df(db_query)
             
             if df_etl_status.empty:
-                return False
+                df_etl_status = sql_hook_old.get_pandas_df(db_query)
             
             # Retrieve the start_time and end_time from the query result
             start_time = df_etl_status['start_time'].iloc[0]
@@ -120,17 +114,11 @@ def csg_alert(**kwargs):
 
 
         try:
-            db_query = """
-                    SELECT table_name, start_time, end_time
-                    FROM clientresults.etl_status
-                    WHERE md5(table_name) = '379bee1ac49a5955fa63ca59b3e795e9'
-                    ORDER BY id DESC
-                    LIMIT 1;
-            """
+            db_query = f"SELECT table_name, start_time, end_time FROM clientresults.etl_status WHERE md5(table_name) = '{client_md5}' ORDER BY id DESC  LIMIT 1;"
             df_etl_status = sql_hook.get_pandas_df(db_query)
             
             if df_etl_status.empty:
-                return False
+                df_etl_status = sql_hook_old.get_pandas_df(db_query)
             
             # Retrieve the start_time and end_time from the query result
             start_time = df_etl_status['start_time'].iloc[0]
