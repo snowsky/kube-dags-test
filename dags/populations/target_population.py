@@ -22,6 +22,12 @@ with DAG(
 ) as dag:
 
     @task(map_index_template="{{ client_name }}")
+    def assess_client_ending_db_task(**kwargs):
+        _map_index(kwargs['dag_run'].conf.get('client_name'))
+        client_ending_db = kwargs['dag_run'].conf.get('ending_db')
+        return client_ending_db
+        
+    @task(map_index_template="{{ client_name }}")
     def assess_client_frequency_task(**kwargs):
         _map_index(kwargs['dag_run'].conf.get('client_name'))
         client_frequency = kwargs['dag_run'].conf.get('frequency')
@@ -30,7 +36,8 @@ with DAG(
 
     @task(map_index_template="{{ client_name }}")
     def reset_client_frequency_task(**kwargs):
-        client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'))
+        #client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'))
+        client_profile = _get_client_profile(kwargs['dag_run'].conf)
         client_frequency = kwargs['dag_run'].conf.get('frequency')
         if client_frequency == 'Approved' or 'Revised':
 
@@ -50,8 +57,10 @@ with DAG(
 
     @task(map_index_template="{{ client_name }}")
     def reset_client_frequency_hierarchy_task(**kwargs):
-        client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'))
+        #client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'))
+        client_profile = _get_client_profile(kwargs['dag_run'].conf)
         client_frequency = kwargs['dag_run'].conf.get('frequency')
+        #client_frequency = client_profile.frequency
         if client_frequency == 'Approved' or 'Revised':
 
             mysql_op = MySqlOperator(
@@ -70,7 +79,8 @@ with DAG(
             
     @task(map_index_template="{{ client_name }}", trigger_rule=TriggerRule.NONE_FAILED)
     def process_population_data_task(**kwargs):
-        client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'))
+        #client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'))
+        client_profile = _get_client_profile(kwargs['dag_run'].conf)
         client_profile.process_population_data(kwargs['dag_run'].conf.get('facility_ids'))
         import logging
         logging.info(kwargs['dag_run'].conf.get('facility_ids'))
@@ -78,15 +88,18 @@ with DAG(
 
     @task(map_index_template="{{ client_name }}", trigger_rule=TriggerRule.NONE_FAILED)
     def extract_client_security_groupings_task(approved_suffix, **kwargs):
-        client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'), approved_suffix)
+        #client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'), approved_suffix)
+        client_profile = _get_client_profile(kwargs['dag_run'].conf)
         if not _skip_task(csg_table, client_profile):
             mysql_op = MySqlOperator(
                 task_id='extract_client_security_groupings',
                 mysql_conn_id=client_profile.conn_id,
                 sql=f"""
-                insert into clientresults.client_security_groupings{approved_suffix} (`Client`, MPI, Provider_lname, server_id)
-                select '{client_profile.client_name}', TP.`MPI`, TP.`provider_first_name`,'{client_profile.ending_db}' from {client_profile.schema}.{client_profile.target_table} TP
-                group by MPI, provider_first_name;
+                insert into clientresults.client_security_groupings{approved_suffix} (`Client`, MPI, server_id)
+                select '{client_profile.client_name}', TP.`MPI`,'{client_profile.ending_db}' from {client_profile.schema}.{client_profile.target_table} TP
+                left join clientresults.opt_out_list OPT on TP.MPI = OPT.MPI
+                where OPT.MPI is null and TP.MPI <> 'nan'
+                group by MPI;
                 """,
                 dag=dag
             )
@@ -124,8 +137,40 @@ with DAG(
             mysql_op.execute(dict())
             
     @task(map_index_template="{{ client_name }}", trigger_rule=TriggerRule.NONE_FAILED)
+    def c_60_clear_client_security_groupings_task(approved_suffix, **kwargs):
+        client_profile = _get_client_profile(kwargs['dag_run'].conf)
+        if not _skip_task(csg_table, client_profile):
+            mysql_op = MySqlOperator(
+                task_id='c_60_clear_client_security_groupings',
+                mysql_conn_id=client_profile.conn_id,
+                sql=f"""
+                delete from clientresults.client_security_groupings{approved_suffix}_running_counts 
+                where `Client` = '{client_profile.client_name}'
+                and `server_id` = '{client_profile.ending_db}'
+                """,
+                dag=dag
+            )
+            mysql_op.execute(dict())
+            
+    @task(map_index_template="{{ client_name }}")
+    def c_60_insert_client_security_groupings_task(approved_suffix, **kwargs):
+        client_profile = _get_client_profile(kwargs['dag_run'].conf)
+        if not _skip_task(csg_table, client_profile):
+            mysql_op = MySqlOperator(
+                task_id='c_60_insert_client_security_groupings',
+                mysql_conn_id=client_profile.conn_id,
+                sql=f"""
+                insert into clientresults.client_security_groupings{approved_suffix}_running_counts  (`Client`, count_distinct_mpi, server_id)
+                select '{client_profile.client_name}', COUNT(DISTINCT(CSG.`MPI`)), '{client_profile.ending_db}' from clientresults.client_security_groupings{approved_suffix} CSG where Client =  '{client_profile.client_name}'
+                """,
+                dag=dag
+            )
+            mysql_op.execute(dict())
+    
+    @task(map_index_template="{{ client_name }}", trigger_rule=TriggerRule.NONE_FAILED)
     def extract_mpi_crosswalk_task(**kwargs):
-        client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'))
+        #client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'))
+        client_profile = _get_client_profile(kwargs['dag_run'].conf)
         if not _skip_task(mpi_table, client_profile):
             mysql_op = MySqlOperator(
                 task_id='extract_mpi_crosswalk',
@@ -133,15 +178,16 @@ with DAG(
                 sql=f"""
                 insert into clientresults.client_extract_mpi_crosswalk (`Client`, MPI, server_id,36_month_visit_reference_accid,ins_member_id,client_identifier,client_identifier_2)
                 select '{client_profile.client_name}', TP.`MPI`,'{client_profile.ending_db}', '', ins_member_id,client_identifier,client_identifier_2 from {client_profile.schema}.{client_profile.target_table} TP
-                #left join temp.pa_thirtysix_month_lookback TML on TP.MPI = TML.MPI
-                where TP.MPI is not null and length(TP.MPI) > 1;
+                left join clientresults.opt_out_list OPT on TP.MPI = OPT.MPI
+                where TP.MPI is not null AND OPT.MPI is null and TP.MPI <> 'nan' and length(TP.MPI) > 1;
                 """,
                 dag=dag
             )
             mysql_op.execute(dict())
 
     def clear_results_table_by_client_task(table_name, approved_suffix, **kwargs):
-        client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'), approved_suffix)
+        #client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'), approved_suffix)
+        client_profile = _get_client_profile(kwargs['dag_run'].conf)
         if not _skip_task(table_name, client_profile):
             mysql_op = MySqlOperator(
                 task_id='clear_results_table',
@@ -154,15 +200,25 @@ with DAG(
                 dag=dag
             )
             mysql_op.execute(dict())
-
-    def _get_client_profile_and_map_index(client_name, index_suffix=''):
-        _map_index(client_name + index_suffix)
-        client_profile = get_client_profile(client_name)
-        return client_profile
-
+    
     def _map_index(index):
         context = get_current_context()
         context["client_name"] = index
+    
+    def _get_client_profile(conf):
+        folder_name = conf.get('folder_name')
+        _map_index(folder_name)
+        ending_db = conf.get('ending_db')
+        frequency = conf.get('frequency')
+        facility_ids = conf.get('facility_ids')
+        airflow_client_profile = conf.get('airflow_client_profile')
+        client_profile = get_client_profile(folder_name, ending_db, frequency, facility_ids, airflow_client_profile)
+        return client_profile   
+    
+    #def _get_client_profile_and_map_index(client_name, index_suffix=''):
+    #    _map_index(client_name + index_suffix)
+    #    client_profile = get_client_profile(folder_name, ending_db, frequency, facility_ids, airflow_client_profile)
+    #    return client_profile
 
     def _skip_task(table_name, client_profile):
         if table_name == csg_table:
@@ -173,6 +229,8 @@ with DAG(
                 return False
         raise AirflowSkipException
 
+
+    assess_client_ending_db = assess_client_ending_db_task()
     assess_client_frequency = assess_client_frequency_task()
     reset_client_frequency = reset_client_frequency_task()
     reset_client_frequency_hierarchy = reset_client_frequency_hierarchy_task()
@@ -190,6 +248,6 @@ with DAG(
     c_60_insert_client_security_groupings = c_60_insert_client_security_groupings_task.expand(approved_suffix=assess_client_frequency)
     extract_mpi_crosswalk = extract_mpi_crosswalk_task()
 
-    assess_client_frequency >> reset_client_frequency >> reset_client_frequency_hierarchy >> target_population >>  (clear_results_table_by_client_csg >> extract_client_security_groupings,
-                                                                                   clear_results_table_by_client_mpi_cw >> extract_mpi_crosswalk >> c_60_clear_client_security_groupings >> c_60_insert_client_security_groupings)
+    assess_client_frequency >> reset_client_frequency >> reset_client_frequency_hierarchy >> target_population >>  (clear_results_table_by_client_csg >> extract_client_security_groupings, clear_results_table_by_client_mpi_cw >> extract_mpi_crosswalk) >> c_60_clear_client_security_groupings >> c_60_insert_client_security_groupings
+
 

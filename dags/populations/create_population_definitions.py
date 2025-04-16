@@ -6,6 +6,7 @@ from airflow.utils.dates import days_ago
 from airflow.decorators import task
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from datetime import datetime
+import logging
 #from lib.operators.mysql.konza_returning_mysql_operator import KonzaReturningMySqlOperator
 
 from populations.common import CONNECTION_NAME
@@ -40,7 +41,8 @@ with DAG(
         trigger = TriggerDagRunOperator(
             task_id=f"target_pop_{client_name.replace(' ', '_')}",
             trigger_dag_id='target_population',
-            conf={'client_name': client_name, 'frequency': row[1], 'facility_ids': row[2]}, 
+            ##conf={'client_name': client_name, 'frequency': row[1], 'facility_ids': row[2]}, 
+            conf={'client_name': row[0], 'folder_name': row[0], 'ending_db': row[1], 'frequency': row[2], 'facility_ids': row[3], 'airflow_client_profile': row[4]},
 
             dag=dag,
         )
@@ -51,10 +53,9 @@ with DAG(
         task_id='clients_to_process',
         mysql_conn_id=CONNECTION_NAME,
         sql=f"""
-        SELECT folder_name, frequency, facility_ids
+        SELECT folder_name, ending_db, frequency, facility_ids, airflow_client_profile
         FROM _dashboard_requests.clients_to_process
-
-        WHERE folder_name is not null and active = 1 and airflow = 1
+        WHERE folder_name is not null and active = 1 and airflow = 1 
         AND (
             frequency = ''
         )
