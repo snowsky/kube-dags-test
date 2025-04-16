@@ -82,7 +82,7 @@ def crawler_reference_alert(**kwargs):
                     dfFileMod = sql_hook.get_pandas_df(db_query)
                     max_df_file_mod = str(dfFileMod['modified_date'][0])
                     logging.info(f'Checking if file with modified time: {modified_time} seemed greater than the DB modified time: {max_df_file_mod}')
-                    if dfFileMod.empty or modified_time > dfFileMod['modified_date'][0]:
+                    if dfFileMod.empty or dfFileMod['modified_date'][0] or modified_time > dfFileMod['modified_date'][0]:
                         logging.info(f'File with modified time: {modified_time} seemed greater than the DB modified time: {max_df_file_mod}')
                         send_email_alert(file.filename, modified_time,client_reference_folder)
                         
