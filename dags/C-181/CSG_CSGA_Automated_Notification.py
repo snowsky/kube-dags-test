@@ -182,7 +182,7 @@ def send_email_error_alert(started_time,client_id):
         to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
         #to='ethompson@konza.org',
         subject=f'Client Security Group Alert: 5 Day Overdue Alert for Client ID {client_id} (C-181)',
-        html_content=f"Overdue Population Completion Alert, Either the population generation script has failed to generate and needs attention or it is running too long and needs maintenance/refactoring - CSG in Category: {CSG_or_CSGA_indicator} with timestamp {started_time} - Client Identifier/Folder Name {client_id} - Reporting DAG: {dag_name_base}. If the timestamps do not align within the duration of the population generation, make sure your population definition requests a C-60 table update.  DAG source file: {dag_file_path_base}. Check the logs for more details."
+        html_content=f"Overdue Population Completion Alert, Either the population generation script has failed to generate and needs attention or it is running too long and needs maintenance/refactoring - Starting timestamp {started_time} - Client Identifier/Folder Name {client_id} - Reporting DAG: {dag_name_base}. If the timestamps do not align within the duration of the population generation, make sure your population definition requests a C-60 table update.  DAG source file: {dag_file_path_base}. Check the logs for more details."
     )
 
 csg_alert = csg_alert()
