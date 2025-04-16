@@ -78,7 +78,7 @@ def csg_alert(**kwargs):
             
             # Return True if both conditions are met
             if is_start_time_5_days_ago and is_end_time_valid:
-                send_email_error_alert(started_time,client_id)
+                send_email_error_alert(start_time,client_reference_folder)
             
             # Check against database entry in production W3 CSGA
             db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings_approved  WHERE md5(Client) = '{client_md5}' LIMIT 1"
@@ -135,7 +135,7 @@ def csg_alert(**kwargs):
             
             # Return True if both conditions are met
             if is_start_time_5_days_ago and is_end_time_valid:
-                send_email_error_alert(started_time,client_id)
+                send_email_error_alert(start_time,client_reference_folder)
             
             # Check against database entry in production W3 CSGA
             db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings  WHERE md5(Client) = '{client_md5}' LIMIT 1"
