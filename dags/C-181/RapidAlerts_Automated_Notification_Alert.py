@@ -89,10 +89,12 @@ def crawler_reference_alert(**kwargs):
                         
                         # Update the database with the new modified date
                         update_query = f"REPLACE INTO clientresults.file_modification_table (filename, modified_date,client_id_md5) VALUES ('{file.filename}', '{modified_time}', '{connection_id_md5}')"
+                        logging.info(f'Query: {update_query}')
                         sql_hook.run(update_query)
         except Exception as e:
             logging.error(f'Error Occurred: {e}')
 def send_email_alert(filename, modified_time,client_id):
+    sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
     # Check against database entry
     db_query = f"SELECT id as Client_Numeric_ID FROM _dashboard_requests.clients_to_process WHERE folder_name = '{client_id}'"
     logging.info(f'Query: {db_query}')
