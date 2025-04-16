@@ -63,7 +63,7 @@ def csg_alert(**kwargs):
             df_etl_status = sql_hook.get_pandas_df(db_query)
             
             if df_etl_status.empty:
-            df_etl_status = sql_hook_old.get_pandas_df(db_query)
+                df_etl_status = sql_hook_old.get_pandas_df(db_query)
             
             # Retrieve the start_time and end_time from the query result
             start_time = df_etl_status['start_time'].iloc[0]
@@ -120,7 +120,7 @@ def csg_alert(**kwargs):
             df_etl_status = sql_hook.get_pandas_df(db_query)
             
             if df_etl_status.empty:
-            df_etl_status = sql_hook_old.get_pandas_df(db_query)
+                df_etl_status = sql_hook_old.get_pandas_df(db_query)
             
             # Retrieve the start_time and end_time from the query result
             start_time = df_etl_status['start_time'].iloc[0]
