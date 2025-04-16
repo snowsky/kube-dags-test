@@ -58,7 +58,7 @@ def csg_alert(**kwargs):
         client_reference_folder = row['client_reference_folder']
         logging.info(f'Processing connection ID: {client_md5} for Client Folder Reference {client_reference_folder}')
         try:
-            db_query = f"SELECT table_name, start_time, end_time FROM clientresults.etl_status WHERE md5(table_name) = '{client_md5}' ORDER BY id DESC  LIMIT 1;"
+            db_query = f"""SELECT table_name, start_time, end_time FROM clientresults.etl_status WHERE md5(table_name) = '{client_md5}' ORDER BY id DESC  LIMIT 1;"""
             logging.info(f'Query: {db_query}')
             df_etl_status = sql_hook.get_pandas_df(db_query)
             
