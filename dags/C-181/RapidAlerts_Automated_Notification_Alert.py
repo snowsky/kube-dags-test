@@ -89,7 +89,7 @@ def crawler_reference_alert(**kwargs):
                         send_email_alert(file.filename, modified_time,client_reference_folder)
                         
                         # Update the database with the new modified date
-                        update_query = f"REPLACE INTO clientresults.file_modification_table (filename, modified_date,client_id_md5) VALUES ('{file.filename}', '{modified_time}', '{connection_id_md5}')"
+                        update_query = f"INSERT INTO clientresults.file_modification_table (filename, modified_date,client_id_md5) VALUES ('{file.filename}', '{modified_time}', '{connection_id_md5}') ON DUPLICATE KEY UPDATE modified_date = VALUES(modified_date), client_id_md5 = VALUES(client_id_md5) "
                         logging.info(f'Query: {update_query}')
                         sql_hook.run(update_query)
                     if dfFileMod['modified_date'][0] is None:
@@ -97,7 +97,7 @@ def crawler_reference_alert(**kwargs):
                         send_email_alert(file.filename, modified_time,client_reference_folder)
                         
                         # Update the database with the new modified date
-                        update_query = f"REPLACE INTO clientresults.file_modification_table (filename, modified_date,client_id_md5) VALUES ('{file.filename}', '{modified_time}', '{connection_id_md5}')"
+                        update_query = f"INSERT INTO clientresults.file_modification_table (filename, modified_date,client_id_md5) VALUES ('{file.filename}', '{modified_time}', '{connection_id_md5}') ON DUPLICATE KEY UPDATE modified_date = VALUES(modified_date), client_id_md5 = VALUES(client_id_md5) "
                         logging.info(f'Query: {update_query}')
                         sql_hook.run(update_query)
                     if modified_time > dfFileMod['modified_date'][0]:
@@ -105,7 +105,7 @@ def crawler_reference_alert(**kwargs):
                         send_email_alert(file.filename, modified_time,client_reference_folder)
                         
                         # Update the database with the new modified date
-                        update_query = f"REPLACE INTO clientresults.file_modification_table (filename, modified_date,client_id_md5) VALUES ('{file.filename}', '{modified_time}', '{connection_id_md5}')"
+                        update_query = f"INSERT INTO clientresults.file_modification_table (filename, modified_date,client_id_md5) VALUES ('{file.filename}', '{modified_time}', '{connection_id_md5}') ON DUPLICATE KEY UPDATE modified_date = VALUES(modified_date), client_id_md5 = VALUES(client_id_md5) "
                         logging.info(f'Query: {update_query}')
                         sql_hook.run(update_query)
         except Exception as e:
