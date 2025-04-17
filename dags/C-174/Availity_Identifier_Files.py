@@ -39,7 +39,7 @@ default_args = {
     'owner': 'airflow',
 }
 with DAG(
-    dag_id='Availity_Identifier_Delivery - C-174',
+    dag_id='Availity_Identifier_Delivery',
     default_args=default_args,
     schedule=None,
     tags=['C-174'],
