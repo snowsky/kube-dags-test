@@ -85,15 +85,15 @@ def crawler_reference_alert(**kwargs):
                     max_df_file_mod = str(dfFileMod['modified_date'][0])
                     logging.info(f'Checking if file with modified time: {modified_time} seemed greater than the DB modified time: {max_df_file_mod}')
                     if dfFileMod.empty:
-                        logging.info(f'dfFileMod is Empty')
+                        logging.info(f'dfFileMod is Empty - emailing as if a new file was received')
                         send_email_alert(file.filename, modified_time,client_reference_folder)
                         
                         # Update the database with the new modified date
                         update_query = f"REPLACE INTO clientresults.file_modification_table (filename, modified_date,client_id_md5) VALUES ('{file.filename}', '{modified_time}', '{connection_id_md5}')"
                         logging.info(f'Query: {update_query}')
                         sql_hook.run(update_query)
-                    if dfFileMod['modified_date'][0]:
-                        logging.info(f'Logic Returned False on modified date being available at zero index')
+                    if dfFileMod['modified_date'][0] is None:
+                        logging.info(f'Logic Returned False on modified date being available at zero index: {max_df_file_mod}  - emailing as if a new file was received')
                         send_email_alert(file.filename, modified_time,client_reference_folder)
                         
                         # Update the database with the new modified date
