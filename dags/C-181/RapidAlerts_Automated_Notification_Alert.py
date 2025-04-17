@@ -128,41 +128,34 @@ def send_email_alert(filename, modified_time,client_id):
         #to='ethompson@konza.org;tlamond@konza.org;slewis@konza.org;cclark@konza.org',
         subject=f'KONZA has received a new file to the SFTP for Client ID {client_id} (C-181)',
         #html_content=f"Newly Modified or New CSV File: {filename} - Client Identifier/Folder Name:  {client_id} - Reporting DAG: {dag_name_base}. DAG source file: {dag_file_path_base}. Check the logs for more details."
-        
-send_email(
-    ##External
-    #to=f'{client_distribution_list_notifier};ethompson@konza.org',
-    ##Internal Testing - RapidAlerts_PM_C-181@konza.org (as of 3/26/2025)
-    to='ethompson@konza.org',
-    #to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
-    #to='ethompson@konza.org;tlamond@konza.org;slewis@konza.org;cclark@konza.org',
-    subject=f'KONZA has received a new file to the SFTP for Client ID {client_id} (C-181)',
-    html_content=f"""
-    <html>
-        <body>
-            <table border="1">
-                <tr>
-                    <th>Newly Modified or New CSV File</th>
-                    <td>{filename}</td>
-                </tr>
-                <tr>
-                    <th>Client Identifier/Folder Name</th>
-                    <td>{client_id}</td>
-                </tr>
-                <tr>
-                    <th>Reporting DAG</th>
-                    <td>{dag_name_base}</td>
-                </tr>
-                <tr>
-                    <th>DAG source file</th>
-                    <td>{dag_file_path_base}</td>
-                </tr>
-            </table>
-            <p>Check the logs for more details.</p>
-        </body>
-    </html>
-    """
-)
+        html_content=f"""
+        <html>
+            <body>
+                <table border="1">
+                    <tr>
+                        <th>Newly Modified or New CSV File</th>
+                        <td>{filename}</td>
+                    </tr>
+                    <tr>
+                        <th>Client Identifier/Folder Name</th>
+                        <td>{client_id}</td>
+                    </tr>
+                    <tr>
+                        <th>Reporting DAG</th>
+                        <td>{dag_name_base}</td>
+                    </tr>
+                    <tr>
+                        <th>DAG source file</th>
+                        <td>{dag_file_path_base}</td>
+                    </tr>
+                </table>
+                <p>Check the logs for more details.</p>
+            </body>
+        </html>
+        """
+    )
+
+
 
     )
     logging.info(f'Sleeping 90 seconds per email - May need to raise rate limiter prior to removing this limiter')
