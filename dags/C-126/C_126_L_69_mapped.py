@@ -13,7 +13,11 @@ import math
 from concurrent.futures import as_completed, ThreadPoolExecutor as PoolExecutor
 
 DEFAULT_SOURCE_FILES_DIRECTORY = '/source-biakonzasftp/C-126/L-69/'#Dev'/data/biakonzasftp/C-126/L-69/source/' 
+#DEFAULT_SOURCE_FILES_DIRECTORY = '/data/biakonzasftp/C-126/L-69/'#Dev'/data/biakonzasftp/C-126/L-69/source/' 
+
 DEFAULT_DEST_FILES_DIRECTORY = '/source-biakonzasftp/C-194/archive_L-69/' #dev'/data/biakonzasftp/C-126/L-69/dest/'
+#DEFAULT_DEST_FILES_DIRECTORY = '/data/biakonzasftp/C-194/archive_L-69/' #dev'/data/biakonzasftp/C-126/L-69/dest/'
+
 DEFAULT_MAX_POOL_WORKERS = 5
 DEFAULT_MAX_TASKS = 200
 PARALLEL_TASK_LIMIT = 5  # Change this to large number of prod to remove parallel task limit
@@ -31,7 +35,7 @@ AWS_BUCKETS = {'konzaandssigrouppipelines':
                                  s3_hook_kwargs={}),
                'com-ssigroup-insight-attribution-data':
                    BucketDetails(aws_conn_id='konzaandssigrouppipelines',
-                                 aws_key_pattern='clientName=KONZA/source=L-69/status=pending/domainOid=2.16.840.1.113883.17.9491/{input_file_replaced}',
+                                 aws_key_pattern='subscriberName=KONZA/subscriptionName=HL7V3/source=C-CDA/status=pending/domainOid=2.16.840.1.113883.3.432.0.16.1.100.825/{input_file_replaced}',
                                  s3_hook_kwargs={'encrypt': True, 'acl_policy':'bucket-owner-full-control'})}
 
 
