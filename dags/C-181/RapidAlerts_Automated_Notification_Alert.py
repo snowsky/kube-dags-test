@@ -155,9 +155,6 @@ def send_email_alert(filename, modified_time,client_id):
      """
     )
 
-
-
-    )
     logging.info(f'Sleeping 90 seconds per email - May need to raise rate limiter prior to removing this limiter')
     time.sleep(90)
 
