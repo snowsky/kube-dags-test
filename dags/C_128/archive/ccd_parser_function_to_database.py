@@ -2,13 +2,17 @@ import pathlib
 import logging
 from datetime import datetime
 from airflow import DAG
-from airflow.providers.mysql.operators.mysql import MySqlOperator
 from airflow.decorators import task
+from airflow.providers.mysql.hooks.mysql import MySqlHook
 
-CCDA_DIR = "/data/biakonzasftp/C-128/archive/HL7v3In"
+from lib.konza.parser import read_clinical_document_from_xml_path
+from lib.konza.extracts.extract import KonzaExtract
+
+CCDA_DIR = "/data/biakonzasftp/C-128/archive/XCAIn"
+DEFAULT_DB_CONN_ID = 'prd-az1-sqlw3-mysql-airflowconnection'
 
 with DAG(
-    'C-128_parse_CCD',
+    'XCAIn_parse_EUID',
     default_args={
         'owner': 'airflow',
         'start_date': datetime(2023, 1, 1),
@@ -18,66 +22,65 @@ with DAG(
     },
     schedule_interval=None,
     tags=['C-128'],
-    concurrency=5,  # Set the maximum number of tasks that can run concurrently
+    concurrency=5,
+    catchup=False,
 ) as dag:
-    from lib.konza.parser import read_clinical_document_from_xml_path
-    from lib.konza.extracts.extract import KonzaExtract
+
+    sql_hook = MySqlHook(mysql_conn_id=DEFAULT_DB_CONN_ID)
 
     @task
-    def list_xmls(ccda_dir):
-        files = [(x.stem, str(x)) for x in pathlib.Path(ccda_dir).iterdir() if x.is_file()]
-        logging.info(f"Files found: {files}")
+    def list_all_files(ccda_dir):
+        files = [
+            str(x)
+            for x in pathlib.Path(ccda_dir).rglob("*")
+            if x.is_file()
+        ]
+        logging.info(f"Total files found: {len(files)}")
         return files
 
     @task
-    def parse_xml(xml_path):
-        logging.info(f"Processing {xml_path}.")
-        try:
-            stem, path = xml_path  # Unpack the tuple
-            clinical_document = read_clinical_document_from_xml_path(path)
-            extract = KonzaExtract.from_clinical_document(clinical_document)
-            euid = stem
+    def filter_and_process_xml_files(files):
+        xml_files = [(pathlib.Path(f).stem, f) for f in files if f.endswith(".xml")]
+        logging.info(f"Filtered XML files count: {len(xml_files)}")
 
-            # Log the actual values of given_name and family_name
-            given_name = extract.patient_name_extract.given_name
-            family_name = extract.patient_name_extract.family_name
-            logging.info(f"Given name: {given_name}")
-            logging.info(f"Family name: {family_name}")
+        for stem, path in xml_files:
+            try:
+                logging.info(f"Processing file: {path}")
+                clinical_document = read_clinical_document_from_xml_path(path)
+                extract = KonzaExtract.from_clinical_document(clinical_document)
 
-            # Ensure the name splits correctly
-            given_name_parts = given_name.split()
-            family_name_parts = family_name.split()
+                given_name_parts = extract.patient_name_extract.given_name.split()
+                family_name_parts = extract.patient_name_extract.family_name.split()
 
-            logging.info(f"Given name parts: {given_name_parts}")
-            logging.info(f"Family name parts: {family_name_parts}")
+                firstname = given_name_parts[0] if given_name_parts else ''
+                middlename = given_name_parts[1] if len(given_name_parts) > 1 else ''
+                lastname = family_name_parts[0] if family_name_parts else ''
+                mrn = '999999999'
+                event_timestamp = '2023-02-08 10:34:00'
+                euid = stem
 
-            firstname = given_name_parts[0]
-            middlename = given_name_parts[1] if len(given_name_parts) > 1 else ''
-            lastname = family_name_parts[0]
+                insert_query = f"""
+                    INSERT INTO person_master._mpi 
+                    (mrn, firstname, middlename, lastname, event_timestamp, euid)
+                    VALUES 
+                    ('{mrn}', '{firstname}', '{middlename}', '{lastname}', '{event_timestamp}', '{euid}');
+                """
+                sql_hook.run(insert_query)
+                logging.info(f"Inserted record for EUID: {euid}")
 
-            mrn = '999999999'
-            event_timestamp = '2023-02-08 10:34:00'
-            print(extract.model_dump_json())
-            logging.info(f'First name should be {extract.patient_name_extract}')
-            logging.info(f'First name should be {extract.patient_name_extract.given_name}')
-            logging.info(f'EUID to SQL should be {euid}')
-            logging.info(f'mrn to SQL should be {mrn}')
-            logging.info(f'event_timestamp to SQL should be {event_timestamp}')
-            mysql_op = MySqlOperator(
-                task_id='parse_ccd_to_sql',
-                mysql_conn_id='qa-az1-sqlw3-airflowconnection',
-                sql=f"""
-                insert into person_master._mpi (mrn, firstname, middlename, lastname, event_timestamp, euid)
-                VALUES ('{mrn}', '{firstname}', '{middlename}', '{lastname}', '{event_timestamp}', '{euid}') ;
-                """,
-                dag=dag,
-                pool='ccd_pool'  # Use the pool defined in Airflow
-            )
-            mysql_op.execute(dict())
-        except ValueError as e:
-            raise ValueError(f"Problem with {xml_path}: {e}")
-        except IndexError as e:
-            raise IndexError(f"IndexError with {xml_path}: {e}")
+                file_key = pathlib.Path(path).name
+                mark_query = f"""
+                    INSERT INTO archive.processed_files (file_key)
+                    VALUES ('{file_key}');
+                """
+                sql_hook.run(mark_query)
+                logging.info(f"Marked file as processed: {file_key}")
 
-    xml_files = list_xmls(CCDA_DIR)
-    parse_xml.expand(xml_path=xml_files)
+            except Exception as e:
+                logging.error(f"Failed to process file {path}: {e}")
+                # Optional: raise if you want DAG to fail
+                continue
+
+    # DAG task flow
+    all_files = list_all_files(CCDA_DIR)
+    filter_and_process_xml_files(all_files)
