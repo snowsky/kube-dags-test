@@ -6,6 +6,7 @@ from typing import List, Tuple
 import os
 
 # Change internal_source_path to /data/biakonzasftp/ instead of /source-biakonzasftp/ when testing locally
+
 def get_client_profile(folder_name, ending_db, frequency, facility_ids, airflow_client_profile, internal_source_path="/source-biakonzasftp/C-25/"):
     if airflow_client_profile == 'data_driven':
         return DataDrivenClientProfile(folder_name, ending_db)
