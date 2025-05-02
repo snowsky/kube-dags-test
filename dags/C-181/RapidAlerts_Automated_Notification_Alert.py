@@ -38,7 +38,7 @@ dag = DAG(
     'RapidAlerts_Automated_Notification',
     default_args=default_args,
     description='This DAG Sends emails to a group tracking the Rapid Alerts clients to indicate new panels are available on the corresponding SFTPs',
-    schedule_interval='@daily',
+    schedule_interval='@hourly',
     catchup=False,
     tags=['C-181'],
 )
@@ -141,12 +141,12 @@ def send_email_alert(filename, modified_time,client_id):
      <td>{client_id}</td>
      </tr>
      <tr>
-     <th>Reporting DAG</th>
+     <th>Notification</th>
      <td>{dag_name_base}</td>
      </tr>
      <tr>
-     <th>DAG source file</th>
-     <td>{dag_file_path_base}</td>
+     <th>Date of Delivery Detected</th>
+     <td>{{ ds }}</td>
      </tr>
      </table>
      <p>Check the logs for more details.</p>
