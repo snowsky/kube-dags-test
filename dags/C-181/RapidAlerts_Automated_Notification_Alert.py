@@ -146,7 +146,7 @@ def send_email_alert(filename, modified_time,client_id):
      </tr>
      <tr>
      <th>Date of Delivery Detected</th>
-     <td>{{ ds }}</td>
+     <td>{ds}</td>
      </tr>
      </table>
      <p>Check the logs for more details.</p>
