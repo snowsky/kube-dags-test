@@ -174,7 +174,7 @@ with DAG(
         """,
     )
 
-    upscale = scale_trino_workers(20, downscaling_okay=False)
+    upscale = scale_trino_workers(replicas=20, downscaling_okay=False)
     
     upscale >> create_tmp_dim_accid_to_mpi
     create_dim_accid_to_mpi >> populate_dim_accid_to_mpi
@@ -186,5 +186,5 @@ with DAG(
     populate_dim_accid_to_mpi >> cleanup_tmp_dim_accid_to_mpi 
     # optional: note that this may interfere with other DAGs
     
-    downscale = scale_trino_workers(1, downscaling_okay=True)
+    downscale = scale_trino_workers(replicas=1, downscaling_okay=True)
     populate_dim_accid_to_mpi >> downscale
