@@ -45,10 +45,11 @@ dag = DAG(
 # Variable to store the DAG name
 dag_name_base = dag.dag_id
 dag_file_path_base = __file__
-logging.info(f'DS: {ds}')
+
 @task(dag=dag)
 def crawler_reference_alert(**kwargs):
     ds = kwargs['ds']
+    logging.info(f'DS: {ds}')
     sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
     query = "SELECT (md5(client_reference_folder)) as ConnectionID_md5, client_reference_folder FROM _dashboard_maintenance.crawler_reference_table where client_reference_folder IS NOT NULL;"
     dfCrawlerAudit = sql_hook.get_pandas_df(query)
