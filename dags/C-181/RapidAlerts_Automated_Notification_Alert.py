@@ -45,7 +45,7 @@ dag = DAG(
 # Variable to store the DAG name
 dag_name_base = dag.dag_id
 dag_file_path_base = __file__
-
+logging.info(f'DS: {ds}')
 @task(dag=dag)
 def crawler_reference_alert(**kwargs):
     sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
