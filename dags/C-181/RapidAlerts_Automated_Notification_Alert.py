@@ -88,7 +88,7 @@ def crawler_reference_alert(**kwargs):
                     logging.info(f'Checking if file with modified time: {modified_time} seemed greater than the DB modified time: {max_df_file_mod}')
                     if dfFileMod.empty:
                         logging.info(f'dfFileMod is Empty - emailing as if a new file was received')
-                        send_email_alert(file.filename, modified_time,client_reference_folder)
+                        send_email_alert(file.filename, modified_time,client_reference_folder,ds=ds)
                         
                         # Update the database with the new modified date
                         update_query = f"INSERT INTO clientresults.file_modification_table (filename, modified_date,client_id_md5) VALUES ('{file.filename}', '{modified_time}', '{connection_id_md5}') ON DUPLICATE KEY UPDATE modified_date = VALUES(modified_date), client_id_md5 = VALUES(client_id_md5) "
@@ -96,7 +96,7 @@ def crawler_reference_alert(**kwargs):
                         sql_hook.run(update_query)
                     if dfFileMod['modified_date'][0] is None:
                         logging.info(f'Logic Returned False on modified date being available at zero index: {max_df_file_mod}  - emailing as if a new file was received')
-                        send_email_alert(file.filename, modified_time,client_reference_folder)
+                        send_email_alert(file.filename, modified_time,client_reference_folder,ds=ds)
                         
                         # Update the database with the new modified date
                         update_query = f"INSERT INTO clientresults.file_modification_table (filename, modified_date,client_id_md5) VALUES ('{file.filename}', '{modified_time}', '{connection_id_md5}') ON DUPLICATE KEY UPDATE modified_date = VALUES(modified_date), client_id_md5 = VALUES(client_id_md5) "
@@ -104,7 +104,7 @@ def crawler_reference_alert(**kwargs):
                         sql_hook.run(update_query)
                     if modified_time > dfFileMod['modified_date'][0]:
                         logging.info(f'File with modified time: {modified_time} seemed greater than the DB modified time: {max_df_file_mod}')
-                        send_email_alert(file.filename, modified_time,client_reference_folder)
+                        send_email_alert(file.filename, modified_time,client_reference_folder,ds=ds)
                         
                         # Update the database with the new modified date
                         update_query = f"INSERT INTO clientresults.file_modification_table (filename, modified_date,client_id_md5) VALUES ('{file.filename}', '{modified_time}', '{connection_id_md5}') ON DUPLICATE KEY UPDATE modified_date = VALUES(modified_date), client_id_md5 = VALUES(client_id_md5) "
@@ -112,7 +112,7 @@ def crawler_reference_alert(**kwargs):
                         sql_hook.run(update_query)
         except Exception as e:
             logging.error(f'Error Occurred: {e}')
-def send_email_alert(filename, modified_time,client_id):
+def send_email_alert(filename, modified_time,client_id,ds):
     sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
     # Check against database entry
     db_query = f"SELECT id as Client_Numeric_ID FROM _dashboard_requests.clients_to_process WHERE folder_name = '{client_id}'"
