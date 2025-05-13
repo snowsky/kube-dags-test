@@ -126,7 +126,7 @@ def send_email_alert(filename, modified_time,client_id):
         #to='ethompson@konza.org',
         to='RapidAlerts_PM_C-181@konza.org;ethompson@konza.org',
         #to='ethompson@konza.org;tlamond@konza.org;slewis@konza.org;cclark@konza.org',
-        subject=f'KONZA has received a new file to the SFTP for Client ID {client_id} (C-181)',
+        subject=f'KONZA has received a new file to the SFTP for Client ID {client_id}',
         #html_content=f"Newly Modified or New CSV File: {filename} - Client Identifier/Folder Name:  {client_id} - Reporting DAG: {dag_name_base}. DAG source file: {dag_file_path_base}. Check the logs for more details."
         html_content=f"""
      <html>
