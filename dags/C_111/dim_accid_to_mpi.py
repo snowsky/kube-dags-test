@@ -83,7 +83,7 @@ with DAG(
     create_dim_accid_to_mpi = KonzaTrinoOperator(
         task_id='create_dim_accid_to_mpi',
         query="""
-        CREATE TABLE hive.parquet_master_data.dim_accid_to_mpi ( 
+        CREATE TABLE IF NOT EXISTS hive.parquet_master_data.dim_accid_to_mpi ( 
             accid_ref VARCHAR, 
             mpi VARCHAR,
             num_mpis_should_be_1 BIGINT,
@@ -109,7 +109,7 @@ with DAG(
     create_tmp_dim_accid_to_mpi = KonzaTrinoOperator(
         task_id='create_tmp_dim_accid_to_mpi',
         query="""
-        CREATE TABLE hive.parquet_master_data.tmp_dim_accid_to_mpi
+        CREATE TABLE IF NOT EXISTS hive.parquet_master_data.tmp_dim_accid_to_mpi
         COMMENT '''[C-111] Intermediary table for dim_accid_to_mpi. 
         Contains all known pairs of (accid_ref, mpi) across all partitions of 
         sup_12760_c59_mpi_accid_prep_final_repartitioned.
@@ -134,7 +134,7 @@ with DAG(
     create_dim_accid_to_mpi_grouped = KonzaTrinoOperator(
         task_id='create_dim_accid_to_mpi_grouped',
         query="""
-        CREATE TABLE hive.parquet_master_data.tmp_dim_accid_to_mpi_grouped
+        CREATE TABLE IF NOT EXISTS hive.parquet_master_data.tmp_dim_accid_to_mpi_grouped
         COMMENT '''[C-111] Intermediary table for dim_accid_to_mpi.
 
         Computing this table requires 15-20 trino workers, which should already be scaled
