@@ -55,7 +55,8 @@ default_args = {
 with DAG(
     dag_id="pull_csg_sql_data",
     default_args=default_args,
-    schedule_interval=None,
+    schedule_interval='@daily', 
+    catchup=False,               
     tags=['c-35']
 ) as dag:
     
@@ -71,4 +72,4 @@ with DAG(
         provide_context=True,
     )
 
-    task_pull_data >> task_upload_blob  # Set task dependencies
+    task_pull_data >> task_upload_blob
