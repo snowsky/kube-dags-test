@@ -84,15 +84,16 @@ default_args = {
 }
 
 with DAG(
-    dag_id="pull_mc_sql_data",
+    dag_id="pull_csg_sql_data",
     default_args=default_args,
-    schedule_interval=None,
+    schedule_interval='@daily',  
+    catchup=False,              
     tags=['c-35']
 ) as dag:
     
     task_pull_data = PythonOperator(
         task_id="pull_data",
-        python_callable=pull_mc_from_sql,
+        python_callable=pull_csg_from_sql,
         provide_context=True,
     )
 
@@ -102,4 +103,4 @@ with DAG(
         provide_context=True,
     )
 
-    task_pull_data >> task_upload_blob  # Set task dependencies
+    task_pull_data >> task_upload_blob
