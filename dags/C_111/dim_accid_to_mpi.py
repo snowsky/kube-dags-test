@@ -156,7 +156,7 @@ with DAG(
         task_id='populate_dim_accid_to_mpi',
         query="""
         INSERT INTO hive.parquet_master_data.dim_accid_to_mpi
-        SELECT accid_ref, mpi, '<DATEID>' AS ds
+        SELECT accid_ref, mpi, num_mpis_should_be_1, '<DATEID>' AS ds
         FROM hive.parquet_master_data.tmp_dim_accid_to_mpi_grouped
         """,
     )
