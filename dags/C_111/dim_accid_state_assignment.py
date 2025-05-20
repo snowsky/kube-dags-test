@@ -17,7 +17,6 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.operators.python import ShortCircuitOperator, PythonOperator
 from lib.operators.aks_trino_kubernetes import scale_trino_workers
-from k8s import scale_trino_workers
 
 default_args = {
     'owner': 'airflow',
