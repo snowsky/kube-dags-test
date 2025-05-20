@@ -104,7 +104,7 @@ with DAG(
             logging.error(f"Error listing subdirectories: {e}")
             raise
 
-    def read_csv_from_blob(**kwargs) -> pd.DataFrame:
+    def read_csv_from_blob(params) -> pd.DataFrame:
         """
         Read the CSV file with accid_ref values to remove from Azure Blob Storage.
 
@@ -114,7 +114,7 @@ with DAG(
         Raises:
             Exception: If there's an error reading the CSV from blob storage
         """
-        filename = kwargs['params']['filename']
+        filename = params['filename']
         CSVBlobPath = f'{WORKSHEET_BLOB_PATH}/{filename}'
         blob_service_client = None
         try:
@@ -250,7 +250,7 @@ with DAG(
                 return
 
             # Read the accid_ref CSV once
-            accid_df = read_csv_from_blob()
+            accid_df = read_csv_from_blob(params=dag.params)
 
             # Process each blob
             for blob in filtered_blobs:
