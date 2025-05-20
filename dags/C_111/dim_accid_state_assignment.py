@@ -14,6 +14,7 @@ from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowException
 from lib.operators.konza_trino_operator import KonzaTrinoOperator
 from airflow import DAG
+from airflow.decorators import task
 from airflow.operators.python import ShortCircuitOperator, PythonOperator
 from lib.operators.aks_trino_kubernetes import scale_trino_workers
 from lib.k8s import scale_trino_workers
@@ -33,7 +34,15 @@ with DAG(
     max_active_runs=1,
 ) as dag:
 
-    upscale = scale_trino_workers(replicas=20, downscaling_okay=False)
+    @task
+    def upscale_workers():
+        scale_trino_workers(replicas=20, downscaling_okay=False)
+
+    @task
+    def downscal_workers():
+        scale_trino_workers(replicas=1, downscaling_okay=True)
+
+    upscale = upscale_workers()
     create_dim_accid_state_assignment = KonzaTrinoOperator(
         task_id='create_dim_accid_state_assignment',
         query="""
@@ -298,7 +307,7 @@ with DAG(
         )
         """
     )
-    downscale = scale_trino_workers(replicas=1, downscaling_okay=True)
+    downscale = downscale_workers()
 
     create_dim_accid_state_assignment >> populate_dim_accid_state_assignment
     create_dim_accid_state_assignment_latest >> populate_dim_accid_state_assignment_latest
