@@ -38,7 +38,7 @@ with DAG(
         scale_trino_workers(replicas=20, downscaling_okay=False)
 
     @task
-    def downscal_workers():
+    def downscale_workers():
         scale_trino_workers(replicas=1, downscaling_okay=True)
 
     upscale = upscale_workers()
