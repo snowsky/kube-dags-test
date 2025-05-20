@@ -27,8 +27,8 @@ AZURE_CONNECTION_NAME = 'reportwriterstorage-blob-core-windows-net'
 CONTAINER_NAME = 'content'
 SOURCE_PATH = "mpi"
 # Destination prefix for adjusted files which will be appended to the source prefix
-DESTINATION_PREFIX = "Adjusted"
-DESTINATION_PATH = f"{SOURCE_PATH}/{DESTINATION_PREFIX}/"
+DESTINATION_PREFIX = "Adjusted/"
+DESTINATION_PATH = f"{SOURCE_PATH}/{DESTINATION_PREFIX}"
 WORKSHEET_BLOB_PATH = "mpi_worksheets/SUP_11438_accid_ref_to_remove.csv"
 #SUB_DIRECTORIES = [
 #    "2023-03", "2023-04", "2023-05", "2023-06", "2023-07", "2023-08",
