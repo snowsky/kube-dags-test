@@ -76,34 +76,34 @@ with DAG(
     catchup=False,
 ) as dag:
     def get_subdirectories_with_pattern(container_name: str, prefix: str, pattern: str = r"\d{4}-\d{2}") -> List[str]:
-        """
-        List unique subdirectories in the blob container that match the YYYY-MM pattern.
+     """
+     List unique subdirectories in the blob container that match the YYYY-MM pattern.
     
-        Args:
-            container_name: Name of the Azure Blob container
-            prefix: Prefix path to search within
-            pattern: Regex pattern to match subdirectory names
+     Args:
+     container_name: Name of the Azure Blob container
+     prefix: Prefix path to search within
+     pattern: Regex pattern to match subdirectory names
     
-        Returns:
-            List of unique subdirectory names matching the pattern
-        """
-        try:
-            blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
-            container_client = blob_service_client.get_container_client(container_name)
+     Returns:
+     List of unique subdirectory names matching the pattern
+     """
+     try:
+     blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
+     container_client = blob_service_client.get_container_client(container_name)
     
-            subdirs = set()
-            blobs = container_client.list_blobs(name_starts_with=prefix)
-            for blob in blobs:
-                parts = blob.name[len(prefix):].split('/')
-                if parts:
-                    match = re.match(pattern, parts[0])
-                    if match:
-                        subdirs.add(match.group(0))
+     subdirs = set()
+     blobs = container_client.list_blobs(name_starts_with=prefix)
+     for blob in blobs:
+     parts = blob.name[len(prefix):].split('/')
+     if parts:
+     match = re.match(pattern, parts[0])
+     if match:
+     subdirs.add(match.group(0))
     
-            return sorted(subdirs)
-        except Exception as e:
-            logging.error(f"Error listing subdirectories: {e}")
-            raise
+     return sorted(subdirs)
+     except Exception as e:
+     logging.error(f"Error listing subdirectories: {e}")
+     raise
 
     def read_csv_from_blob() -> pd.DataFrame:
         """
