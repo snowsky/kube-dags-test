@@ -29,7 +29,6 @@ SOURCE_PATH = "mpi"
 # Destination prefix for adjusted files which will be appended to the source prefix
 DESTINATION_PREFIX = "Adjusted/" #for an extra step of validation set to "Adjusted/" or "" if overwriting directly
 DESTINATION_PATH = f"{SOURCE_PATH}/{DESTINATION_PREFIX}"
-WORKSHEET_BLOB_PATH = "mpi_worksheets/SUP_11438_accid_ref_to_remove.csv"
 WORKSHEET_BLOB_PATH = "/source-biakonzasftp/C-9/SLA-113/"
 PARALLEL_TASK_LIMIT = 5
 
@@ -72,7 +71,7 @@ with DAG(
     catchup=False,
     params={
         "filename": Param("Worksheet_207.csv", type="string", description="Enter a CSV filename to process that has the required single column with the Account ID references (eg. ACCID or ACCID_REF column only)"),
-
+    },
 ) as dag:
     def get_subdirectories_with_pattern(container_name: str, prefix: str, pattern: str = r"\d{4}-\d{2}") -> List[str]:
         """
@@ -104,7 +103,7 @@ with DAG(
             logging.error(f"Error listing subdirectories: {e}")
             raise
 
-    def read_csv_from_blob() -> pd.DataFrame:
+    def read_csv_from_blob(**kwargs) -> pd.DataFrame:
         """
         Read the CSV file with accid_ref values to remove from Azure Blob Storage.
 
@@ -114,12 +113,13 @@ with DAG(
         Raises:
             Exception: If there's an error reading the CSV from blob storage
         """
+        CSVBlobPath = f'{WORKSHEET_BLOB_PATH}/{kwargs['params']['filename']}'
         blob_service_client = None
         try:
             blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
             blob_client = blob_service_client.get_blob_client(
                 container=CONTAINER_NAME, 
-                blob=WORKSHEET_BLOB_PATH
+                blob=CSVBlobPath,
             )
 
             blob_data = blob_client.download_blob().readall()
