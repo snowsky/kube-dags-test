@@ -88,22 +88,22 @@ with DAG(
      List of unique subdirectory names matching the pattern
      """
      try:
-     blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
-     container_client = blob_service_client.get_container_client(container_name)
+         blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
+         container_client = blob_service_client.get_container_client(container_name)
+        
+         subdirs = set()
+         blobs = container_client.list_blobs(name_starts_with=prefix)
+         for blob in blobs:
+             parts = blob.name[len(prefix):].split('/')
+             if parts:
+                 match = re.match(pattern, parts[0])
+             if match:
+                 subdirs.add(match.group(0))
     
-     subdirs = set()
-     blobs = container_client.list_blobs(name_starts_with=prefix)
-     for blob in blobs:
-     parts = blob.name[len(prefix):].split('/')
-     if parts:
-     match = re.match(pattern, parts[0])
-     if match:
-     subdirs.add(match.group(0))
-    
-     return sorted(subdirs)
+         return sorted(subdirs)
      except Exception as e:
-     logging.error(f"Error listing subdirectories: {e}")
-     raise
+         logging.error(f"Error listing subdirectories: {e}")
+         raise
 
     def read_csv_from_blob() -> pd.DataFrame:
         """
