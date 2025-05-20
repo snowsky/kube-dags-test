@@ -23,7 +23,7 @@ import io
 
 # Configuration constants
 AZURE_CONNECTION_NAME = 'reportwriterstorage-blob-core-windows-net'
-CONTAINER_NAME = 'your-container-name'
+CONTAINER_NAME = 'content'
 SOURCE_PATH = "reportwriterstorage/mpi"
 # Destination prefix for adjusted files which will be appended to the source prefix
 DESTINATION_PREFIX = "Adjusted"
