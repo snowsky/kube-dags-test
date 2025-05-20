@@ -25,16 +25,12 @@ import io
 # Configuration constants
 AZURE_CONNECTION_NAME = 'reportwriterstorage-blob-core-windows-net'
 CONTAINER_NAME = 'content'
-SOURCE_PATH = "mpi"
+SOURCE_PATH = "parquet-master-data/mpi"
 # Destination prefix for adjusted files which will be appended to the source prefix
 DESTINATION_PREFIX = "Adjusted/" #for an extra step of validation set to "Adjusted/" or "" if overwriting directly
 DESTINATION_PATH = f"{SOURCE_PATH}/{DESTINATION_PREFIX}"
 WORKSHEET_BLOB_PATH = "mpi_worksheets/SUP_11438_accid_ref_to_remove.csv"
-#SUB_DIRECTORIES = [
-#    "2023-03", "2023-04", "2023-05", "2023-06", "2023-07", "2023-08",
-#    "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02",
-#    "2024-03", "2024-04", "2024-05"
-#]
+WORKSHEET_BLOB_PATH = "/source-biakonzasftp/C-9/SLA-113/"
 PARALLEL_TASK_LIMIT = 5
 
 def get_azure_connection_string(conn_id: str) -> str:
@@ -74,6 +70,9 @@ with DAG(
     tags=['sla113', 'SLA-113', 'parquet', 'azure'],
     concurrency=PARALLEL_TASK_LIMIT,
     catchup=False,
+    params={
+        "filename": Param("Worksheet_207.csv", type="string", description="Enter a CSV filename to process that has the required single column with the Account ID references (eg. ACCID or ACCID_REF column only)"),
+
 ) as dag:
     def get_subdirectories_with_pattern(container_name: str, prefix: str, pattern: str = r"\d{4}-\d{2}") -> List[str]:
         """
