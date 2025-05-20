@@ -113,7 +113,8 @@ with DAG(
         Raises:
             Exception: If there's an error reading the CSV from blob storage
         """
-        CSVBlobPath = f'{WORKSHEET_BLOB_PATH}/{kwargs['params']['filename']}'
+        filename = kwargs['params']['filename']
+        CSVBlobPath = f'{WORKSHEET_BLOB_PATH}/{filename}'
         blob_service_client = None
         try:
             blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
