@@ -70,7 +70,7 @@ with DAG(
     concurrency=PARALLEL_TASK_LIMIT,
     catchup=False,
     params={
-        "filename": Param("Worksheet_207.csv", type="string", description="Enter a CSV filename to process that has the required single column with the Account ID references (eg. ACCID or ACCID_REF column only)"),
+        "filename": Param("Worksheet_207.csv", type="string", description="Enter a CSV filename to process that has the required single column with the Account ID references (eg. ACCID or ACCID_REF column only)"),
     },
 ) as dag:
     def get_subdirectories_with_pattern(container_name: str, prefix: str, pattern: str = r"\d{4}-\d{2}") -> List[str]:
