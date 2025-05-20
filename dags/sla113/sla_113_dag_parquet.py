@@ -71,7 +71,7 @@ with DAG(
     default_args=default_args,
     description='Process parquet files from Azure Blob Storage, filtering out rows based on accid_ref values',
     schedule=None,
-    tags=['sla113', 'parquet', 'azure'],
+    tags=['sla113', 'SLA-113', 'parquet', 'azure'],
     concurrency=PARALLEL_TASK_LIMIT,
     catchup=False,
 ) as dag:
