@@ -25,7 +25,7 @@ import io
 # Configuration constants
 AZURE_CONNECTION_NAME = 'reportwriterstorage-blob-core-windows-net'
 CONTAINER_NAME = 'content'
-SOURCE_PATH = "parquet-master-data/mpi"
+SOURCE_PATH = "mpi"
 # Destination prefix for adjusted files which will be appended to the source prefix
 DESTINATION_PREFIX = "Adjusted/" #for an extra step of validation set to "Adjusted/" or "" if overwriting directly
 DESTINATION_PATH = f"{SOURCE_PATH}/{DESTINATION_PREFIX}"
