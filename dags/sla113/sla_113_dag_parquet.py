@@ -15,6 +15,7 @@ from airflow.hooks.base_hook import BaseHook
 from azure.storage.blob import BlobServiceClient
 from datetime import datetime, timedelta
 from typing import List, Tuple
+import re
 import pandas as pd
 from pathlib import Path
 import os
@@ -29,11 +30,11 @@ SOURCE_PATH = "mpi"
 DESTINATION_PREFIX = "Adjusted"
 DESTINATION_PATH = f"{SOURCE_PATH}/{DESTINATION_PREFIX}/"
 WORKSHEET_BLOB_PATH = "mpi_worksheets/SUP_11438_accid_ref_to_remove.csv"
-SUB_DIRECTORIES = [
-    "2023-03", "2023-04", "2023-05", "2023-06", "2023-07", "2023-08",
-    "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02",
-    "2024-03", "2024-04", "2024-05"
-]
+#SUB_DIRECTORIES = [
+#    "2023-03", "2023-04", "2023-05", "2023-06", "2023-07", "2023-08",
+#    "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02",
+#    "2024-03", "2024-04", "2024-05"
+#]
 PARALLEL_TASK_LIMIT = 5
 
 def get_azure_connection_string(conn_id: str) -> str:
@@ -74,6 +75,35 @@ with DAG(
     concurrency=PARALLEL_TASK_LIMIT,
     catchup=False,
 ) as dag:
+    def get_subdirectories_with_pattern(container_name: str, prefix: str, pattern: str = r"\d{4}-\d{2}") -> List[str]:
+        """
+        List unique subdirectories in the blob container that match the YYYY-MM pattern.
+    
+        Args:
+            container_name: Name of the Azure Blob container
+            prefix: Prefix path to search within
+            pattern: Regex pattern to match subdirectory names
+    
+        Returns:
+            List of unique subdirectory names matching the pattern
+        """
+        try:
+            blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
+            container_client = blob_service_client.get_container_client(container_name)
+    
+            subdirs = set()
+            blobs = container_client.list_blobs(name_starts_with=prefix)
+            for blob in blobs:
+                parts = blob.name[len(prefix):].split('/')
+                if parts:
+                    match = re.match(pattern, parts[0])
+                    if match:
+                        subdirs.add(match.group(0))
+    
+            return sorted(subdirs)
+        except Exception as e:
+            logging.error(f"Error listing subdirectories: {e}")
+            raise
 
     def read_csv_from_blob() -> pd.DataFrame:
         """
@@ -174,6 +204,8 @@ with DAG(
         blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
         container_client = blob_service_client.get_container_client(CONTAINER_NAME)
 
+        
+        SUB_DIRECTORIES = get_subdirectories_with_pattern(CONTAINER_NAME, SOURCE_PATH + "/")
         for suffix in SUB_DIRECTORIES:
             source_sub_directory = os.path.join(SOURCE_PATH, suffix)
             destination_sub_directory = os.path.join(DESTINATION_PATH, suffix)
