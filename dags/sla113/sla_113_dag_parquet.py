@@ -30,7 +30,7 @@ SOURCE_PATH = "mpi" #Initial test location on production was "mpi" with prod bei
 # Destination prefix for adjusted files which will be appended to the source prefix
 DESTINATION_PREFIX = "Adjusted/" #for an extra step of validation set to "Adjusted/" or "" if overwriting directly
 DESTINATION_PATH = f"{SOURCE_PATH}/{DESTINATION_PREFIX}"
-WORKSHEET_BLOB_PATH = "/source-biakonzasftp/C-9/SLA-113/"
+WORKSHEET_BLOB_PATH = "source-biakonzasftp/C-9/SLA-113/"
 PARALLEL_TASK_LIMIT = 5
 
 def get_azure_connection_string(conn_id: str) -> str:
