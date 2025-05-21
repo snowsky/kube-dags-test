@@ -1,4 +1,5 @@
 import trino
+import time
 import mysql.connector
 from airflow import DAG
 from airflow.operators.python import ShortCircuitOperator, PythonOperator
