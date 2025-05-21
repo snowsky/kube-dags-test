@@ -22,7 +22,7 @@ else:
     from sla113.common import SOURCE_FILES_DIRECTORY, CONNECTION_NAME, TMP_OUTPUT_DIR, TARGET_TABLE
 
 
-MAX_DELETE_ROWS = None
+MAX_DELETE_ROWS = None #was 3 for testing
 
 
 class ReturningMySqlOperator(MySqlOperator):
