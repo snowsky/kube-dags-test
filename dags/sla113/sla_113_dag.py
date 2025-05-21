@@ -22,7 +22,7 @@ else:
     from sla113.common import SOURCE_FILES_DIRECTORY, CONNECTION_NAME, TMP_OUTPUT_DIR, TARGET_TABLE
 
 
-MAX_DELETE_ROWS = 3
+MAX_DELETE_ROWS = None
 
 
 class ReturningMySqlOperator(MySqlOperator):
@@ -46,7 +46,7 @@ with DAG(
     'SLA-113MySQL',
     default_args=default_args,
     schedule_interval=None,#'@daily'
-    tags=['example', 'sla113'],
+    tags=['SLA-113', 'sla113'],
     params={
     "source_files_dir_path": Param(SOURCE_FILES_DIRECTORY, type="string"),
     "output_files_dir_path": Param(TMP_OUTPUT_DIR, type="string")
@@ -72,7 +72,7 @@ with DAG(
             return df
 
         def compare_and_get_ids(df1, df2):
-            df2.rename(columns={"sup9299_nodh.accid_ref":"accid_ref"}, inplace=True)
+            df2.columns=["accid_ref"]
             merged_df = pd.merge(df1, df2, on=['accid_ref'])  # Replace with your actual column names
             ids_to_delete = merged_df['id'].tolist()
             return ids_to_delete
