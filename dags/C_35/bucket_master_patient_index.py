@@ -7,7 +7,7 @@ from airflow.decorators import task
 from datetime import datetime
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowException
-from lib.operators.konza_trino_operator import KonzaTrinoOperator
+from lib.operators.konza_trino_operator import KonzaTrinoOperator, aks_trino_kubernetes
 from kubernetes import client, config
 
 def scale_trino_workers(namespace="trino", deployment_name="trino-worker", replicas=3, downscaling_okay=True, delay=120):
