@@ -115,18 +115,18 @@ with DAG(
             Exception: If there's an error reading the CSV from blob storage
         """
         filename = params['filename']
-        CSVBlobPath = f'{WORKSHEET_BLOB_PATH}/{filename}'
+        CSVBlobPath = f'/{WORKSHEET_BLOB_PATH}/{filename}' #attempting to use the biakonzasftp mount specifically for the CSV only
         logging.info(f"CSVBlobPath: {CSVBlobPath} should contain WORKSHEET_BLOB_PATH: {WORKSHEET_BLOB_PATH}")
         blob_service_client = None
         try:
-            blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
-            blob_client = blob_service_client.get_blob_client(
-                container=CONTAINER_NAME, 
-                blob=CSVBlobPath,
-            )
-
-            blob_data = blob_client.download_blob().readall()
-            accid_df = pd.read_csv(io.BytesIO(blob_data))
+            #blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
+            #blob_client = blob_service_client.get_blob_client(
+            #    container=CONTAINER_NAME, 
+            #    blob=WORKSHEET_BLOB_PATH,
+            #)
+            #blob_data = blob_client.download_blob().readall()
+            #accid_df = pd.read_csv(io.BytesIO(blob_data))
+            accid_df = pd.read_csv(CSVBlobPath)
             accid_df.columns = ['accid_ref']
             logging.info(f"Read {len(accid_df)} accid_ref values to filter out")
             return accid_df
