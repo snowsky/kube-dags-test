@@ -4,7 +4,7 @@ import mysql.connector
 from airflow import DAG
 from airflow.operators.python import ShortCircuitOperator, PythonOperator
 from airflow.decorators import task
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowException
 from lib.operators.konza_trino_operator import KonzaTrinoOperator, aks_trino_kubernetes
