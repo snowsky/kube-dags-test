@@ -116,6 +116,7 @@ with DAG(
         """
         filename = params['filename']
         CSVBlobPath = f'{WORKSHEET_BLOB_PATH}/{filename}'
+        logging.info(f"CSVBlobPath: {CSVBlobPath} should contain WORKSHEET_BLOB_PATH: {WORKSHEET_BLOB_PATH}")
         blob_service_client = None
         try:
             blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
