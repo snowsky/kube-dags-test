@@ -13,10 +13,6 @@ from concurrent.futures import ThreadPoolExecutor as PoolExecutor, as_completed
 from functools import partial
 from airflow.models.param import Param
 from airflow.utils.trigger_rule import TriggerRule
-from lib.konza.parser import read_clinical_document_from_xml_path
-from lib.konza.extracts.extract import KonzaExtract
-import pathlib
-
 
 # Define the DAG
 default_args = {
@@ -40,12 +36,8 @@ dag = DAG(
 ENV = 'Prod'
 BUCKET_NAME = 'konzaandssigrouppipelines'
 S3_SUBFOLDER = 'XCAIn/'
-#S3_SUBFOLDER = 'HL7v3In/XCAIn_test/'
-
 LOCAL_DIR = '/source-biakonzasftp/C-128/archive/XCAIn'
 #LOCAL_DIR = '/data/biakonzasftp/C-128/archive/XCAIn_AA'
-DEFAULT_DB_CONN_ID = 'prd-az1-sqlw3-mysql-airflowconnection'
-CCDA_DIR = '/source-biakonzasftp/C-128/archive/XCAIn'
 
 #s3://konzaandssigrouppipelines/HL7v3In/XCAIn_test/
 
@@ -467,68 +459,7 @@ def divide_files_into_batches(xml_files: List[str], batch_size: str) -> List[Lis
         for i in range(0, len(xml_files), batch_size)
     ]
 
-## add ccd parser 
 
-@task(dag=dag)
-def list_all_files_in_local_dir(ccda_dir):
-    logging.info(f"Checking directory: {ccda_dir}")
-    exists = pathlib.Path(ccda_dir).exists()
-    logging.info(f"Does path exist? {exists}")
-    files = [
-        str(x)
-        for x in pathlib.Path(ccda_dir).rglob("*.xml")
-        if x.is_file()
-    ]
-    logging.info(f"Total files found: {len(files)}")
-    logging.info(f"Files: {files}")
-
-    return files
-
-@task(dag=dag)
-def filter_and_process_xml_files(files):
-    from airflow.providers.mysql.hooks.mysql import MySqlHook 
-    sql_hook = MySqlHook(mysql_conn_id=DEFAULT_DB_CONN_ID) 
-
-    xml_files = [(pathlib.Path(f).stem, f) for f in files if f.endswith(".xml")]
-    logging.info(f"Filtered XML files count: {len(xml_files)}")
-
-    for stem, path in xml_files:
-        try:
-            logging.info(f"Processing file: {path}")
-            clinical_document = read_clinical_document_from_xml_path(path)
-            extract = KonzaExtract.from_clinical_document(clinical_document)
-
-            given_name_parts = extract.patient_name_extract.given_name.split()
-            family_name_parts = extract.patient_name_extract.family_name.split()
-
-            firstname = given_name_parts[0] if given_name_parts else ''
-            middlename = given_name_parts[1] if len(given_name_parts) > 1 else ''
-            lastname = family_name_parts[0] if family_name_parts else ''
-            mrn = '999999999'
-            event_timestamp = '2023-02-08 10:34:00'
-            euid = stem
-
-            insert_query = f"""
-                INSERT INTO person_master._mpi 
-                (mrn, firstname, middlename, lastname, event_timestamp, euid)
-                VALUES 
-                ('{mrn}', '{firstname}', '{middlename}', '{lastname}', '{event_timestamp}', '{euid}');
-            """
-            sql_hook.run(insert_query)
-            logging.info(f"Inserted record for EUID: {euid}")
-
-            file_key = pathlib.Path(path).name
-            mark_query = f"""
-                INSERT INTO archive.processed_files (file_key)
-                VALUES ('{file_key}');
-            """
-            sql_hook.run(mark_query)
-            logging.info(f"Marked file as processed: {file_key}")
-
-        except Exception as e:
-            logging.error(f"Failed to process file {path}: {e}")
-            # Optional: raise if you want DAG to fail
-            continue
 
 # Define the workflow
 files = list_files_in_s3()
@@ -538,14 +469,9 @@ transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
 #download_files = download_files_to_local(xml_files, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME, max_workers="{{ params.max_workers }}")
 delete_empty_directories_from_s3_during = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 delete_empty_directories_from_s3_end = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
-
-local_files = list_all_files_in_local_dir(CCDA_DIR)
-process_local_files = filter_and_process_xml_files(local_files)
-
 #delete_empty_directories_from_s3.trigger_rule = TriggerRule.ONE_SUCCESS
 files >> xml_files >> batches >> transfer_tasks >> delete_empty_directories_from_s3_end
-batches >> delete_empty_directories_from_s3_during 
-transfer_tasks >> local_files >> process_local_files
+batches >> delete_empty_directories_from_s3_during
 #files >> xml_files >> batches >> transfer_tasks
 #files >> xml_files >> batches >> transfer_tasks >> download_files >> delete_files
 #files >> xml_files >> batches >> transfer_tasks >> download_files 
