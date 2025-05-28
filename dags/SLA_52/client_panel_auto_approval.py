@@ -19,7 +19,7 @@ def csga_panel_auto_approval_condition_check():
     sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
     sql_hook_old = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
     
-    query = "SELECT md5(folder_name) as ConnectionID_md5, folder_name FROM _dashboard_requests.clients_to_process WHERE production_auto_approval = 1;"
+    query = "SELECT md5(folder_name) as ConnectionID_md5, folder_name FROM _dashboard_requests.clients_to_process WHERE production_auto_approval = 1 and frequency <> 'Approved';"
     dfPanelAutoApproved = sql_hook.get_pandas_df(query)
     if dfPanelAutoApproved.empty:
         return []
@@ -94,6 +94,7 @@ def auto_approval_update_ctp_task(data: dict):
     """
     hook = MySqlHook(mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection')
     hook.run(sql)
+    logging.info(f'Ran: {sql}')
 @task
 def auto_approval_update_ch_task(data: dict):
     if not data["should_approve"]:
@@ -104,6 +105,7 @@ def auto_approval_update_ch_task(data: dict):
     """
     hook = MySqlHook(mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection')
     hook.run(sql)
+    logging.info(f'Ran: {sql}')
 @task
 def auto_approval_update_ctp_panel_task(data: dict):
     if not data["should_approve"]:
@@ -114,6 +116,7 @@ def auto_approval_update_ctp_panel_task(data: dict):
     """
     hook = MySqlHook(mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection')
     hook.run(sql)
+    logging.info(f'Ran: {sql}')
     
 @task
 def auto_approval_update_ctp_task_old(data: dict):
@@ -125,6 +128,7 @@ def auto_approval_update_ctp_task_old(data: dict):
     """
     hook = MySqlHook(mysql_conn_id='prd-az1-sqlw2-airflowconnection')
     hook.run(sql)
+    logging.info(f'Ran: {sql}')
 @task
 def auto_approval_update_ch_task_old(data: dict):
     if not data["should_approve"]:
@@ -135,6 +139,7 @@ def auto_approval_update_ch_task_old(data: dict):
     """
     hook = MySqlHook(mysql_conn_id='prd-az1-sqlw2-airflowconnection')
     hook.run(sql)
+    logging.info(f'Ran: {sql}')
 @task
 def auto_approval_update_ctp_panel_task_old(data: dict):
     if not data["should_approve"]:
@@ -145,6 +150,7 @@ def auto_approval_update_ctp_panel_task_old(data: dict):
     """
     hook = MySqlHook(mysql_conn_id='prd-az1-sqlw2-airflowconnection')
     hook.run(sql)
+    logging.info(f'Ran: {sql}')
 
 @dag(
     dag_id="csga_panel_auto_approval",
