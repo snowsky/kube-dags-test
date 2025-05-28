@@ -29,10 +29,9 @@ class ReturningMySqlOperator(MySqlOperator):
     def execute(self, context):
         self.log.info('Executing: %s', self.sql)
         hook = MySqlHook(mysql_conn_id=self.conn_id)
-        return hook.get_records(
-            self.sql,
-            parameters=self.parameters
-        )
+        result = hook.get_records(self.sql, parameters=self.parameters)
+        self.log.info(f"Query result: {result}")
+        return result  # Will be pushed to XCom if do_xcom_push=True
 
 default_args = {
     'owner': 'airflow',
@@ -105,7 +104,8 @@ with DAG(
     max_id = ReturningMySqlOperator(
         task_id='get_max_id',
         sql=f"SELECT MAX(id) FROM {TARGET_TABLE}",
-        mysql_conn_id=CONNECTION_NAME
+        mysql_conn_id=CONNECTION_NAME,
+        do_xcom_push=True  # ✅ Required for XCom
     )
 
     def delete_intermediate_files(input_file_paths):
@@ -145,7 +145,9 @@ with DAG(
 
     @task
     def get_ids_to_delete(ids_to_delete_file):
-        return get_ids_to_delete_impl(ids_to_delete_file, MAX_DELETE_ROWS)
+        result = get_ids_to_delete_impl(ids_to_delete_file, MAX_DELETE_ROWS)
+        logging.info(f"IDs to delete: {result}")
+        return result if isinstance(result, list) else [] 
 
     @task
     def delete_ids_from_tbl(ids_to_delete):
