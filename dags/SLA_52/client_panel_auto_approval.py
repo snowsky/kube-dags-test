@@ -13,16 +13,6 @@ import logging
 import paramiko
 import hashlib
 
-dag = DAG(
-    dag_id="csga_panel_auto_approval",
-    start_date=datetime(2024,11,6),
-    schedule_interval='@hourly',
-    tags=['csga_approval','sla_52'],
-    catchup=False,
-) 
-# Variable to store the DAG name
-dag_name_base = dag.dag_id
-dag_file_path_base = __file__
 
 @task
 def csga_panel_auto_approval_condition_check():
@@ -156,12 +146,24 @@ def auto_approval_update_ctp_panel_task_old(data: dict):
     hook = MySqlHook(mysql_conn_id='prd-az1-sqlw2-airflowconnection')
     hook.run(sql)
 
-condition_results = csga_panel_auto_approval_condition_check()
-auto_approval_update_ctp_task.expand(data=condition_results)
-auto_approval_update_ch_task.expand(data=condition_results)
-auto_approval_update_ctp_panel_task.expand(data=condition_results)
-#auto_approval_update_ctp_task_old.expand(data=condition_results)
-#auto_approval_update_ch_task_old.expand(data=condition_results)
-#auto_approval_update_ctp_panel_task_old.expand(data=condition_results)
+@dag = DAG(
+    dag_id="csga_panel_auto_approval",
+    start_date=datetime(2024,11,6),
+    schedule_interval='@hourly',
+    tags=['csga_approval','sla_52'],
+    catchup=False,
+) 
+# Variable to store the DAG name
+dag_name_base = dag.dag_id
+dag_file_path_base = __file__
 
+def csga_panel_auto_approval_dag():
+    condition_results = csga_panel_auto_approval_condition_check()
+    auto_approval_update_ctp_task.expand(data=condition_results)
+    auto_approval_update_ch_task.expand(data=condition_results)
+    auto_approval_update_ctp_panel_task.expand(data=condition_results)
+    #auto_approval_update_ctp_task_old.expand(data=condition_results)
+    #auto_approval_update_ch_task_old.expand(data=condition_results)
+    #auto_approval_update_ctp_panel_task_old.expand(data=condition_results)
 
+csga_panel_auto_approval_dag()
