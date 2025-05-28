@@ -54,6 +54,7 @@ with DAG(
 ) as dag:
 
     def find_files_to_process(source_files_dir):
+        logging.info(f"Searching for files to process in: {source_files_dir}")
         files_to_process = [
             file_path
             for file_path in Path(source_files_dir).glob("*")
