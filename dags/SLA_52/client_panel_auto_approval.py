@@ -32,7 +32,8 @@ def csga_panel_auto_approval_condition_check():
     # Check against database entry in production W3 CSGA
     query = "SELECT (md5(folder_name)) as ConnectionID_md5, folder_name FROM _dashboard_requests.clients_to_process where production_auto_approval = 1;"  # Replace with your SQL query
     dfPanelAutoApproved = sql_hook.get_pandas_df(query)
-   
+    if dfPanelAutoApproved.empty:
+        return {"should_approve": False}
     for index, row in dfPanelAutoApproved.iterrows():
         connection_id_md5 = row['ConnectionID_md5']
         client_reference_folder = row['folder_name']
@@ -83,7 +84,7 @@ def csga_panel_auto_approval_condition_check():
             logging.info("new panel to process - setting to approved")
             return {
                 "should_approve": True,
-                "folder_name": folder_name
+                "folder_name": client_reference_folder
             }
         else:
             return {"should_approve": False}
@@ -97,15 +98,6 @@ def auto_approval_update_ctp_task(data: dict):
     """
     hook = MySqlHook(mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection')
     hook.run(sql)
-    mysql_op = MySqlOperator(
-                    task_id=f'auto_approval_update_ctp',
-                    mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection',
-                    sql=f"""
-                    UPDATE `_dashboard_requests`.`clients_to_process` SET `frequency`='Approved' WHERE `folder_name`='{folder_name}';
-                    """,
-                    dag=dag
-    )
-    mysql_op.execute(dict())
 @task
 def auto_approval_update_ch_task(data: dict):
     if not data["should_approve"]:
