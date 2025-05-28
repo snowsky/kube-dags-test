@@ -64,9 +64,9 @@ def csga_panel_auto_approval_condition_check():
             continue
 
         csg_modified_time = dfCurrentCSG['event_timestamp'].iloc[0]
-        csg_modified_time_offset = csg_modified_time - timedelta(days=5)
+        csg_modified_time_offset = csg_modified_time + timedelta(hours=24)
         logging.info(f'Testing if csg_modified_time_offset > file_max_modified_time with csg_modified_time_offset: {csg_modified_time_offset} - file_max_modified_time: {file_max_modified_time}')
-        if csg_modified_time_offset > file_max_modified_time:
+        if file_max_modified_time > csg_modified_time_offset:
             results.append({
                 "should_approve": True,
                 "folder_name": client_reference_folder,
