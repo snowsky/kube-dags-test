@@ -18,7 +18,7 @@ default_args = {
 }
 
 dag = DAG(
-    'reset_crawler_started_running',
+    dag_id='reset_crawler_started_running',
     default_args=default_args,
     description='Update started_running=0 for rows running > 2 hours and email if anything changed',
     schedule_interval='@hourly',
@@ -85,8 +85,13 @@ def process_rows():
         """
 
         send_email(
-            #to='aagarwal@konza.org',
-            to=['ethompson@konza.org','tlamond@konza.org','ddooley@konza.org','cclark@konza.org','jdenson@konza.org']
+            to=[
+                'ethompson@konza.org',
+                'tlamond@konza.org',
+                'ddooley@konza.org',
+                'cclark@konza.org',
+                'jdenson@konza.org'           
+            ],
             subject=f"[KONZA] {len(updated_rows)} Crawler(s) Reset from started_running = 1",
             html_content=html_content
         )
@@ -94,5 +99,5 @@ def process_rows():
     else:
         logging.info("No updates made — no email sent.")
 
-# Run task
+# Attach task to DAG
 process_rows()
