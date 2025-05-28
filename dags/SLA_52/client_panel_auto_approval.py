@@ -161,8 +161,8 @@ condition_result = csga_panel_auto_approval_condition_check()
 auto_approval_update_ctp_task(condition_result)
 auto_approval_update_ch_task(condition_result)
 auto_approval_update_ctp_panel_task(condition_result)
-auto_approval_update_ctp_task_old(condition_result)
-auto_approval_update_ch_task_old(condition_result)
-auto_approval_update_ctp_panel_task_old(condition_result)
+#auto_approval_update_ctp_task_old(condition_result)
+#auto_approval_update_ch_task_old(condition_result)
+#auto_approval_update_ctp_panel_task_old(condition_result)
 
 
