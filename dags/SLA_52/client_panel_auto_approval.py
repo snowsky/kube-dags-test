@@ -34,7 +34,7 @@ def csga_panel_auto_approval_condition_check():
    
     for index, row in dfPanelAutoApproved.iterrows():
         connection_id_md5 = row['ConnectionID_md5']
-        client_reference_folder = row['client_reference_folder']
+        client_reference_folder = row['folder_name']
         logging.info(f'Processing connection ID: {connection_id_md5} for Client Folder Reference {client_reference_folder}')
         try:
             sftp_hook = SFTPHook(ssh_conn_id=connection_id_md5)
