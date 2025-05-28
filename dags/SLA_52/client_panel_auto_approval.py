@@ -153,9 +153,6 @@ def auto_approval_update_ctp_panel_task_old(data: dict):
     tags=['csga_approval','sla_52'],
     catchup=False,
 ) 
-# Variable to store the DAG name
-dag_name_base = dag.dag_id
-dag_file_path_base = __file__
 
 def csga_panel_auto_approval_dag():
     condition_results = csga_panel_auto_approval_condition_check()
