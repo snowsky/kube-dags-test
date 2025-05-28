@@ -76,12 +76,12 @@ def csga_panel_auto_approval_condition_check():
                 "md5": connection_id_md5
             })
         else:
-            logging.info(f'Not Approved to Process - Condition not met')
-            results.append({
-                "should_approve": False,
-                "folder_name": client_reference_folder,
-                "md5": connection_id_md5
-            })
+            logging.info(f'Not Approved to Process - Condition not met - omitting from list to avoid spinning up tasks') 
+            #results.append({
+            #    "should_approve": False,
+            #    "folder_name": client_reference_folder,
+            #    "md5": connection_id_md5
+            #})
 
     return results
 
