@@ -67,6 +67,7 @@ def csga_panel_auto_approval_condition_check():
         csg_modified_time_offset = csg_modified_time + timedelta(hours=24)
         logging.info(f'Testing if csg_modified_time_offset > file_max_modified_time with csg_modified_time_offset: {csg_modified_time_offset} - file_max_modified_time: {file_max_modified_time}')
         if file_max_modified_time > csg_modified_time_offset:
+            logging.info(f'Adding to set to Approved List')
             results.append({
                 "should_approve": True,
                 "folder_name": client_reference_folder,
@@ -75,6 +76,7 @@ def csga_panel_auto_approval_condition_check():
                 "md5": connection_id_md5
             })
         else:
+            logging.info(f'Not Approved to Process - Condition not met')
             results.append({
                 "should_approve": False,
                 "folder_name": client_reference_folder,
