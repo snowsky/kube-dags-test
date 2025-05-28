@@ -24,20 +24,23 @@ dag = DAG(
 dag_name_base = dag.dag_id
 dag_file_path_base = __file__
 
-@task(dag=dag)
-def csga_panel_auto_approval_condition_check():    
-    sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")  # Replace with your connection ID
-    sql_hook_old = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")  # Replace with your connection ID
+@task
+def csga_panel_auto_approval_condition_check():
+    sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
+    sql_hook_old = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
     
-    # Check against database entry in production W3 CSGA
-    query = "SELECT (md5(folder_name)) as ConnectionID_md5, folder_name FROM _dashboard_requests.clients_to_process where production_auto_approval = 1;"  # Replace with your SQL query
+    query = "SELECT md5(folder_name) as ConnectionID_md5, folder_name FROM _dashboard_requests.clients_to_process WHERE production_auto_approval = 1;"
     dfPanelAutoApproved = sql_hook.get_pandas_df(query)
     if dfPanelAutoApproved.empty:
-        return {"should_approve": False}
+        return []
+
+    results = []
+
     for index, row in dfPanelAutoApproved.iterrows():
         connection_id_md5 = row['ConnectionID_md5']
         client_reference_folder = row['folder_name']
         logging.info(f'Processing connection ID: {connection_id_md5} for Client Folder Reference {client_reference_folder}')
+        
         try:
             sftp_hook = SFTPHook(ssh_conn_id=connection_id_md5)
         except Exception as e:
@@ -50,51 +53,54 @@ def csga_panel_auto_approval_condition_check():
 
         try:
             file_max_modified_time = None
+            latest_file_name = None
             with sftp_hook.get_conn() as sftp_client:
-                sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
                 files = sftp_client.listdir_attr()
                 csv_files = [file for file in files if file.filename.endswith('.csv')]
-                logging.info(f'CSV files found: {csv_files}')
-                
                 for file in csv_files:
                     modified_time = pd.to_datetime(file.st_mtime, unit='s')
-                    logging.info(f'File: {file.filename}, Modified Date: {modified_time}')
-                    # Track the max modified time
-                    if max_modified_time is None or modified_time > max_modified_time:
+                    if file_max_modified_time is None or modified_time > file_max_modified_time:
                         file_max_modified_time = modified_time
-                if file_max_modified_time:
-                    logging.info(f'Max Modified Date: {file_max_modified_time}')
-                    
-        
+                        latest_file_name = file.filename
         except Exception as e:
             logging.error(f'Error Occurred: {e}')
-            
-        # Check against database entry in production W3 CSGA
-        db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings  WHERE md5(Client) = '{connection_id_md5}' LIMIT 1"
+            continue
+
+        db_query = f"SELECT Client, event_timestamp, md5(Client) as md5 FROM clientresults.client_security_groupings WHERE md5(Client) = '{connection_id_md5}' LIMIT 1"
         dfCurrentCSG = sql_hook.get_pandas_df(db_query)
-        if dfCurrentCSG.empty: #Use the old DB W2 if needed
-            db_query = f"select Client, event_timestamp, md5(Client) as md5 from clientresults.client_security_groupings  WHERE md5(Client) = '{connection_id_md5}' LIMIT 1"
+        if dfCurrentCSG.empty:
             dfCurrentCSG = sql_hook_old.get_pandas_df(db_query)
+        if dfCurrentCSG.empty:
+            continue
+
         csg_modified_time = dfCurrentCSG['event_timestamp'].iloc[0]
         csg_modified_time_offset = csg_modified_time - timedelta(days=5)
 
-        latest_time = file_max_modified_time.strftime('%Y-%m-%d %H:%M:%S')
-        if csg_modified_time_offset > latest_time:
-            print("new panel to process - setting to approved")
-            logging.info("new panel to process - setting to approved")
-            return {
+        if file_max_modified_time and csg_modified_time_offset > file_max_modified_time:
+            results.append({
                 "should_approve": True,
-                "folder_name": client_reference_folder
-            }
+                "folder_name": client_reference_folder,
+                "latestfile": latest_file_name,
+                "latest_time": file_max_modified_time.strftime('%Y-%m-%d %H:%M:%S'),
+                "md5": connection_id_md5
+            })
         else:
-            return {"should_approve": False}
+            results.append({
+                "should_approve": False,
+                "folder_name": client_reference_folder,
+                "md5": connection_id_md5
+            })
+
+    return results
+
+
 @task
 def auto_approval_update_ctp_task(data: dict):
     if not data["should_approve"]:
         logging.info("Skipping update_ctp")
         return
     sql=f"""
-        UPDATE `_dashboard_requests`.`clients_to_process` SET `frequency`='Approved' WHERE `folder_name`='{folder_name}';
+        UPDATE `_dashboard_requests`.`clients_to_process` SET `frequency`='Approved' WHERE `folder_name`='{data['folder_name']}';
     """
     hook = MySqlHook(mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection')
     hook.run(sql)
@@ -104,7 +110,7 @@ def auto_approval_update_ch_task(data: dict):
         logging.info("Skipping update_ctp")
         return
     sql=f"""
-        UPDATE `_dashboard_requests`.`clients_to_process_panel_audit` SET `most_recent_filename`='{latestfile}', `most_recent_file_timestamp`='{latest_time}' WHERE `folder_name`='{folder_name}';
+        UPDATE `_dashboard_requests`.`clients_to_process_panel_audit` SET `most_recent_filename`='{latestfile}', `most_recent_file_timestamp`='{latest_time}' WHERE `folder_name`='{data['folder_name']}';
     """
     hook = MySqlHook(mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection')
     hook.run(sql)
@@ -114,7 +120,7 @@ def auto_approval_update_ctp_panel_task(data: dict):
         logging.info("Skipping update_ctp")
         return
     sql=f"""
-        UPDATE `_dashboard_requests`.`clients_to_process_panel_audit` SET `most_recent_filename`='{latestfile}', `most_recent_file_timestamp`='{latest_time}' WHERE `folder_name`='{folder_name}';
+        UPDATE `_dashboard_requests`.`clients_to_process_panel_audit` SET `most_recent_filename`='{latestfile}', `most_recent_file_timestamp`='{latest_time}' WHERE `folder_name`='{data['folder_name']}';
     """
     hook = MySqlHook(mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection')
     hook.run(sql)
@@ -125,9 +131,9 @@ def auto_approval_update_ctp_task_old(data: dict):
         logging.info("Skipping update_ctp")
         return
     sql=f"""
-        UPDATE `_dashboard_requests`.`clients_to_process` SET `frequency`='Approved' WHERE `folder_name`='{folder_name}';
+        UPDATE `_dashboard_requests`.`clients_to_process` SET `frequency`='Approved' WHERE `folder_name`='{data['folder_name']}';
     """
-    hook = MySqlHook(mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection')
+    hook = MySqlHook(mysql_conn_id='prd-az1-sqlw2-airflowconnection')
     hook.run(sql)
 @task
 def auto_approval_update_ch_task_old(data: dict):
@@ -135,9 +141,9 @@ def auto_approval_update_ch_task_old(data: dict):
         logging.info("Skipping update_ctp")
         return
     sql=f"""
-        UPDATE `clientresults`.`client_hierarchy` SET `frequency`='Approved' WHERE `folder_name`='{folder_name}';
+        UPDATE `clientresults`.`client_hierarchy` SET `frequency`='Approved' WHERE `folder_name`='{data['folder_name']}';
     """
-    hook = MySqlHook(mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection')
+    hook = MySqlHook(mysql_conn_id='prd-az1-sqlw2-airflowconnection')
     hook.run(sql)
 @task
 def auto_approval_update_ctp_panel_task_old(data: dict):
@@ -145,17 +151,17 @@ def auto_approval_update_ctp_panel_task_old(data: dict):
         logging.info("Skipping update_ctp")
         return
     sql=f"""
-        UPDATE `_dashboard_requests`.`clients_to_process_panel_audit` SET `most_recent_filename`='{latestfile}', `most_recent_file_timestamp`='{latest_time}' WHERE `folder_name`='{folder_name}';
+        UPDATE `_dashboard_requests`.`clients_to_process_panel_audit` SET `most_recent_filename`='{latestfile}', `most_recent_file_timestamp`='{latest_time}' WHERE `folder_name`='{data['folder_name']}';
     """
-    hook = MySqlHook(mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection')
+    hook = MySqlHook(mysql_conn_id='prd-az1-sqlw2-airflowconnection')
     hook.run(sql)
 
-condition_result = csga_panel_auto_approval_condition_check()
-auto_approval_update_ctp_task(condition_result)
-auto_approval_update_ch_task(condition_result)
-auto_approval_update_ctp_panel_task(condition_result)
-#auto_approval_update_ctp_task_old(condition_result)
-#auto_approval_update_ch_task_old(condition_result)
-#auto_approval_update_ctp_panel_task_old(condition_result)
+condition_results = csga_panel_auto_approval_condition_check()
+auto_approval_update_ctp_task.expand(data=condition_results)
+auto_approval_update_ch_task.expand(data=condition_results)
+auto_approval_update_ctp_panel_task.expand(data=condition_results)
+#auto_approval_update_ctp_task_old.expand(data=condition_results)
+#auto_approval_update_ch_task_old.expand(data=condition_results)
+#auto_approval_update_ctp_panel_task_old.expand(data=condition_results)
 
 
