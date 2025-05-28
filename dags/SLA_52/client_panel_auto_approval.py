@@ -6,7 +6,7 @@ from airflow.providers.sftp.hooks.sftp import SFTPHook
 from airflow.providers.mysql.operators.mysql import MySqlOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from datetime import datetime
+from datetime import datetime,timedelta
 from airflow.decorators import task
 from airflow.hooks.base_hook import BaseHook
 import logging
