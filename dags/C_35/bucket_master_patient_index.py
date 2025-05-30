@@ -10,6 +10,7 @@ from airflow.exceptions import AirflowException
 from lib.operators.konza_trino_operator import KonzaTrinoOperator
 from kubernetes import client, config
 
+@task
 def scale_trino_workers(namespace="trino", deployment_name="trino-worker", replicas=3, downscaling_okay=True, delay=120):
     """
     Scale the Kubernetes deployment named 'trino-worker' to a specified number of replicas.
