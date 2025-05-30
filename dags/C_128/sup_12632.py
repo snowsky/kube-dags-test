@@ -19,14 +19,14 @@ default_args = {
     'owner': 'airflow',
 }
 dag = DAG(
-    'HL7v3In_Critical_Data_Pipeline',
+    'HL7v3In_Critical_Data_Pipeline_2',
     default_args=default_args,
     description='Retrieve files from S3 and deliver to SFTP with OID folder structure implemented and delivered to archive folder and delete from s3 after transfer(s)',
     schedule_interval='@hourly',
-    max_active_runs=1,
+    #max_active_runs=1,
     concurrency=100,
-    start_date=datetime(2025, 4, 7), 
-    tags=['C-128'],
+    start_date=datetime(2025, 5, 30), 
+    tags=['C-128','Canary','Staging_in_Prod'],
     catchup=False,
     params={
         "max_workers": Param(5, type="integer", minimum=1),
@@ -36,8 +36,9 @@ dag = DAG(
 ENV = 'Prod'
 BUCKET_NAME = 'konzaandssigrouppipelines'
 S3_SUBFOLDER = 'HL7v3In/'
+#S3_SUBFOLDER = 'HL7v3Out/XCAIn_test_aa/'
 LOCAL_DIR = '/source-biakonzasftp/C-128/archive/HL7v3In'
-#LOCAL_DIR = '/data/biakonzasftp/C-128/archive/XCAIn_AA'
+#LOCAL_DIR = '/data/biakonzasftp/C-128/archive/HL7v3In/HL7v3In_AA'
 
 #s3://konzaandssigrouppipelines/HL7v3In/XCAIn_test/
 
@@ -45,14 +46,18 @@ def download_single_file_to_local(file_key, local_dir, aws_conn_id, bucket_name 
     s3_hook = S3Hook(aws_conn_id=aws_conn_id)
     # Parse file
     parts = file_key.split('/')
-    folder1 = parts[-4].split('=')[1]
-    folder2 = parts[-3].split('=')[1]
+    #folder1 = parts[-4].split('=')[1]
+    #folder2 = parts[-3].split('=')[1]
+    oid1 = next(part.split('=')[1] for part in parts if 'repositoryUniqueId=' in part)
+    oid2 = next(part.split('=')[1] for part in parts if 'root=' in part)
+    euid = next(part.split('=')[1] for part in parts if 'extension=' in part)
     file_name = parts[-1]
     
     # Create date folder
     date_folder = datetime.now().strftime('%Y-%m-%d')
     # Create same oid folder pattern as in client SFTP location
-    local_path = f"{local_dir}/{date_folder}/{folder1}/{folder2}/{file_name}"
+    #local_path = f"{local_dir}/{date_folder}/{oid1}/{oid2}/{file_name}"
+    local_path = f"{local_dir}/{date_folder}/{oid1}/{oid2}/{euid}/{file_name}"
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     
     try:
@@ -164,11 +169,27 @@ def list_files_in_s3():
     logging.info(f'Files in S3: {files}')
     return files
 
+#commenting as per Jody's ask SUP-14660 --
 @task(dag=dag)
 def filter_xml_files(files):
     xml_files = [file for file in files if file.endswith('.xml')]
     logging.info(f'Filtered XML Files: {xml_files}')
     return xml_files
+
+# Temp add for SUP-14660
+#@task(dag=dag)
+#def filter_xml_files(files):
+    # Define folders to skip temporarily
+    #excluded_folders = [
+        #"XCAIn/homeCommunityId=urn:oid:2.16.840.1.113883.3.8312.2.2.1.1/",
+        #"XCAIn/homeCommunityId=urn:oid:2.16.840.1.113883.3.8312.300.2.1.1/"
+    #]
+    #xml_files = [
+        #file for file in files 
+        #if file.endswith('.xml') and not any(file.startswith(f"{S3_SUBFOLDER}{folder}") for folder in excluded_folders)
+    #]
+    #logging.info(f'Filtered XML Files: {xml_files}')
+    #return xml_files
 
 def get_sftp():
     if ENV == 'Dev':
@@ -177,7 +198,15 @@ def get_sftp():
         sftp_conn_id = 'Availity_Diameter_Health__DH_Fusion_Production_SFTP'
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
     transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
-    extra = json.loads(sftp_conn.extra)
+    #extra = json.loads(sftp_conn.extra)
+
+    extra = {}
+    if sftp_conn.extra:
+        try:
+            extra = json.loads(sftp_conn.extra)
+        except json.JSONDecodeError:
+            logging.warning("SFTP connection 'extra' field is not valid JSON. Defaulting to empty dict.")
+            
     if "key_file" in extra: 
         with open(extra["key_file"]) as f:
             pkey = paramiko.RSAKey.from_private_key(f)
@@ -194,7 +223,14 @@ def get_sftp_test():
         sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
     transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
-    extra = json.loads(sftp_conn.extra)
+    #extra = json.loads(sftp_conn.extra)
+    extra = {}
+    if sftp_conn.extra:
+        try:
+            extra = json.loads(sftp_conn.extra)
+        except json.JSONDecodeError:
+            logging.warning("SFTP connection 'extra' field is not valid JSON. Defaulting to empty dict.")
+            
     if "key_file" in extra: 
         with open(extra["key_file"]) as f:
             pkey = paramiko.RSAKey.from_private_key(f)
@@ -206,34 +242,37 @@ def get_sftp_test():
 
 def ensure_directories_exist(file_key):
     parts = file_key.split('/')
-    folder1 = parts[-4].split('=')[1]
-    folder2 = parts[-3].split('=')[1]
+    #folder1 = parts[-4].split('=')[1]
+    #folder2 = parts[-3].split('=')[1]
+    oid1 = next(part.split('=')[1] for part in parts if 'repositoryUniqueId=' in part)
+    oid2 = next(part.split('=')[1] for part in parts if 'root=' in part)
+    euid = next(part.split('=')[1] for part in parts if 'extension=' in part)
     sftp, transport = get_sftp()
     logging.info(f'sftp type: {type(sftp)}, transport type: {type(transport)}')
 
     try:
         if ENV == 'Dev':
             try:
-                sftp.chdir(f'C-128/C_128_test_delivery/HL7v3In/{folder1}')
+                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{oid1}')
             except IOError:
                 sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'C-128/C_128_test_delivery/HL7v3In/{folder1}')
+                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{oid1}')
             try:
-                sftp.chdir(f'C-128/C_128_test_delivery/HL7v3In/{folder1}/{folder2}')
+                sftp.chdir(f'C-128/C_128_test_delivery/XCAIn/{oid1}/{oid2}')
             except IOError:
                 sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'C-128/C_128_test_delivery/HL7v3In/{folder1}/{folder2}')
+                sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{oid1}/{oid2}')
         if ENV == 'Prod':
             try:
-                sftp.chdir(f'inbound/{folder1}')
+                sftp.chdir(f'inbound/{oid1}')
             except IOError:
                 sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'inbound/{folder1}')
+                sftp.mkdir(f'inbound/{oid1}')
             try:
-                sftp.chdir(f'inbound/{folder1}/{folder2}')
+                sftp.chdir(f'inbound/{oid1}/{oid2}')
             except IOError:
                 sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'inbound/{folder1}/{folder2}')
+                sftp.mkdir(f'inbound/{oid1}/{oid2}')
     except Exception as e:
         logging.error(f'Error ensuring directories exist: {e}')
     finally:
@@ -250,76 +289,83 @@ def ensure_directories_exist_test(file_key):
         logging.error(f"Invalid file structure for {file_key}. Expected at least 4 parts.")
         return
 
-    folder1 = parts[-4].split('=')[1]
-    folder2 = parts[-3].split('=')[1]
+    #folder1 = parts[-4].split('=')[1]
+    #folder2 = parts[-3].split('=')[1]
     # Initialize folder3 as None by default
-    folder3 = None
+    #folder3 = None
     # If there are at least 5 parts, extract folder3
-    if len(parts) > 4:
+    #if len(parts) > 4:
         # Ensure the second-to-last part contains '=' before splitting
-        if '=' in parts[-2]:
-            folder3 = parts[-2].split('=')[1]
-        else:
-            logging.warning(f"Invalid format for folder3 in {file_key}. Skipping extraction.")
-            folder3 = None
-
+        #if '=' in parts[-2]:
+            #folder3 = parts[-2].split('=')[1]
+        #else:
+            #logging.warning(f"Invalid format for folder3 in {file_key}. Skipping extraction.")
+            #folder3 = None
+    oid1 = next(part.split('=')[1] for part in parts if 'repositoryUniqueId=' in part)
+    oid2 = next(part.split('=')[1] for part in parts if 'root=' in part)
+    #euid = next(part.split('=')[1] for part in parts if 'extension=' in part)
+    euid_parts = [part.split('=')[1] for part in parts if 'extension=' in part]
+    if not euid_parts:
+        logging.warning(f"Skipping file {file_key}: Missing 'extension=' (euid). File will not be transferred.")
+        return
+    euid = euid_parts[0]
     file_name = parts[-1]
     # Log extracted values
-    logging.info(f"folder1: {folder1}, folder2: {folder2}, folder3: {folder3}, file_name: {file_name}")
+    logging.info(f"oid1: {oid1}, oid2: {oid2}, euid: {euid}, file_name: {file_name}")
     sftp, transport = get_sftp_test()
     
     try:
         if ENV == 'Dev':
             try:
                 # Change XCAIn directory to XCAIn_test_3_folder : which is a folder I have created in My DEV SFTP location
-                sftp.chdir(f'C-128/C_128_test_delivery/HL7v3In_test_3_folder/{folder1}')
+                sftp.chdir(f'C-128/C_128_test_delivery/HL7v3In/{oid1}')
             except IOError:
                 sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'C-128/C_128_test_delivery/HL7v3In_test_3_folder/{folder1}')
-                logging.info("first folder is created")
+                sftp.mkdir(f'C-128/C_128_test_delivery/HL7v3In/{oid1}')
+                logging.info("first oid folder is created")
 
             try:
-                sftp.chdir(f'C-128/C_128_test_delivery/HL7v3In_test_3_folder/{folder1}/{folder2}')
+                sftp.chdir(f'C-128/C_128_test_delivery/HL7v3In/{oid1}/{oid2}')
             except IOError:
                 sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'C-128/C_128_test_delivery/HL7v3In_test_3_folder/{folder1}/{folder2}')
-                logging.info("second folder is created")
+                sftp.mkdir(f'C-128/C_128_test_delivery/HL7v3In/{oid1}/{oid2}')
+                logging.info("second oid folder is created")
 
             
-            if folder3:  # Only attempt to create folder3 if it exists
+            if euid:  # Only attempt to create folder3 if it exists
                 try:
-                    sftp.chdir(f'C-128/C_128_test_delivery/HL7v3In_test_3_folder/{folder1}/{folder2}/{folder3}')
+                    sftp.chdir(f'C-128/C_128_test_delivery/HL7v3In/{oid1}/{oid2}/{euid}')
                 except IOError:
                     sftp.chdir(sftp.normalize('.'))
-                    sftp.mkdir(f'C-128/C_128_test_delivery/HL7v3In_test_3_folder/{folder1}/{folder2}/{folder3}')
-                    logging.info("Third folder is created")
+                    sftp.mkdir(f'C-128/C_128_test_delivery/HL7v3In/{oid1}/{oid2}/{euid}')
+                    logging.info("Third euid folder is created")
 
         
         if ENV == 'Prod':
             try:
                 # Please change the inbound folder to a folder name that is created at the client SFTP location. 
-                sftp.chdir(f'inbound/{folder1}')
+                sftp.chdir(f'inbound/{oid1}')
             except IOError:
                 sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'inbound/{folder1}')
-                logging.info("first folder is created")
+                sftp.mkdir(f'inbound/{oid1}')
+                logging.info("first oid folder is created")
 
             
             try:
-                sftp.chdir(f'inbound/{folder1}/{folder2}')
+                sftp.chdir(f'inbound/{oid1}/{oid2}')
             except IOError:
                 sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'inbound/{folder1}/{folder2}')
-                logging.info("second folder is created")
+                sftp.mkdir(f'inbound/{oid1}/{oid2}')
+                logging.info("second oid folder is created")
                 
             
-            if folder3:  # Only attempt to create folder3 if it exists
+            if euid:  # Only attempt to create folder3 if it exists
                 try:
-                    sftp.chdir(f'inbound/{folder1}/{folder2}/{folder3}')
+                    sftp.chdir(f'inbound/{oid1}/{oid2}/{euid}')
                 except IOError:
                     sftp.chdir(sftp.normalize('.'))
-                    sftp.mkdir(f'inbound/{folder1}/{folder2}/{folder3}')
-                    logging.info("third folder is created")
+                    sftp.mkdir(f'inbound/{oid1}/{oid2}/{euid}')
+                    logging.info("third euid folder is created")
 
     except Exception as e:
         logging.error(f'Error ensuring directories exist: {e}')
@@ -336,14 +382,16 @@ def transfer_file_to_sftp(file_key):
         return
 
     parts = file_key.split('/')
-    folder1 = parts[-4].split('=')[1]
-    folder2 = parts[-3].split('=')[1]
+    #folder1 = parts[-4].split('=')[1]
+    #folder2 = parts[-3].split('=')[1]
+    oid1 = next(part.split('=')[1] for part in parts if 'repositoryUniqueId=' in part)
+    oid2 = next(part.split('=')[1] for part in parts if 'root=' in part)
     file_name = parts[-1]
 
     if ENV == 'Dev':
-        sftp_path = f'C-128/C_128_test_delivery/HL7v3In/{folder1}/{folder2}/{file_name}'
+        sftp_path = f'C-128/C_128_test_delivery/XCAIn/{oid1}/{oid2}/{file_name}'
     if ENV == 'Prod':
-        sftp_path = f'inbound/{folder1}/{folder2}/{file_name}'
+        sftp_path = f'inbound/{oid1}/{oid2}/{file_name}'
     logging.info(f'SFTP Path: {sftp_path}')
     sftp, transport = get_sftp()
     try:
@@ -376,31 +424,33 @@ def transfer_file_to_sftp_test(file_key):
         logging.error(f'Invalid file structure for {file_key}. Expected at least 4 parts.')
         return
 
-    folder1 = parts[-4].split('=')[1]  # Assumes this folder always exists
-    folder2 = parts[-3].split('=')[1]  # Assumes this folder always exists
+    #folder1 = parts[-4].split('=')[1]  # Assumes this folder always exists
+    #folder2 = parts[-3].split('=')[1]  # Assumes this folder always exists
 
     # Check if folder3 exists (with appropriate bounds check)
-    folder3 = None
-    if len(parts) > 4:  # Check if there are more than 4 parts
-        if '=' in parts[-2]:  # Ensure the second-to-last part contains '=' before splitting
-            folder3 = parts[-2].split('=')[1]
-        else:
-            logging.warning(f"Invalid format for folder3 in {file_key}. Skipping extraction.")
-            folder3 = None
-
+    #folder3 = None
+    #if len(parts) > 4:  # Check if there are more than 4 parts
+        #if '=' in parts[-2]:  # Ensure the second-to-last part contains '=' before splitting
+            #folder3 = parts[-2].split('=')[1]
+        #else:
+            #logging.warning(f"Invalid format for folder3 in {file_key}. Skipping extraction.")
+            #folder3 = None
+    oid1 = next(part.split('=')[1] for part in parts if 'repositoryUniqueId=' in part)
+    oid2 = next(part.split('=')[1] for part in parts if 'root=' in part)
+    euid = next(part.split('=')[1] for part in parts if 'extension=' in part)
     file_name = parts[-1]
 
         # Construct the SFTP path based on the environment
     if ENV == 'Dev':
-        if folder3:
-            sftp_path = f'C-128/C_128_test_delivery/HL7v3In_test_3_folder/{folder1}/{folder2}/{folder3}/{file_name}'
+        if euid:
+            sftp_path = f'C-128/C_128_test_delivery/HL7v3In/{oid1}/{oid2}/{euid}/{file_name}'
         else:
-            sftp_path = f'C-128/C_128_test_delivery/HL7v3In_test_3_folder/{folder1}/{folder2}/{file_name}'
+            sftp_path = f'C-128/C_128_test_delivery//HL7v3In/{oid1}/{oid2}/{file_name}'
     elif ENV == 'Prod':
-        if folder3:
-            sftp_path = f'inbound/{folder1}/{folder2}/{folder3}/{file_name}'
+        if euid:
+            sftp_path = f'inbound/{oid1}/{oid2}/{euid}/{file_name}'
         else:
-            sftp_path = f'inbound/{folder1}/{folder2}/{file_name}'
+            sftp_path = f'inbound/{oid1}/{oid2}/{file_name}'
     else:
         logging.error(f"Unsupported environment: {ENV}")
         return
@@ -427,10 +477,10 @@ def transfer_file_to_sftp_test(file_key):
 @task(dag=dag)
 def transfer_batch_to_sftp(batch: List[str]):
     for file_key in batch:
-        ensure_directories_exist(file_key)
-        #ensure_directories_exist_test(file_key)
+        #ensure_directories_exist(file_key)
+        ensure_directories_exist_test(file_key)
         download_single_file_to_local(file_key, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
-        transfer_file_to_sftp(file_key)
+        #transfer_file_to_sftp(file_key)
         transfer_file_to_sftp_test(file_key)
         delete_single_file_from_s3(file_key, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 
