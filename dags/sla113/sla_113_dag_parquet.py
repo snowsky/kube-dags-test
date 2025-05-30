@@ -29,7 +29,7 @@ CONTAINER_NAME = 'content'
 SOURCE_PATH = "parquet-master-data/mpi" #Initial test location on production was "mpi" with prod being "parquet-master-data/mpi"
 # Destination prefix for adjusted files which will be appended to the source prefix
 DESTINATION_PREFIX = "Adjusted/" #for an extra step of validation set to "Adjusted/" or "" if overwriting directly
-DESTINATION_PATH = f"{DESTINATION_PREFIX}/{SOURCE_PATH}"
+DESTINATION_PATH = f"{DESTINATION_PREFIX}{SOURCE_PATH}" # was this, but this breaks the trino query f"{SOURCE_PATH}/{DESTINATION_PREFIX}" 
 WORKSHEET_BLOB_PATH = "source-biakonzasftp/C-9/SLA-113/"
 PARALLEL_TASK_LIMIT = 5
 
