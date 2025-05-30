@@ -25,7 +25,7 @@ dag = DAG(
     schedule_interval='@hourly',
     #max_active_runs=1,
     concurrency=100,
-    start_date=datetime(2025, 2, 7), 
+    start_date=datetime(2025, 5, 30), 
     tags=['C-128','Canary','Staging_in_Prod'],
     catchup=False,
     params={
@@ -50,13 +50,14 @@ def download_single_file_to_local(file_key, local_dir, aws_conn_id, bucket_name 
     #folder2 = parts[-3].split('=')[1]
     oid1 = next(part.split('=')[1] for part in parts if 'repositoryUniqueId=' in part)
     oid2 = next(part.split('=')[1] for part in parts if 'root=' in part)
-    #euid = next(part.split('=')[1] for part in parts if 'extension=' in part)
+    euid = next(part.split('=')[1] for part in parts if 'extension=' in part)
     file_name = parts[-1]
     
     # Create date folder
     date_folder = datetime.now().strftime('%Y-%m-%d')
     # Create same oid folder pattern as in client SFTP location
-    local_path = f"{local_dir}/{date_folder}/{oid1}/{oid2}/{file_name}"
+    #local_path = f"{local_dir}/{date_folder}/{oid1}/{oid2}/{file_name}"
+    local_path = f"{local_dir}/{date_folder}/{oid1}/{oid2}/{euid}/{file_name}"
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
     
     try:
@@ -197,7 +198,15 @@ def get_sftp():
         sftp_conn_id = 'Availity_Diameter_Health__DH_Fusion_Production_SFTP'
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
     transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
-    extra = json.loads(sftp_conn.extra)
+    #extra = json.loads(sftp_conn.extra)
+
+    extra = {}
+    if sftp_conn.extra:
+        try:
+            extra = json.loads(sftp_conn.extra)
+        except json.JSONDecodeError:
+            logging.warning("SFTP connection 'extra' field is not valid JSON. Defaulting to empty dict.")
+            
     if "key_file" in extra: 
         with open(extra["key_file"]) as f:
             pkey = paramiko.RSAKey.from_private_key(f)
@@ -214,7 +223,14 @@ def get_sftp_test():
         sftp_conn_id = 'Availity_Diameter_Health__Files_Test_Environment'
     sftp_conn = BaseHook.get_connection(sftp_conn_id)
     transport = paramiko.Transport((sftp_conn.host, sftp_conn.port))
-    extra = json.loads(sftp_conn.extra)
+    #extra = json.loads(sftp_conn.extra)
+    extra = {}
+    if sftp_conn.extra:
+        try:
+            extra = json.loads(sftp_conn.extra)
+        except json.JSONDecodeError:
+            logging.warning("SFTP connection 'extra' field is not valid JSON. Defaulting to empty dict.")
+            
     if "key_file" in extra: 
         with open(extra["key_file"]) as f:
             pkey = paramiko.RSAKey.from_private_key(f)
@@ -287,7 +303,12 @@ def ensure_directories_exist_test(file_key):
             #folder3 = None
     oid1 = next(part.split('=')[1] for part in parts if 'repositoryUniqueId=' in part)
     oid2 = next(part.split('=')[1] for part in parts if 'root=' in part)
-    euid = next(part.split('=')[1] for part in parts if 'extension=' in part)
+    #euid = next(part.split('=')[1] for part in parts if 'extension=' in part)
+    euid_parts = [part.split('=')[1] for part in parts if 'extension=' in part]
+    if not euid_parts:
+        logging.warning(f"Skipping file {file_key}: Missing 'extension=' (euid). File will not be transferred.")
+        return
+    euid = euid_parts[0]
     file_name = parts[-1]
     # Log extracted values
     logging.info(f"oid1: {oid1}, oid2: {oid2}, euid: {euid}, file_name: {file_name}")
@@ -311,7 +332,7 @@ def ensure_directories_exist_test(file_key):
                 logging.info("second oid folder is created")
 
             
-            if folder3:  # Only attempt to create folder3 if it exists
+            if euid:  # Only attempt to create folder3 if it exists
                 try:
                     sftp.chdir(f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{oid1}/{oid2}/{euid}')
                 except IOError:
@@ -338,12 +359,12 @@ def ensure_directories_exist_test(file_key):
                 logging.info("second oid folder is created")
                 
             
-            if folder3:  # Only attempt to create folder3 if it exists
+            if euid:  # Only attempt to create folder3 if it exists
                 try:
-                    sftp.chdir(f'inbound/{oid1}/{oid2}/{folder3}')
+                    sftp.chdir(f'inbound/{oid1}/{oid2}/{euid}')
                 except IOError:
                     sftp.chdir(sftp.normalize('.'))
-                    sftp.mkdir(f'inbound/{oid1}/{oid2}/{folder3}')
+                    sftp.mkdir(f'inbound/{oid1}/{oid2}/{euid}')
                     logging.info("third euid folder is created")
 
     except Exception as e:
@@ -421,12 +442,12 @@ def transfer_file_to_sftp_test(file_key):
 
         # Construct the SFTP path based on the environment
     if ENV == 'Dev':
-        if folder3:
+        if euid:
             sftp_path = f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{oid1}/{oid2}/{euid}/{file_name}'
         else:
             sftp_path = f'C-128/C_128_test_delivery/XCAIn_test_3_folder/{oid1}/{oid2}/{file_name}'
     elif ENV == 'Prod':
-        if folder3:
+        if euid:
             sftp_path = f'inbound/{oid1}/{oid2}/{euid}/{file_name}'
         else:
             sftp_path = f'inbound/{oid1}/{oid2}/{file_name}'
@@ -456,10 +477,10 @@ def transfer_file_to_sftp_test(file_key):
 @task(dag=dag)
 def transfer_batch_to_sftp(batch: List[str]):
     for file_key in batch:
-        ensure_directories_exist(file_key)
-        #ensure_directories_exist_test(file_key)
+        #ensure_directories_exist(file_key)
+        ensure_directories_exist_test(file_key)
         download_single_file_to_local(file_key, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
-        transfer_file_to_sftp(file_key)
+        #transfer_file_to_sftp(file_key)
         transfer_file_to_sftp_test(file_key)
         delete_single_file_from_s3(file_key, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 
