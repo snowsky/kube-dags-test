@@ -7,6 +7,7 @@ from airflow.operators.python import get_current_context
 from airflow.exceptions import AirflowFailException, AirflowSkipException
 from os import path, makedirs
 from functools import partial
+import logging
 import math
 # If we want to utilise ProcessPoolExecutor we need to set
 # AIRFLOW__CORE__EXECUTE_TASKS_NEW_PYTHON_INTERPRETER = true
@@ -95,7 +96,7 @@ with DAG(
     def copy_file_task(input_file_list, params: dict):
         max_workers = params['max_pool_workers']
         with PoolExecutor(max_workers=max_workers) as executor:
-            future_file_dict = {executor.submit(partial(_copy_file, params), path.basename(f), path.dirname(f)): f for f in input_file_list}
+            future_file_dict = {executor.submit(partial(_copy_file, params), path.dirname(f), path.basename(f)): f for f in input_file_list}
         _, exceptions = _get_results_from_futures(future_file_dict)
         if exceptions:
             raise AirflowFailException(f'exceptions raised: {exceptions}')
@@ -104,6 +105,7 @@ with DAG(
         import shutil
         import os
         from os import path
+        logging.info(f'initial_folder: {initial_folder} - source_files_dir_path: {params['source_files_dir_path']} - file: {file}')
         input_file_path = path.join(params['source_files_dir_path'], initial_folder, file)
         #input_file_path = path.join(params['source_files_dir_path'], file)
         dest_file_path = path.join(params['output_files_dir_path'], initial_folder, file)
