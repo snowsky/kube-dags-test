@@ -66,15 +66,42 @@ with DAG(
     },
 ) as dag:
     @task
-    def diff_files_task(params: dict):
-        _sanitise_input_directories(params)
-        source_files = _get_files_from_dir(params['source_files_dir_path'])
-        dest_files = _get_files_from_dir(params['output_files_dir_path'])
-        unique_files = [f for f in source_files if f not in dest_files]
-        if unique_files:
-            return _split_list_into_batches(unique_files, params['max_mapped_tasks'])
-        else:
-            return []
+    from datetime import timedelta
+import os
+from airflow.utils.context import get_current_context
+
+def diff_files_task(params: dict):
+    _sanitise_input_directories(params)
+
+    # Get Airflow execution date
+    context = get_current_context()
+    execution_date = context['execution_date']
+
+    # Generate folder names for today and the two previous days
+    date_folders = [
+        (execution_date - timedelta(days=i)).strftime('%Y%m%d')
+        for i in range(3)
+    ]
+
+    # Get all source files
+    source_files = _get_files_from_dir(params['source_files_dir_path'])
+
+    # Collect destination files only from the last 3 date folders
+    dest_files = []
+    for date_folder in date_folders:
+        dated_path = os.path.join(params['output_files_dir_path'], date_folder)
+        if os.path.exists(dated_path):
+            dest_files.extend(_get_files_from_dir(dated_path))
+
+    # Compare by filename only
+    dest_file_names = {os.path.basename(f) for f in dest_files}
+    unique_files = [f for f in source_files if os.path.basename(f) not in dest_file_names]
+
+    if unique_files:
+        return _split_list_into_batches(unique_files, params['max_mapped_tasks'])
+    else:
+        return []
+
 
     def _split_list_into_batches(target_list,  max_tasks):
         if target_list:
