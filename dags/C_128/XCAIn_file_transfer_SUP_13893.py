@@ -345,7 +345,7 @@ def ensure_directories_exist_test(file_key):
         if transport:
             transport.close()
 
-def transfer_file_to_sftp(file_key):
+def transfer_file_to_sftp_two_folder(file_key):
     logging.info(f'Starting transfer for: {file_key}')
     if not file_key.endswith('.xml'):
         logging.info(f'Skipping non-XML file: {file_key}')
@@ -379,7 +379,7 @@ def transfer_file_to_sftp(file_key):
         if transport:
             transport.close()
 
-def transfer_file_to_sftp_test(file_key):
+def transfer_file_to_sftp(file_key):
     logging.info(f'Starting transfer for: {file_key}')
     if not file_key.endswith('.xml'):
         logging.info(f'Skipping non-XML file: {file_key}')
@@ -422,7 +422,7 @@ def transfer_file_to_sftp_test(file_key):
         return
 
     logging.info(f'SFTP Path: {sftp_path}')
-    sftp, transport = get_sftp_test()
+    sftp, transport = get_sftp()
 
     try:
         s3_hook = S3Hook(aws_conn_id='konzaandssigrouppipelines')
@@ -443,11 +443,11 @@ def transfer_file_to_sftp_test(file_key):
 @task(dag=dag)
 def transfer_batch_to_sftp(batch: List[str]):
     for file_key in batch:
-        ensure_directories_exist(file_key)
+        #ensure_directories_exist(file_key)
         #ensure_directories_exist_test(file_key)
         download_single_file_to_local(file_key, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
         transfer_file_to_sftp(file_key)
-        #transfer_file_to_sftp_test(file_key)
+        #transfer_file_to_sftp_two_folder(file_key)
         delete_single_file_from_s3(file_key, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 
 
