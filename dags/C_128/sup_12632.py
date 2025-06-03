@@ -277,7 +277,13 @@ def ensure_directories_exist(file_key):
                 sftp.chdir(f'inbound/{oid1}/{oid2}')
             except IOError:
                 sftp.chdir(sftp.normalize('.'))
-                sftp.mkdir(f'inbound/{oid1}/{oid2}')
+                sftp.mkdir(f'inbound/{oid1}/{oid2}') 
+            try:
+                sftp.chdir(f'inbound/{oid1}/{oid2}/{euid}')
+            except IOError:
+                sftp.chdir(sftp.normalize('.'))
+                sftp.mkdir(f'inbound/{oid1}/{oid2}/{euid}') 
+                
     except Exception as e:
         logging.error(f'Error ensuring directories exist: {e}')
     finally:
@@ -398,12 +404,14 @@ def transfer_file_to_sftp(file_key):
     #folder2 = parts[-3].split('=')[1]
     oid1 = next(part.split('=')[1] for part in parts if 'repositoryUniqueId=' in part)
     oid2 = next(part.split('=')[1] for part in parts if 'root=' in part)
+    euid = next(part.split('=')[1] for part in parts if 'extension=' in part)
     file_name = parts[-1]
 
+
     if ENV == 'Dev':
-        sftp_path = f'C-128/C_128_test_delivery/XCAIn/{oid1}/{oid2}/{file_name}'
+        sftp_path = f'C-128/C_128_test_delivery/XCAIn/{oid1}/{oid2}/{euid}/{file_name}'
     if ENV == 'Prod':
-        sftp_path = f'inbound/{oid1}/{oid2}/{file_name}'
+        sftp_path = f'inbound/{oid1}/{oid2}/{euid}/{file_name}'
     logging.info(f'SFTP Path: {sftp_path}')
     sftp, transport = get_sftp()
     try:
@@ -490,10 +498,10 @@ def transfer_file_to_sftp_test(file_key):
 def transfer_batch_to_sftp(batch: List[str]):
     for file_key in batch:
         #ensure_directories_exist(file_key)
-        ensure_directories_exist_test(file_key)
+        #ensure_directories_exist_test(file_key)
         download_single_file_to_local(file_key, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
-        #transfer_file_to_sftp(file_key)
-        transfer_file_to_sftp_test(file_key)
+        transfer_file_to_sftp(file_key)
+        #transfer_file_to_sftp_test(file_key)
         delete_single_file_from_s3(file_key, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 
 
