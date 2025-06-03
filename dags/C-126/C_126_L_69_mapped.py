@@ -105,7 +105,7 @@ with DAG(
         import shutil
         import os
         from os import path
-        logging.info(f'initial_folder: {initial_folder} - source_files_dir_path: {params['source_files_dir_path']} - file: {file}')
+        logging.info(f'initial_folder: {initial_folder} - file: {file}')
         input_file_path = path.join(params['source_files_dir_path'], initial_folder, file)
         #input_file_path = path.join(params['source_files_dir_path'], file)
         dest_file_path = path.join(params['output_files_dir_path'], initial_folder, file)
