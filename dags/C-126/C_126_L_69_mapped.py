@@ -95,12 +95,12 @@ with DAG(
     def copy_file_task(input_file_list, params: dict):
         max_workers = params['max_pool_workers']
         with PoolExecutor(max_workers=max_workers) as executor:
-            future_file_dict = {executor.submit(partial(_copy_file, params), f): f for f in input_file_list}
+            future_file_dict = {executor.submit(partial(_copy_file, params), path.basename(f), path.dirname(f)): f for f in input_file_list}
         _, exceptions = _get_results_from_futures(future_file_dict)
         if exceptions:
             raise AirflowFailException(f'exceptions raised: {exceptions}')
 
-    def _copy_file(params, file):
+    def _copy_file(params, file, initial_folder):
         import shutil
         import os
         from os import path
