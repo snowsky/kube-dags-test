@@ -55,6 +55,8 @@ with DAG(
     dag_id='C_126_L_69_mapped',
     default_args=default_args,
     schedule='@hourly',
+    start_date=days_ago(1),
+    catchup=False,
     tags=['example', 'C-126', 'L-69'],
     concurrency=PARALLEL_TASK_LIMIT,
     params={
