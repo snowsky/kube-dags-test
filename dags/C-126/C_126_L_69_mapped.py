@@ -98,14 +98,32 @@ with DAG(
         if exceptions:
             raise AirflowFailException(f'exceptions raised: {exceptions}')
 
-
     def _copy_file(params, file):
         import shutil
+        import os
+        from os import path
+    
         input_file_path = path.join(params['source_files_dir_path'], file)
         dest_file_path = path.join(params['output_files_dir_path'], file)
-        makedirs(path.dirname(dest_file_path), exist_ok=True)
+    
+        # Ensure destination directory exists
+        os.makedirs(path.dirname(dest_file_path), exist_ok=True)
+    
+        # Copy the file
         shutil.copy2(input_file_path, dest_file_path)
+    
+        # Remove the original file to complete the "move"
+        os.remove(input_file_path)
+    
         return file
+
+ #   def _copy_file(params, file):
+ #       import shutil
+ #       input_file_path = path.join(params['source_files_dir_path'], file)
+ #       dest_file_path = path.join(params['output_files_dir_path'], file)
+ #       makedirs(path.dirname(dest_file_path), exist_ok=True)
+ #       shutil.copy2(input_file_path, dest_file_path)
+ #       return file
 
     def _push_results_from_futures(future_file_dict):
         results, exceptions = _get_results_from_futures(future_file_dict)
