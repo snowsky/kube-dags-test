@@ -31,7 +31,7 @@ class BucketDetails:
 
 AWS_BUCKETS = {'konzaandssigrouppipelines':
                    BucketDetails(aws_conn_id='konzaandssigrouppipelines',
-                                 aws_key_pattern='HL7v3Out/HL7InV3_CDA_KONZA_SFTP_Retrieval__L_69/{OIDFolder}/{input_file}',
+                                 aws_key_pattern='HL7v3Out/HL7InV3_CDA_KONZA_SFTP_Retrieval__L_69_s3_delivery_testing/{OIDFolder}/{input_file}',
                                  s3_hook_kwargs={}),
                #'com-ssigroup-insight-attribution-data':
                #    BucketDetails(aws_conn_id='konzaandssigrouppipelines',
