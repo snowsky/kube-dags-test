@@ -264,6 +264,11 @@ def ensure_directories_exist(file_key):
                 sftp.mkdir(f'C-128/C_128_test_delivery/XCAIn/{oid1}/{oid2}')
         if ENV == 'Prod':
             try:
+                sftp.chdir('inbound')
+            except IOError:
+                logging.error("Root folder 'inbound/' does not exist on SFTP. Skipping file.")
+                return
+            try:
                 sftp.chdir(f'inbound/{oid1}')
             except IOError:
                 sftp.chdir(sftp.normalize('.'))
@@ -343,11 +348,18 @@ def ensure_directories_exist_test(file_key):
         
         if ENV == 'Prod':
             try:
+                sftp.chdir('inbound')
+            except IOError:
+                logging.error("Root folder 'inbound/' does not exist on SFTP. Skipping file.")
+                return
+            try:
                 # Please change the inbound folder to a folder name that is created at the client SFTP location. 
                 sftp.chdir(f'inbound/{oid1}')
             except IOError:
                 sftp.chdir(sftp.normalize('.'))
                 sftp.mkdir(f'inbound/{oid1}')
+                #sftp.mkdir(f'{oid1}')
+                #logging.info("First OID folder created under 'inbound/'")
                 logging.info("first oid folder is created")
 
             
