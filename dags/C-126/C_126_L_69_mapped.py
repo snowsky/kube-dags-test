@@ -100,7 +100,7 @@ with DAG(
         if exceptions:
             raise AirflowFailException(f'exceptions raised: {exceptions}')
 
-    def _copy_file(params, file, initial_folder):
+    def _copy_file(params, initial_folder, file):
         import shutil
         import os
         from os import path
