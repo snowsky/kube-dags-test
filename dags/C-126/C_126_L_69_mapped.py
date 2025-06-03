@@ -159,12 +159,18 @@ with DAG(
         return upload_file_to_s3_task_def
 
     def _upload_file_to_s3(params, aws_key_pattern, aws_conn_id, aws_bucket_name, s3_hook_kwargs, file, initial_folder):
-        input_file_path = path.join(params['source_files_dir_path'], file)
+        input_file_path = path.join(initial_folder, file)  # Use the passed-in folder
         aws_key = aws_key_pattern
-        # Add/edit replacements depending upon aws key pattern.
-        replacements = {"{input_file}": file, "{input_file_replaced}": file.replace('/','__'), "{OIDFolder}": initial_folder}
+    
+        replacements = {
+            "{input_file}": file,
+            "{input_file_replaced}": file.replace('/', '__'),
+            "{OIDFolder}": initial_folder
+        }
+    
         for r in replacements:
             aws_key = aws_key.replace(r, replacements[r])
+    
         s3_hook = S3Hook(aws_conn_id=aws_conn_id)
         s3_hook.load_file(
             filename=input_file_path,
@@ -173,6 +179,7 @@ with DAG(
             **s3_hook_kwargs
         )
         return file
+
 
     @task(trigger_rule=TriggerRule.ALL_DONE)
     def identify_successful_transfers_task(transfer_task_ids, params: dict):
