@@ -104,9 +104,10 @@ with DAG(
         import shutil
         import os
         from os import path
-    
-        input_file_path = path.join(params['source_files_dir_path'], file)
-        dest_file_path = path.join(params['output_files_dir_path'], file)
+        input_file_path = path.join(params['source_files_dir_path'], initial_folder, file)
+        #input_file_path = path.join(params['source_files_dir_path'], file)
+        dest_file_path = path.join(params['output_files_dir_path'], initial_folder, file)
+        #dest_file_path = path.join(params['output_files_dir_path'], file)
     
         # Ensure destination directory exists
         os.makedirs(path.dirname(dest_file_path), exist_ok=True)
