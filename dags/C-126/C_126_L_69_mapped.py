@@ -37,7 +37,8 @@ AWS_BUCKETS = {'konzaandssigrouppipelines':
                #    BucketDetails(aws_conn_id='konzaandssigrouppipelines',
                #                  #aws_key_pattern='subscriberName=KONZA/subscriptionName=HL7V3/source=C-CDA/status=pending/domainOid=2.16.840.1.113883.3.432.0.16.1.100.825/{input_file_replaced}',
                #                  aws_key_pattern='subscriberName=KONZA/subscriptionName=HL7V3/source=C-CDA/status=pending/domainOid={OIDFolder}/{input_file_replaced}',
-               #                  s3_hook_kwargs={'encrypt': True, 'acl_policy':'bucket-owner-full-control'})}
+               #                  s3_hook_kwargs={'encrypt': True, 'acl_policy':'bucket-owner-full-control'})
+              }
 
 
 default_args = {
