@@ -31,12 +31,13 @@ class BucketDetails:
 
 AWS_BUCKETS = {'konzaandssigrouppipelines':
                    BucketDetails(aws_conn_id='konzaandssigrouppipelines',
-                                 aws_key_pattern='HL7v3Out/HL7InV3_CDA_KONZA_SFTP_Retrieval__L_69/{input_file}',
+                                 aws_key_pattern='HL7v3Out/HL7InV3_CDA_KONZA_SFTP_Retrieval__L_69/{OIDFolder}/{input_file}',
                                  s3_hook_kwargs={}),
-               'com-ssigroup-insight-attribution-data':
-                   BucketDetails(aws_conn_id='konzaandssigrouppipelines',
-                                 aws_key_pattern='subscriberName=KONZA/subscriptionName=HL7V3/source=C-CDA/status=pending/domainOid=2.16.840.1.113883.3.432.0.16.1.100.825/{input_file_replaced}',
-                                 s3_hook_kwargs={'encrypt': True, 'acl_policy':'bucket-owner-full-control'})}
+               #'com-ssigroup-insight-attribution-data':
+               #    BucketDetails(aws_conn_id='konzaandssigrouppipelines',
+               #                  #aws_key_pattern='subscriberName=KONZA/subscriptionName=HL7V3/source=C-CDA/status=pending/domainOid=2.16.840.1.113883.3.432.0.16.1.100.825/{input_file_replaced}',
+               #                  aws_key_pattern='subscriberName=KONZA/subscriptionName=HL7V3/source=C-CDA/status=pending/domainOid={OIDFolder}/{input_file_replaced}',
+               #                  s3_hook_kwargs={'encrypt': True, 'acl_policy':'bucket-owner-full-control'})}
 
 
 default_args = {
@@ -150,16 +151,17 @@ with DAG(
             max_workers = params['max_pool_workers']
             with PoolExecutor(max_workers=max_workers) as executor:
                 future_file_dict = {executor.submit(partial(_upload_file_to_s3, params, aws_key_pattern, aws_conn_id,
-                                                            aws_bucket_name, s3_hook_kwargs), f): f for f in
+                                                            aws_bucket_name, s3_hook_kwargs),path.basename(f), path.dirname(f)
+                                                    ): f for f in
                                     input_file_list}
                 _push_results_from_futures(future_file_dict)
         return upload_file_to_s3_task_def
 
-    def _upload_file_to_s3(params, aws_key_pattern, aws_conn_id, aws_bucket_name, s3_hook_kwargs, file):
+    def _upload_file_to_s3(params, aws_key_pattern, aws_conn_id, aws_bucket_name, s3_hook_kwargs, file, initial_folder):
         input_file_path = path.join(params['source_files_dir_path'], file)
         aws_key = aws_key_pattern
         # Add/edit replacements depending upon aws key pattern.
-        replacements = {"{input_file}": file, "{input_file_replaced}": file.replace('/','__')}
+        replacements = {"{input_file}": file, "{input_file_replaced}": file.replace('/','__'), "{OIDFolder}": initial_folder}
         for r in replacements:
             aws_key = aws_key.replace(r, replacements[r])
         s3_hook = S3Hook(aws_conn_id=aws_conn_id)
