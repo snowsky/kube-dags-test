@@ -7,6 +7,12 @@ from airflow.operators.python import get_current_context
 from airflow.exceptions import AirflowFailException, AirflowSkipException
 from os import path, makedirs
 from functools import partial
+import shutil
+import os
+from os import path
+from airflow.models.taskinstance import TaskInstance
+from airflow.utils.context import Context
+from datetime import datetime
 import logging
 import math
 # If we want to utilise ProcessPoolExecutor we need to set
@@ -105,11 +111,17 @@ with DAG(
         import shutil
         import os
         from os import path
+        # Get Airflow context to access execution_date
+        context: Context = get_current_context()
+        execution_date: datetime = context['execution_date']
+    
+        # Format execution date as YYYYMMDD
+        date_folder = execution_date.strftime('%Y%m%d')
         rel_subfolder = path.relpath(initial_folder, params['source_files_dir_path'])
         logging.info(f'initial_folder: {initial_folder} - file: {file}')
         input_file_path = path.join(params['source_files_dir_path'], initial_folder, file)
         #input_file_path = path.join(params['source_files_dir_path'], file)
-        dest_file_path = path.join(params['output_files_dir_path'], rel_subfolder, file)
+        dest_file_path = path.join(params['output_files_dir_path'], date_folder, rel_subfolder, file)
         #dest_file_path = path.join(params['output_files_dir_path'], file)
     
         # Ensure destination directory exists
