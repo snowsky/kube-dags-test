@@ -159,7 +159,7 @@ with DAG(
         return upload_file_to_s3_task_def
 
     def _upload_file_to_s3(params, aws_key_pattern, aws_conn_id, aws_bucket_name, s3_hook_kwargs, file, initial_folder):
-        input_file_path = path.join(initial_folder, file)  # Use the passed-in folder
+        input_file_path = path.join(params['source_files_dir_path'], initial_folder, file)  # Use the passed-in folder
         aws_key = aws_key_pattern
     
         replacements = {
