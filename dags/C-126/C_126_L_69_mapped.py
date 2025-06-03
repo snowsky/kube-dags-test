@@ -181,7 +181,7 @@ with DAG(
             bucket_name=aws_bucket_name,
             **s3_hook_kwargs
         )
-        return file
+        return input_file_path
 
 
     @task(trigger_rule=TriggerRule.ALL_DONE)
