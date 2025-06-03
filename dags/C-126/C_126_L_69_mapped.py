@@ -105,10 +105,11 @@ with DAG(
         import shutil
         import os
         from os import path
+        rel_subfolder = path.relpath(initial_folder, params['source_files_dir_path'])
         logging.info(f'initial_folder: {initial_folder} - file: {file}')
         input_file_path = path.join(params['source_files_dir_path'], initial_folder, file)
         #input_file_path = path.join(params['source_files_dir_path'], file)
-        dest_file_path = path.join(params['output_files_dir_path'], initial_folder, file)
+        dest_file_path = path.join(params['output_files_dir_path'], rel_subfolder, file)
         #dest_file_path = path.join(params['output_files_dir_path'], file)
     
         # Ensure destination directory exists
