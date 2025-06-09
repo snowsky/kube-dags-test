@@ -524,8 +524,7 @@ transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
 delete_empty_directories_from_s3_during = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 delete_empty_directories_from_s3_end = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 #delete_empty_directories_from_s3.trigger_rule = TriggerRule.ONE_SUCCESS
-files >> xml_files >> batches >> transfer_tasks >> delete_empty_directories_from_s3_end
-batches >> delete_empty_directories_from_s3_during
+files >> xml_files >> batches >> transfer_tasks 
 #files >> xml_files >> batches >> transfer_tasks
 #files >> xml_files >> batches >> transfer_tasks >> download_files >> delete_files
 #files >> xml_files >> batches >> transfer_tasks >> download_files 
