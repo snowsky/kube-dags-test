@@ -19,14 +19,14 @@ default_args = {
     'owner': 'airflow',
 }
 dag = DAG(
-    'HL7v3In_Critical_Data_Pipeline_2',
+    'HL7v3In_Critical_Data_Pipeline',
     default_args=default_args,
     description='Retrieve files from S3 and deliver to SFTP with OID folder structure implemented and delivered to archive folder and delete from s3 after transfer(s)',
     schedule_interval='@hourly',
     max_active_runs=1,
     concurrency=100,
     start_date=datetime(2025, 5, 30), 
-    tags=['C-128','Canary','Staging_in_Prod'],
+    tags=['C-128'],
     catchup=False,
     params={
         "max_workers": Param(5, type="integer", minimum=1),
@@ -520,14 +520,12 @@ files = list_files_in_s3()
 xml_files = filter_xml_files(files)
 batches = divide_files_into_batches(xml_files, batch_size="{{ params.batch_size }}")
 transfer_tasks = transfer_batch_to_sftp.expand(batch=batches)
-#download_files = download_files_to_local(xml_files, local_dir=LOCAL_DIR, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME, max_workers="{{ params.max_workers }}")
-delete_empty_directories_from_s3_during = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
-delete_empty_directories_from_s3_end = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
-#delete_empty_directories_from_s3.trigger_rule = TriggerRule.ONE_SUCCESS
+
+#delete_empty_directories_from_s3_during = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
+#delete_empty_directories_from_s3_end = delete_empty_directories_from_s3(xml_files, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
+
 files >> xml_files >> batches >> transfer_tasks 
-#files >> xml_files >> batches >> transfer_tasks
-#files >> xml_files >> batches >> transfer_tasks >> download_files >> delete_files
-#files >> xml_files >> batches >> transfer_tasks >> download_files 
+
 
 if __name__ == "__main__":
     dag.cli()
