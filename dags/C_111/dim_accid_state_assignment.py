@@ -73,7 +73,7 @@ with DAG(
         task_id='populate_dim_accid_state_assignment',
         query="""
         INSERT INTO hive.parquet_master_data.dim_accid_state_assignment
-        SELECT DISTINCT
+        SELECT
             s.patient_id, 
             s.index_update_dt_tm, 
             CASE 
