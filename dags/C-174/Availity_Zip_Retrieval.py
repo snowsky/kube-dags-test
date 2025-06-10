@@ -35,7 +35,7 @@ def process_zip_file(sftp_hook, zip_file, logger):
 
 def unzip_and_cleanup_sftp_zips_multithreaded():
     logger = logging.getLogger("airflow.task")
-    sftp_hook = SFTPHook(ftp_conn_id='Availity_Diameter_Health__DH_Fusion_Production_SFTP')
+    sftp_hook = SFTPHook(ftp_conn_id='Availity_Diameter_Health__Files_Production_SFTP')
     sftp_client = sftp_hook.get_conn()
 
     os.makedirs(DESTINATION_DIR, exist_ok=True)
