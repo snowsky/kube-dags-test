@@ -42,7 +42,7 @@ default_args = {
 with DAG(
     dag_id='Availity_Identifier_Delivery',
     default_args=default_args,
-    schedule=None,
+    schedule='@hourly',
     tags=['C-174'],
     concurrency=PARALLEL_TASK_LIMIT,
     params={
