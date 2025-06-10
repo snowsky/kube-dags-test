@@ -42,7 +42,7 @@ def unzip_and_cleanup_sftp_zips_multithreaded():
 
     files = sftp_client.listdir('.')
     zip_files = [f for f in files if f.lower().endswith('.zip')]
-
+    logger.info(f"Number of ZIP files from SFTP: {len(zip_files)}")
     with ThreadPoolExecutor(max_workers=4) as executor:
         for zip_file in zip_files:
             executor.submit(process_zip_file, sftp_hook, zip_file, logger)
