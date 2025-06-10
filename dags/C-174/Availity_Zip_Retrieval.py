@@ -12,7 +12,7 @@ DESTINATION_DIR = '/source-biakonzasftp/C-174/'
 
 def process_zip_file(zip_file, logger):
     try:
-        sftp_hook = SFTPHook(ftp_conn_id='Availity_Diameter_Health__DH_Fusion_Production_SFTP')
+        sftp_hook = SFTPHook(ftp_conn_id='Availity_Diameter_Health__Files_Production_SFTP')
         sftp_client = sftp_hook.get_conn()
 
         with sftp_client.open(zip_file, 'rb') as remote_file:
