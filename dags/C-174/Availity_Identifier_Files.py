@@ -47,6 +47,8 @@ with DAG(
     default_args=default_args,
     schedule='@hourly',
     tags=['C-174'],
+    catchup=False,
+    max_active_runs=1,
     concurrency=PARALLEL_TASK_LIMIT,
     params={
         "source_files_dir_path": Param(DEFAULT_SOURCE_FILES_DIRECTORY, type="string"),
