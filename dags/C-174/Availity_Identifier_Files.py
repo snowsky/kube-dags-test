@@ -6,7 +6,9 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.operators.python import get_current_context
 from airflow.exceptions import AirflowFailException, AirflowSkipException
 from os import path, makedirs, remove
+import shutil
 from functools import partial
+from datetime import datetime
 import math
 # If we want to utilise ProcessPoolExecutor we need to set
 # AIRFLOW__CORE__EXECUTE_TASKS_NEW_PYTHON_INTERPRETER = true
@@ -95,15 +97,21 @@ with DAG(
         if exceptions:
             raise AirflowFailException(f'exceptions raised: {exceptions}')
 
-
     def _copy_file(params, file):
-        import shutil
         input_file_path = path.join(params['source_files_dir_path'], file)
-        dest_file_path = path.join(params['output_files_dir_path'], file)
+        
+        # Create a subfolder with the current date in YYYYMMDD format
+        date_folder = datetime.now().strftime('%Y%m%d')
+        dest_file_path = path.join(params['output_files_dir_path'], date_folder, file)
+        
         makedirs(path.dirname(dest_file_path), exist_ok=True)
         shutil.copy2(input_file_path, dest_file_path)
+        
+        # Delete the source file after successful copy
         remove(input_file_path)
+        
         return file
+
 
     def _push_results_from_futures(future_file_dict):
         results, exceptions = _get_results_from_futures(future_file_dict)
