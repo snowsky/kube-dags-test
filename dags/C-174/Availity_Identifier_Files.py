@@ -31,10 +31,10 @@ AWS_BUCKETS = {'konzaandssigrouppipelines':
                    BucketDetails(aws_conn_id='konzaandssigrouppipelines',
                                  aws_key_pattern='FromAvaility/{input_file}',
                                  s3_hook_kwargs={}),
-               'com-ssigroup-insight-attribution-data':
-                   BucketDetails(aws_conn_id='konzaandssigrouppipelines',
-                                 aws_key_pattern='subscriberName=KONZA/subscriptionName=Historical/source=Availity/status=pending/{input_file_replaced}',
-                                 s3_hook_kwargs={'encrypt': True, 'acl_policy':'bucket-owner-full-control'})
+               #'com-ssigroup-insight-attribution-data':
+               #    BucketDetails(aws_conn_id='konzaandssigrouppipelines',
+               #                  aws_key_pattern='subscriberName=KONZA/subscriptionName=Historical/source=Availity/status=pending/{input_file_replaced}',
+               #                  s3_hook_kwargs={'encrypt': True, 'acl_policy':'bucket-owner-full-control'})
               }
 
 
