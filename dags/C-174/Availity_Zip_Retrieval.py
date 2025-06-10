@@ -54,7 +54,7 @@ default_args = {
 }
 
 with DAG(
-    dag_id='sftp_unzip_to_directory_C174',
+    dag_id='Availity_sftp_unzip_to_directory_C174',
     default_args=default_args,
     schedule_interval='@hourly',
     catchup=False,
