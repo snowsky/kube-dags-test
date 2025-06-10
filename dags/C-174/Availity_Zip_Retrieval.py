@@ -10,9 +10,11 @@ import logging
 
 DESTINATION_DIR = '/source-biakonzasftp/C-174/'
 
-def process_zip_file(sftp_hook, zip_file, logger):
-    sftp_client = sftp_hook.get_conn()
+def process_zip_file(zip_file, logger):
     try:
+        sftp_hook = SFTPHook(ftp_conn_id='Availity_Diameter_Health__DH_Fusion_Production_SFTP')
+        sftp_client = sftp_hook.get_conn()
+
         with sftp_client.open(zip_file, 'rb') as remote_file:
             zip_bytes = remote_file.read()
 
@@ -25,27 +27,30 @@ def process_zip_file(sftp_hook, zip_file, logger):
                         os.makedirs(os.path.dirname(output_path), exist_ok=True)
                         with open(output_path, 'wb') as out_file:
                             out_file.write(content)
-                        logger.info(f"Saved {file_name} from {zip_file} to {output_path}")
+                        logger.info("Saved %s from %s to %s", file_name, zip_file, output_path)
 
         sftp_client.remove(zip_file)
-        logger.info(f"Deleted ZIP file from SFTP: {zip_file}")
+        logger.info("Deleted ZIP file from SFTP: %s", zip_file)
 
+    except zipfile.BadZipFile:
+        logger.warning("Corrupt ZIP file skipped: %s", zip_file)
     except Exception as e:
-        logger.error(f"Failed to process {zip_file}: {e}", exc_info=True)
+        logger.error("Failed to process %s: %s", zip_file, str(e), exc_info=True)
 
 def unzip_and_cleanup_sftp_zips_multithreaded():
     logger = logging.getLogger("airflow.task")
-    sftp_hook = SFTPHook(ftp_conn_id='Availity_Diameter_Health__Files_Production_SFTP')
+    sftp_hook = SFTPHook(ftp_conn_id='Availity_Diameter_Health__DH_Fusion_Production_SFTP')
     sftp_client = sftp_hook.get_conn()
 
     os.makedirs(DESTINATION_DIR, exist_ok=True)
 
     files = sftp_client.listdir('.')
     zip_files = [f for f in files if f.lower().endswith('.zip')]
-    logger.info(f"Number of ZIP files from SFTP: {len(zip_files)}")
+    logger.info("Number of ZIP files from SFTP: %d", len(zip_files))
+
     with ThreadPoolExecutor(max_workers=4) as executor:
         for zip_file in zip_files:
-            executor.submit(process_zip_file, sftp_hook, zip_file, logger)
+            executor.submit(process_zip_file, zip_file, logger)
 
 default_args = {
     'owner': 'airflow',
@@ -59,7 +64,7 @@ with DAG(
     schedule_interval='@hourly',
     catchup=False,
     max_active_runs=1,
-    tags=['C-174', 'Canary','Staging_in_Prod'],
+    tags=['C-174', 'Canary', 'Staging_in_Prod'],
 ) as dag:
 
     unzip_task = PythonOperator(
