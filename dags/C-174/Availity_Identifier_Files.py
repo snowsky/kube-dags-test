@@ -40,6 +40,7 @@ AWS_BUCKETS = {'konzaandssigrouppipelines':
 
 default_args = {
     'owner': 'airflow',
+    'start_date': datetime(2025, 6, 1),
 }
 with DAG(
     dag_id='Availity_Identifier_Delivery',
