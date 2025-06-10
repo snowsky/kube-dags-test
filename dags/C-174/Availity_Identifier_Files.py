@@ -5,7 +5,7 @@ from airflow.utils.trigger_rule import TriggerRule
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.operators.python import get_current_context
 from airflow.exceptions import AirflowFailException, AirflowSkipException
-from os import path, makedirs
+from os import path, makedirs, remove
 from functools import partial
 import math
 # If we want to utilise ProcessPoolExecutor we need to set
@@ -32,7 +32,8 @@ AWS_BUCKETS = {'konzaandssigrouppipelines':
                'com-ssigroup-insight-attribution-data':
                    BucketDetails(aws_conn_id='konzaandssigrouppipelines',
                                  aws_key_pattern='subscriberName=KONZA/subscriptionName=Historical/source=Availity/status=pending/{input_file_replaced}',
-                                 s3_hook_kwargs={'encrypt': True, 'acl_policy':'bucket-owner-full-control'})}
+                                 s3_hook_kwargs={'encrypt': True, 'acl_policy':'bucket-owner-full-control'})
+              }
 
 
 default_args = {
@@ -101,6 +102,7 @@ with DAG(
         dest_file_path = path.join(params['output_files_dir_path'], file)
         makedirs(path.dirname(dest_file_path), exist_ok=True)
         shutil.copy2(input_file_path, dest_file_path)
+        remove(input_file_path)
         return file
 
     def _push_results_from_futures(future_file_dict):
