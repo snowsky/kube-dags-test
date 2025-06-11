@@ -38,6 +38,7 @@ with DAG(
     default_args=default_args,
     schedule_interval=timedelta(minutes=1),
     start_date=datetime(2025, 1, 1),
+    max_active_runs=1,
     tags=['C-127', 'Canary', 'Staging_in_Prod'],
     concurrency=PARALLEL_TASK_LIMIT,
     catchup=False,
