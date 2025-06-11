@@ -42,7 +42,7 @@ with DAG(
     dag_id='HL7v2_file_S3_move',
     default_args=default_args,
     schedule_interval=timedelta(minutes=1),  # Run every minute
-    start_date=datetime(2025, 1, 1),
+    start_date=datetime(2025, 6, 10),
     tags=['C-127', 'Canary', 'Staging_in_Prod'],
     concurrency=PARALLEL_TASK_LIMIT,
     catchup=False,
