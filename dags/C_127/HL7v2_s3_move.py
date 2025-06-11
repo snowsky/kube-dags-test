@@ -15,33 +15,28 @@ DEFAULT_DEST_FILES_DIRECTORY = '/source-biakonzasftp/C-179/HL7v2In_to_Corepoint'
 DEFAULT_AWS_FOLDER = 'HL7v2In/'
 DEFAULT_MAX_POOL_WORKERS = 5
 DEFAULT_MAX_TASKS = 200
-DEFAULT_PAGE_SIZE = 1000
+DEFAULT_PAGE_SIZE = 100 
 PARALLEL_TASK_LIMIT = 5
 DEFAULT_AWS_TAG = ['CPProcessed', 'KONZAID']
 DEFAULT_DB_CONN_ID = 'prd-az1-sqlw3-mysql-airflowconnection'
 
-# MySQL Hook
 sql_hook = MySqlHook(mysql_conn_id=DEFAULT_DB_CONN_ID)
 
-# Bucket details class
 class BucketDetails:
     def __init__(self, aws_conn_id, s3_hook_kwargs):
         self.aws_conn_id = aws_conn_id
         self.s3_hook_kwargs = s3_hook_kwargs
 
-# AWS bucket configuration
 AWS_BUCKETS = {
     'konzaandssigrouppipelines': BucketDetails('konzaandssigrouppipelines', {}),
 }
 
-# Default DAG arguments
 default_args = {'owner': 'airflow'}
 
-# DAG definition
 with DAG(
     dag_id='HL7v2_file_S3_move',
     default_args=default_args,
-    schedule_interval=timedelta(minutes=1),  # Run every minute
+    schedule_interval=timedelta(minutes=1),
     start_date=datetime(2025, 1, 1),
     tags=['C-127', 'Canary', 'Staging_in_Prod'],
     concurrency=PARALLEL_TASK_LIMIT,
@@ -50,7 +45,7 @@ with DAG(
         "output_files_dir_path": Param(DEFAULT_DEST_FILES_DIRECTORY, type="string"),
         "aws_bucket": Param('konzaandssigrouppipelines', type="string"),
         "aws_folder": Param(DEFAULT_AWS_FOLDER, type="string"),
-        "aws_tag": Param(DEFAULT_AWS_TAG, type="array"),  # Corrected type
+        "aws_tag": Param(DEFAULT_AWS_TAG, type="array"),
         "max_pool_workers": Param(DEFAULT_MAX_POOL_WORKERS, type="integer", minimum=0),
         "max_mapped_tasks": Param(DEFAULT_MAX_TASKS, type="integer", minimum=0),
         "page_size": Param(DEFAULT_PAGE_SIZE, type="integer", minimum=0)
@@ -79,16 +74,21 @@ with DAG(
 
         def process_file(file_key):
             try:
-                # Check tags
                 s3_object = s3_hook.get_key(key=file_key, bucket_name=aws_bucket)
                 tagging = s3_object.Object().Tagging().tag_set
-                tag_keys = [tag['Key'] for tag in tagging]
+                tag_dict = {tag['Key']: tag['Value'] for tag in tagging}
 
-                if 'CPProcessed' in tag_keys:
+                if 'CPProcessed' in tag_dict:
                     logging.info(f"Skipping {file_key} — already tagged with CPProcessed.")
                     return
 
                 file_name = os.path.basename(file_key)
+
+                # Rename if KONZAID tag exists and has a value
+                if 'KONZAID' in tag_dict and tag_dict['KONZAID']:
+                    konza_id = tag_dict['KONZAID']
+                    file_name = f"KONZA__{konza_id}__{file_name}"
+
                 dest1 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY, file_name)
                 dest2 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY_ARCHIVE, file_name)
 
@@ -112,7 +112,6 @@ with DAG(
                 for future in as_completed(futures):
                     future.result()
 
-    # Task invocation
     process_s3_files(
         aws_bucket=dag_params["aws_bucket"],
         aws_folder=dag_params["aws_folder"],
