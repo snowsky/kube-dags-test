@@ -33,7 +33,7 @@ AWS_BUCKETS = {
 default_args = {'owner': 'airflow'}
 
 with DAG(
-    dag_id='HL7v2_file_s3_move_mapped_tasks',
+    dag_id='HL7v2_file_S3_move',
     default_args=default_args,
     schedule_interval=timedelta(minutes=1),
     start_date=datetime(2025, 1, 1),
@@ -53,49 +53,56 @@ with DAG(
     dag_params = dag.params
 
     @task
-    def list_s3_files(aws_bucket: str, aws_folder: str) -> list:
+    def list_s3_file_batches(aws_bucket: str, aws_folder: str, page_size: int) -> list[list[str]]:
         s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
-        files = s3_hook.list_keys(bucket_name=aws_bucket, prefix=aws_folder)
-        return files or []
+        files = s3_hook.list_keys(bucket_name=aws_bucket, prefix=aws_folder) or []
+
+        def chunk_list(lst, size):
+            return [lst[i:i + size] for i in range(0, len(lst), size)]
+
+        return chunk_list(files, page_size)
 
     @task
-    def process_single_file(file_key: str, aws_bucket: str):
+    def process_file_batch(file_keys: list[str], aws_bucket: str):
         s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
-        try:
-            s3_object = s3_hook.get_key(key=file_key, bucket_name=aws_bucket)
-            tagging = s3_object.Object().Tagging().tag_set
-            tag_dict = {tag['Key']: tag['Value'] for tag in tagging}
 
-            if 'CPProcessed' in tag_dict:
-                logging.info(f"Skipping {file_key} — already tagged with CPProcessed.")
-                return
+        for file_key in file_keys:
+            try:
+                s3_object = s3_hook.get_key(key=file_key, bucket_name=aws_bucket)
+                tagging = s3_object.Object().Tagging().tag_set
+                tag_dict = {tag['Key']: tag['Value'] for tag in tagging}
 
-            file_name = os.path.basename(file_key)
-            if 'KONZAID' in tag_dict and tag_dict['KONZAID']:
-                file_name = f"KONZA__{tag_dict['KONZAID']}__{file_name}"
+                if 'CPProcessed' in tag_dict:
+                    logging.info(f"Skipping {file_key} — already tagged with CPProcessed.")
+                    continue
 
-            dest1 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY, file_name)
-            dest2 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY_ARCHIVE, file_name)
+                file_name = os.path.basename(file_key)
+                if 'KONZAID' in tag_dict and tag_dict['KONZAID']:
+                    file_name = f"KONZA__{tag_dict['KONZAID']}__{file_name}"
 
-            os.makedirs(os.path.dirname(dest1), exist_ok=True)
-            os.makedirs(os.path.dirname(dest2), exist_ok=True)
+                dest1 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY, file_name)
+                dest2 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY_ARCHIVE, file_name)
 
-            s3_hook.download_file(key=file_key, bucket_name=aws_bucket, local_path=dest1)
-            s3_hook.download_file(key=file_key, bucket_name=aws_bucket, local_path=dest2)
+                os.makedirs(os.path.dirname(dest1), exist_ok=True)
+                os.makedirs(os.path.dirname(dest2), exist_ok=True)
 
-            s3_hook.delete_objects(bucket=aws_bucket, keys=[file_key])
-            logging.info(f"Processed and deleted {file_key}")
-        except Exception as e:
-            logging.error(f"Failed to process {file_key}: {e}")
-            raise AirflowFailException(f"Error processing file {file_key}")
+                s3_hook.download_file(key=file_key, bucket_name=aws_bucket, local_path=dest1)
+                s3_hook.download_file(key=file_key, bucket_name=aws_bucket, local_path=dest2)
+
+                s3_hook.delete_objects(bucket=aws_bucket, keys=[file_key])
+                logging.info(f"Processed and deleted {file_key}")
+            except Exception as e:
+                logging.error(f"Failed to process {file_key}: {e}")
+                raise AirflowFailException(f"Error processing file {file_key}")
 
     # DAG task wiring
-    files_to_process = list_s3_files(
+    file_batches = list_s3_file_batches(
         aws_bucket=dag_params["aws_bucket"],
-        aws_folder=dag_params["aws_folder"]
+        aws_folder=dag_params["aws_folder"],
+        page_size=dag_params["page_size"]
     )
 
-    process_single_file.expand(
-        file_key=files_to_process,
+    process_file_batch.expand(
+        file_keys=file_batches,
         aws_bucket=[dag_params["aws_bucket"]] * dag_params["max_mapped_tasks"]
     )
