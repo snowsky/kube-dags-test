@@ -33,7 +33,7 @@ AWS_BUCKETS = {
 default_args = {'owner': 'airflow'}
 
 with DAG(
-    dag_id='HL7v2_file_S3_move',
+    dag_id='HL7v2_file_s3_move_mapped_tasks',
     default_args=default_args,
     schedule_interval=timedelta(minutes=1),
     start_date=datetime(2025, 1, 1),
