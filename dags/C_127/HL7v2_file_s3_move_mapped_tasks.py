@@ -57,7 +57,7 @@ with DAG(
     def list_s3_file_batches(aws_bucket: str, aws_folder: str, page_size: int) -> list[list[str]]:
         s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
         files = s3_hook.list_keys(bucket_name=aws_bucket, prefix=aws_folder) or []
-        logging.info(f"Length of file list: {len(files)}")
+        logging.info(f"Length of file list: {len(files)} - and page_size: {page_size} - and DEFAULT_PAGE_SIZE: {DEFAULT_PAGE_SIZE}")
         def chunk_list(lst, size):
             return [lst[i:i + size] for i in range(0, len(lst), size)]
 
