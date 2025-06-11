@@ -70,91 +70,90 @@ with DAG(
 
         return chunk_list(files, page_size)
     
-     
+
     def log_to_database(file_key):
-        try:
-            sql_hook = MySqlHook(mysql_conn_id=DEFAULT_DB_CONN_ID)
+        try:
+            sql_hook = MySqlHook(mysql_conn_id=DEFAULT_DB_CONN_ID)
     
-            # Create table if it doesn't exist
-            create_table_sql = """
-            CREATE TABLE IF NOT EXISTS processed_files_log (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                file_key VARCHAR(1024) NOT NULL,
-                processed_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-            sql_hook.run(create_table_sql)
+            # Create table if it doesn't exist
+            create_table_sql = """
+            CREATE TABLE IF NOT EXISTS processed_files_log (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                file_key VARCHAR(1024) NOT NULL,
+                processed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+            sql_hook.run(create_table_sql)
     
-            # Insert log entry
-            insert_sql = """
-                INSERT INTO processed_files_log (file_key)
-                VALUES (%s)
-            """
-            sql_hook.run(insert_sql, parameters=(file_key,))
-            logging.info(f"Logged {file_key} to database.")
-        except Exception as e:
-            logging.error(f"Failed to log {file_key} to database: {e}")
+            # Insert log entry
+            insert_sql = """
+                INSERT INTO processed_files_log (file_key)
+                VALUES (%s)
+            """
+            sql_hook.run(insert_sql, parameters=(file_key,))
+            logging.info(f"Logged {file_key} to database.")
+        except Exception as e:
+            logging.error(f"Failed to log {file_key} to database: {e}")
     
     @task
     def process_file_batch(file_keys: list[str], **kwargs):
-        params = kwargs["params"]
-        aws_bucket = params["aws_bucket"]
+        params = kwargs["params"]
+        aws_bucket = params["aws_bucket"]
     
-        s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
+        s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
     
-        for file_key in file_keys:
-            try:
-                s3_client = s3_hook.get_conn()
-                tagging = s3_client.get_object_tagging(Bucket=aws_bucket, Key=file_key)
-                tag_dict = {tag['Key']: tag['Value'] for tag in tagging.get('TagSet', [])}
-                logging.info(f"Tags for {file_key}: {tag_dict}")
+        for file_key in file_keys:
+            try:
+                s3_client = s3_hook.get_conn()
+                tagging = s3_client.get_object_tagging(Bucket=aws_bucket, Key=file_key)
+                tag_dict = {tag['Key']: tag['Value'] for tag in tagging.get('TagSet', [])}
+                logging.info(f"Tags for {file_key}: {tag_dict}")
     
-                if 'CPProcessed' not in tag_dict:
-                    logging.info(f"Skipping {file_key} — not tagged with CPProcessed.")
-                    continue
+                if 'CPProcessed' not in tag_dict:
+                    logging.info(f"Skipping {file_key} — not tagged with CPProcessed.")
+                    continue
     
-                if file_key.endswith('/'):
-                    logging.warning(f"Skipping directory-like key: {file_key}")
-                    continue
+                if file_key.endswith('/'):
+                    logging.warning(f"Skipping directory-like key: {file_key}")
+                    continue
     
-                file_name = file_key.split('/')[-1] or f"unnamed_{hash(file_key)}"
+                file_name = file_key.split('/')[-1] or f"unnamed_{hash(file_key)}"
     
-                if 'KONZAID' in tag_dict and tag_dict['KONZAID']:
-                    file_name = f"KONZA__{tag_dict['KONZAID']}__{file_name}"
+                if 'KONZAID' in tag_dict and tag_dict['KONZAID']:
+                    file_name = f"KONZA__{tag_dict['KONZAID']}__{file_name}"
     
-                today_str = datetime.today().strftime('%Y%m%d')
-                dated_subfolder = os.path.join(today_str, file_name)
+                today_str = datetime.today().strftime('%Y%m%d')
+                dated_subfolder = os.path.join(today_str, file_name)
     
-                dest1 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY, dated_subfolder)
-                dest2 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY_ARCHIVE, dated_subfolder)
+                dest1 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY, dated_subfolder)
+                dest2 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY_ARCHIVE, dated_subfolder)
     
-                os.makedirs(os.path.dirname(dest1), exist_ok=True)
-                os.makedirs(os.path.dirname(dest2), exist_ok=True)
+                os.makedirs(os.path.dirname(dest1), exist_ok=True)
+                os.makedirs(os.path.dirname(dest2), exist_ok=True)
     
-                # Download file into memory
-                s3_key = s3_hook.get_key(key=file_key, bucket_name=aws_bucket)
-                file_obj = BytesIO()
-                s3_key.download_fileobj(file_obj)
-                file_obj.seek(0)
+                # Download file into memory
+                s3_key = s3_hook.get_key(key=file_key, bucket_name=aws_bucket)
+                file_obj = BytesIO()
+                s3_key.download_fileobj(file_obj)
+                file_obj.seek(0)
     
-                # Write to both destinations
-                with open(dest1, 'wb') as f1, open(dest2, 'wb') as f2:
-                    data = file_obj.read()
-                    f1.write(data)
-                    f2.write(data)
+                # Write to both destinations
+                with open(dest1, 'wb') as f1, open(dest2, 'wb') as f2:
+                    data = file_obj.read()
+                    f1.write(data)
+                    f2.write(data)
     
-                # Log to database
-                log_to_database(file_key)
+                # Log to database
+                log_to_database(file_key)
     
-                # Delete from S3
-                s3_hook.delete_objects(bucket=aws_bucket, keys=[file_key])
-                logging.info(f"Processed and deleted {file_key}")
+                # Delete from S3
+                s3_hook.delete_objects(bucket=aws_bucket, keys=[file_key])
+                logging.info(f"Processed and deleted {file_key}")
     
-            except Exception as e:
-                logging.error(f"Failed to process {file_key}: {e}")
-                raise AirflowFailException(f"Error processing file {file_key}")
-
-
+            except Exception as e:
+                logging.error(f"Failed to process {file_key}: {e}")
+                raise AirflowFailException(f"Error processing file {file_key}")
+    
 
     # DAG task wiring
     file_batches = list_s3_file_batches()
