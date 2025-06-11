@@ -5,6 +5,7 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.exceptions import AirflowFailException
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from datetime import datetime, timedelta
+from io import BytesIO
 import os
 import logging
 
@@ -73,38 +74,53 @@ with DAG(
     def process_file_batch(file_keys: list[str], **kwargs):
         params = kwargs["params"]
         aws_bucket = params["aws_bucket"]
-
+    
         s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
-
+    
         for file_key in file_keys:
             try:
                 s3_client = s3_hook.get_conn()
                 tagging = s3_client.get_object_tagging(Bucket=aws_bucket, Key=file_key)
                 tag_dict = {tag['Key']: tag['Value'] for tag in tagging.get('TagSet', [])}
-
+    
                 if 'CPProcessed' in tag_dict:
                     logging.info(f"Skipping {file_key} — already tagged with CPProcessed.")
                     continue
-                
-                file_name = os.path.basename(file_key)
-
+    
+                if file_key.endswith('/'):
+                    logging.warning(f"Skipping directory-like key: {file_key}")
+                    return
+    
+                file_name = file_key.split('/')[-1] or f"unnamed_{hash(file_key)}"
+    
                 if 'KONZAID' in tag_dict and tag_dict['KONZAID']:
                     file_name = f"KONZA__{tag_dict['KONZAID']}__{file_name}"
-
+    
                 dest1 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY, file_name)
                 dest2 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY_ARCHIVE, file_name)
-
+    
                 os.makedirs(os.path.dirname(dest1), exist_ok=True)
                 os.makedirs(os.path.dirname(dest2), exist_ok=True)
-
-                s3_hook.download_file(key=file_key, bucket_name=aws_bucket, local_path=dest1)
-                s3_hook.download_file(key=file_key, bucket_name=aws_bucket, local_path=dest2)
-
+    
+                # Download file into memory
+                s3_key = s3_hook.get_key(key=file_key, bucket_name=aws_bucket)
+                file_obj = BytesIO()
+                s3_key.download_fileobj(file_obj)
+                file_obj.seek(0)
+    
+                # Write to both destinations
+                with open(dest1, 'wb') as f1, open(dest2, 'wb') as f2:
+                    data = file_obj.read()
+                    f1.write(data)
+                    f2.write(data)
+    
                 s3_hook.delete_objects(bucket=aws_bucket, keys=[file_key])
                 logging.info(f"Processed and deleted {file_key}")
+    
             except Exception as e:
                 logging.error(f"Failed to process {file_key}: {e}")
                 raise AirflowFailException(f"Error processing file {file_key}")
+
 
     # DAG task wiring
     file_batches = list_s3_file_batches()
