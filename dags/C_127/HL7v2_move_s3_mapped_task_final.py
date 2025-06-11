@@ -123,7 +123,7 @@ with DAG(
                     file_name = f"KONZA__{tag_dict['KONZAID']}__{file_name}"
     
                 today_str = datetime.today().strftime('%Y%m%d')
-                dated_subfolder = os.path.join(today_str, file_name)
+                dated_subfolder = os.path.join(today_str, file_key)
     
                 dest1 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY, dated_subfolder)
                 dest2 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY_ARCHIVE, dated_subfolder)
