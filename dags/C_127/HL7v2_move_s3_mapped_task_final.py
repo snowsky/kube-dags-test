@@ -82,7 +82,7 @@ with DAG(
                 s3_client = s3_hook.get_conn()
                 tagging = s3_client.get_object_tagging(Bucket=aws_bucket, Key=file_key)
                 tag_dict = {tag['Key']: tag['Value'] for tag in tagging.get('TagSet', [])}
-    
+                logging.info(f"Tags for {file_key}: {tag_dict}")
                 if 'CPProcessed' in tag_dict:
                     logging.info(f"Skipping {file_key} — already tagged with CPProcessed.")
                     continue
