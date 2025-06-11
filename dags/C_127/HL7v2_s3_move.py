@@ -9,6 +9,8 @@ from concurrent.futures import as_completed, ThreadPoolExecutor as PoolExecutor
 import os
 import logging
 
+
+
 # Constants
 DEFAULT_DEST_FILES_DIRECTORY_ARCHIVE = '/source-biakonzasftp/C-127/archive'
 DEFAULT_DEST_FILES_DIRECTORY = '/source-biakonzasftp/C-179/HL7v2In_to_Corepoint'
@@ -54,6 +56,31 @@ with DAG(
 ) as dag:
     dag_params = dag.params
 
+    def log_to_database(file_key):
+        try:
+            sql_hook = MySqlHook(mysql_conn_id=DEFAULT_DB_CONN_ID)
+    
+            # Create table if it doesn't exist
+            create_table_sql = """
+            CREATE TABLE IF NOT EXISTS processed_files_log (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                file_key VARCHAR(1024) NOT NULL,
+                processed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+            sql_hook.run(create_table_sql)
+    
+            # Insert log entry
+            insert_sql = """
+                INSERT INTO processed_files_log (file_key)
+                VALUES (%s)
+            """
+            sql_hook.run(insert_sql, parameters=(file_key,))
+            logging.info(f"Logged {file_key} to database.")
+        except Exception as e:
+            logging.error(f"Failed to log {file_key} to database: {e}")
+
+
     def chunk_list(lst, chunk_size):
         for i in range(0, len(lst), chunk_size):
             yield lst[i:i + chunk_size]
@@ -68,50 +95,58 @@ with DAG(
     ):
         s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
         files = s3_hook.list_keys(bucket_name=aws_bucket, prefix=aws_folder)
-
+    
         if not files:
             logging.info("No files found in S3 folder.")
             return
-
+    
+        def log_to_database(file_key):
+            # Replace with actual DB logging logic
+            logging.info(f"Logging to DB: {file_key}")
+            # Example: db_hook.run("INSERT INTO processed_files_log (file_key) VALUES (%s)", parameters=(file_key,))
+    
         def process_file(file_key):
             try:
                 s3_object = s3_hook.get_key(key=file_key, bucket_name=aws_bucket)
                 tagging = s3_object.Object().Tagging().tag_set
                 tag_dict = {tag['Key']: tag['Value'] for tag in tagging}
-
+    
                 if 'CPProcessed' in tag_dict:
                     logging.info(f"Skipping {file_key} — already tagged with CPProcessed.")
                     return
-
+    
                 file_name = os.path.basename(file_key)
-
-                # Rename if KONZAID tag exists and has a value
+    
                 if 'KONZAID' in tag_dict and tag_dict['KONZAID']:
                     konza_id = tag_dict['KONZAID']
                     file_name = f"KONZA__{konza_id}__{file_name}"
-
-                dest1 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY, file_name)
-                dest2 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY_ARCHIVE, file_name)
-
+    
+                today_str = datetime.today().strftime('%Y%m%d')
+                dated_subfolder = os.path.join(today_str, file_name)
+    
+                dest1 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY, dated_subfolder)
+                dest2 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY_ARCHIVE, dated_subfolder)
+    
                 os.makedirs(os.path.dirname(dest1), exist_ok=True)
                 os.makedirs(os.path.dirname(dest2), exist_ok=True)
-
-                # Download directly to both destinations
+    
                 s3_hook.download_file(key=file_key, bucket_name=aws_bucket, local_path=dest1)
                 s3_hook.download_file(key=file_key, bucket_name=aws_bucket, local_path=dest2)
-
-                # Delete from S3
+    
+                log_to_database(file_key)
+    
                 s3_hook.delete_objects(bucket=aws_bucket, keys=[file_key])
                 logging.info(f"Processed and deleted {file_key}")
             except Exception as e:
                 logging.error(f"Failed to process {file_key}: {e}")
                 raise AirflowFailException(f"Error processing file {file_key}")
-
+    
         for batch in chunk_list(files, page_size):
             with PoolExecutor(max_workers=max_pool_workers) as executor:
                 futures = [executor.submit(process_file, file_key) for file_key in batch]
                 for future in as_completed(futures):
                     future.result()
+
 
     process_s3_files(
         aws_bucket=dag_params["aws_bucket"],
