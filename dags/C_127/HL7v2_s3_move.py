@@ -7,6 +7,7 @@ from functools import partial
 import math
 import logging
 import os
+from datetime import timedelta
 from concurrent.futures import as_completed, ThreadPoolExecutor as PoolExecutor
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from datetime import datetime
@@ -40,7 +41,8 @@ default_args = {'owner': 'airflow'}
 with DAG(
     dag_id='HL7v2_file_S3_move',
     default_args=default_args,
-    schedule=None,
+    schedule_interval=timedelta(minutes=1),
+    catchup=False,
     start_date=datetime(2025, 1, 1),
     tags=['C-127', 'Canary','Staging_in_Prod'],
     concurrency=PARALLEL_TASK_LIMIT,
