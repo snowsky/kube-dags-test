@@ -84,4 +84,18 @@ with DAG(
             s3_hook.download_file(key=file_key, bucket_name=aws_bucket, local_path=dest2)
 
             s3_hook.delete_objects(bucket=aws_bucket, keys=[file_key])
-            logging.info(f"Processed and deleted {file
+            logging.info(f"Processed and deleted {file_key}")
+        except Exception as e:
+            logging.error(f"Failed to process {file_key}: {e}")
+            raise AirflowFailException(f"Error processing file {file_key}")
+
+    # DAG task wiring
+    files_to_process = list_s3_files(
+        aws_bucket=dag_params["aws_bucket"],
+        aws_folder=dag_params["aws_folder"]
+    )
+
+    process_single_file.expand(
+        file_key=files_to_process,
+        aws_bucket=[dag_params["aws_bucket"]] * dag_params["max_mapped_tasks"]
+    )
