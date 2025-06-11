@@ -62,8 +62,8 @@ with DAG(
         logging.info(f"Runtime page_size: {page_size}")
 
         s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
-        files = s3_hook.list_keys(bucket_name=aws_bucket, prefix=aws_folder) or []
-
+        all_keys = s3_hook.list_keys(bucket_name=aws_bucket, prefix=aws_folder) or []
+        files = [key for key in all_keys if not key.endswith('/')]
         def chunk_list(lst, size):
             return [lst[i:i + size] for i in range(0, len(lst), size)]
 
@@ -85,8 +85,9 @@ with DAG(
                 if 'CPProcessed' in tag_dict:
                     logging.info(f"Skipping {file_key} — already tagged with CPProcessed.")
                     continue
-
+                
                 file_name = os.path.basename(file_key)
+
                 if 'KONZAID' in tag_dict and tag_dict['KONZAID']:
                     file_name = f"KONZA__{tag_dict['KONZAID']}__{file_name}"
 
