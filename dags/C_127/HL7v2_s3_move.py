@@ -89,22 +89,15 @@ with DAG(
                     return
 
                 file_name = os.path.basename(file_key)
-                local_path = f"/tmp/{file_name}"
-
-                # Download from S3
-                s3_hook.download_file(
-                    key=file_key,
-                    bucket_name=aws_bucket,
-                    local_path=local_path
-                )
-
-                # Copy to destinations
                 dest1 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY, file_name)
                 dest2 = os.path.join(DEFAULT_DEST_FILES_DIRECTORY_ARCHIVE, file_name)
+
                 os.makedirs(os.path.dirname(dest1), exist_ok=True)
                 os.makedirs(os.path.dirname(dest2), exist_ok=True)
-                os.system(f"cp {local_path} {dest1}")
-                os.system(f"cp {local_path} {dest2}")
+
+                # Download directly to both destinations
+                s3_hook.download_file(key=file_key, bucket_name=aws_bucket, local_path=dest1)
+                s3_hook.download_file(key=file_key, bucket_name=aws_bucket, local_path=dest2)
 
                 # Delete from S3
                 s3_hook.delete_objects(bucket=aws_bucket, keys=[file_key])
