@@ -50,7 +50,7 @@ with DAG(
         "output_files_dir_path": Param(DEFAULT_DEST_FILES_DIRECTORY, type="string"),
         "aws_bucket": Param('konzaandssigrouppipelines', type="string"),
         "aws_folder": Param(DEFAULT_AWS_FOLDER, type="string"),
-        "aws_tag": Param(DEFAULT_AWS_TAG, type="string"),
+        "aws_tag": Param(DEFAULT_AWS_TAG, type="array"),
         "max_pool_workers": Param(DEFAULT_MAX_POOL_WORKERS, type="integer", minimum=0),
         "max_mapped_tasks": Param(DEFAULT_MAX_TASKS, type="integer", minimum=0),
         "page_size": Param(DEFAULT_PAGE_SIZE, type="integer", minimum=0)
