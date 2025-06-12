@@ -64,6 +64,7 @@ with DAG(
 
         s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
         all_keys = s3_hook.list_keys(bucket_name=aws_bucket, prefix=aws_folder) or []
+        limited_keys = all_keys[:2000000]  # Get only the first 2 million keys
         files = [key for key in all_keys if not key.endswith('/')]
         def chunk_list(lst, size):
             return [lst[i:i + size] for i in range(0, len(lst), size)]
