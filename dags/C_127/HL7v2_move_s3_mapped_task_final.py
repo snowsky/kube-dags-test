@@ -77,9 +77,10 @@ with DAG(
             Delimiter='/'
         )
         subfolders = [cp['Prefix'] for cp in prefix_result.get('CommonPrefixes', [])]
-    
+        logging.info(f"Subfolders: {subfolders}")
         # Step 2: Iterate through subfolders one at a time
         for sub_prefix in subfolders:
+            logging.info(f"sub_prefix: {sub_prefix}")
             for page in paginator.paginate(Bucket=aws_bucket, Prefix=sub_prefix):
                 for obj in page.get('Contents', []):
                     key = obj['Key']
