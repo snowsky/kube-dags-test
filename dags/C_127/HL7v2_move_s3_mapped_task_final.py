@@ -144,7 +144,7 @@ with DAG(
         aws_bucket = params["aws_bucket"]
     
         s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
-    
+        logging.info(f'Total Files To Process in batch: {len(file_keys)}')
         for file_key in file_keys:
             try:
                 s3_client = s3_hook.get_conn()
