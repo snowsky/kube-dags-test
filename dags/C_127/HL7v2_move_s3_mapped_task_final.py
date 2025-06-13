@@ -66,13 +66,14 @@ with DAG(
     
         s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
         s3_client = s3_hook.get_conn()
-    
+        logging.info(f"AWS Prefix variable aws_folder: {aws_folder}")
         # Step 1: List a limited number of keys to extract sub-prefixes
         response = s3_client.list_objects_v2(
             Bucket=aws_bucket,
             Prefix=f"{aws_folder}/",
             MaxKeys=1000
         )
+        logging.info(f"Unfiltered keys: {[obj['Key'] for obj in response.get('Contents', [])]}")
         keys = [obj['Key'] for obj in response.get('Contents', []) if not obj['Key'].endswith('/')]
     
         logging.info(f"Sample keys retrieved: {keys[:10]}")
