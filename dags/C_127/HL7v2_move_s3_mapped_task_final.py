@@ -63,7 +63,7 @@ with DAG(
         logging.info(f"Runtime page_size: {page_size}")
 
         s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
-        all_keys = s3_hook.list_keys(bucket_name=aws_bucket, prefix=aws_folder) or []
+        all_keys = s3_hook.list_keys(bucket_name=aws_bucket, prefix=f"{aws_folder}/CPProcessed/")
         limited_keys = all_keys[:2000000]  # Get only the first 2 million keys
         files = [key for key in limited_keys if not key.endswith('/')]
         def chunk_list(lst, size):
