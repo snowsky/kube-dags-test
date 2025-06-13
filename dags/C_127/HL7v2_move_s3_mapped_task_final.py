@@ -61,20 +61,16 @@ with DAG(
         aws_folder = params["aws_folder"]
         page_size = params["page_size"]
         FILE_LIMIT = 2000000
+        MAX_KEYS_FOR_DISCOVERY = 1000
     
         logging.info(f"Runtime page_size: {page_size}")
     
         s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
         s3_client = s3_hook.get_conn()
-        logging.info(f"AWS Prefix variable aws_folder: {aws_folder}")
-        # Step 1: List a limited number of keys to extract sub-prefixes
-        response = s3_client.list_objects_v2(
-            Bucket=aws_bucket,
-            Prefix=f"{aws_folder}/",
-            MaxKeys=1000
-        )
-        logging.info(f"Unfiltered keys: {[obj['Key'] for obj in response.get('Contents', [])]}")
-        keys = [obj['Key'] for obj in response.get('Contents', []) if not obj['Key'].endswith('/')]
+    
+        # Step 1: List a limited number of keys using list_keys
+        all_keys = s3_hook.list_keys(bucket_name=aws_bucket, prefix=aws_folder) or []
+        keys = [key for key in all_keys if not key.endswith('/')][:MAX_KEYS_FOR_DISCOVERY]
     
         logging.info(f"Sample keys retrieved: {keys[:10]}")
     
