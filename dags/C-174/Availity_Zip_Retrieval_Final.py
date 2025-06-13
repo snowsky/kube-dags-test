@@ -13,8 +13,6 @@ from collections import namedtuple
 # Define bucket details
 BucketDetails = namedtuple('BucketDetails', ['aws_conn_id', 'aws_key_pattern', 's3_hook_kwargs'])
 
-ARCHIVE_DESTINATION = '/source-biakonzasftp/C-194/archive_C-174/'
-
 AWS_BUCKETS = {
     'konzaandssigrouppipelines':
         BucketDetails(
@@ -22,12 +20,12 @@ AWS_BUCKETS = {
             aws_key_pattern='FromAvaility/{input_file}',
             s3_hook_kwargs={}
         ),
-    #'com-ssigroup-insight-attribution-data':
-    #    BucketDetails(
-    #        aws_conn_id='konzaandssigrouppipelines',
-    #        aws_key_pattern='subscriberName=KONZA/subscriptionName=Historical/source=Availity/status=pending/{input_file_replaced}',
-    #        s3_hook_kwargs={'encrypt': True, 'acl_policy': 'bucket-owner-full-control'}
-    #    )
+    'com-ssigroup-insight-attribution-data':
+        BucketDetails(
+            aws_conn_id='konzaandssigrouppipelines',
+            aws_key_pattern='subscriberName=KONZA/subscriptionName=Historical/source=Availity/status=pending/{input_file_replaced}',
+            s3_hook_kwargs={'encrypt': True, 'acl_policy': 'bucket-owner-full-control'}
+        )
 }
 
 def process_zip_file(zip_file, logger):
@@ -40,7 +38,7 @@ def process_zip_file(zip_file, logger):
             zip_bytes = remote_file.read()
 
         # Archive ZIP
-        archive_path = f'{ARCHIVE_DESTINATION}{os.path.basename(zip_file)}'
+        archive_path = f'/source-biakonzasftp/C-194/archive_C-174/{os.path.basename(zip_file)}'
         with sftp_client.open(archive_path, 'wb') as archive_file:
             archive_file.write(zip_bytes)
         logger.info("Archived ZIP file to: %s", archive_path)
@@ -92,4 +90,15 @@ default_args = {
 }
 
 with DAG(
-    dag_id='Availity_sftp_unzip_and
+    dag_id='Availity_Zip_Retrieval_Final',
+    default_args=default_args,
+    schedule_interval='@hourly',
+    catchup=False,
+    max_active_runs=1,
+    tags=['C-174', 'Canary', 'Staging_in_Prod'],
+) as dag:
+
+    unzip_and_upload_task = PythonOperator(
+        task_id='unzip_and_upload_sftp_zips_multithreaded',
+        python_callable=unzip_and_upload_sftp_zips_multithreaded,
+    )
