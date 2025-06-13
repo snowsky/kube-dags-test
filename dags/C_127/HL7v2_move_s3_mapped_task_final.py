@@ -56,8 +56,6 @@ with DAG(
 
     @task
     def list_s3_file_batches(**kwargs) -> list[list[str]]:
-        
-    
         params = kwargs["params"]
         aws_bucket = params["aws_bucket"]
         aws_folder = params["aws_folder"]
@@ -69,16 +67,19 @@ with DAG(
         s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
         s3_client = s3_hook.get_conn()
     
-        # Step 1: List first-level subfolders
-        result = s3_client.list_objects_v2(Bucket=aws_bucket, Prefix=f"{aws_folder}/", Delimiter='/')
-        subfolders = result.get('CommonPrefixes', [])
-    
         files = []
     
-        # Step 2: Iterate through subfolders and collect tagged files
-        for folder in subfolders:
-            sub_prefix = folder['Prefix']
-            paginator = s3_client.get_paginator('list_objects_v2')
+        # Step 1: List first-level sub-prefixes (simulated folders)
+        paginator = s3_client.get_paginator('list_objects_v2')
+        prefix_result = s3_client.list_objects_v2(
+            Bucket=aws_bucket,
+            Prefix=f"{aws_folder}/",
+            Delimiter='/'
+        )
+        subfolders = [cp['Prefix'] for cp in prefix_result.get('CommonPrefixes', [])]
+    
+        # Step 2: Iterate through subfolders one at a time
+        for sub_prefix in subfolders:
             for page in paginator.paginate(Bucket=aws_bucket, Prefix=sub_prefix):
                 for obj in page.get('Contents', []):
                     key = obj['Key']
@@ -98,6 +99,7 @@ with DAG(
             return [lst[i:i + size] for i in range(0, len(lst), size)]
     
         return chunk_list(files, page_size)
+
 
     
 
