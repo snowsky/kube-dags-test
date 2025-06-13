@@ -67,20 +67,28 @@ with DAG(
         s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
         s3_client = s3_hook.get_conn()
     
-        files = []
-    
-        # Step 1: List first-level sub-prefixes (simulated folders)
-        paginator = s3_client.get_paginator('list_objects_v2')
-        prefix_result = s3_client.list_objects_v2(
+        # Step 1: List a limited number of keys to extract sub-prefixes
+        response = s3_client.list_objects_v2(
             Bucket=aws_bucket,
             Prefix=f"{aws_folder}/",
-            Delimiter='/'
+            MaxKeys=1000  # Adjust as needed
         )
-        subfolders = [cp['Prefix'] for cp in prefix_result.get('CommonPrefixes', [])]
-        logging.info(f"Subfolders: {subfolders}")
-        # Step 2: Iterate through subfolders one at a time
+        keys = [obj['Key'] for obj in response.get('Contents', []) if not obj['Key'].endswith('/')]
+    
+        # Step 2: Extract unique two-level prefixes
+        subfolders = set()
+        for key in keys:
+            parts = key.split('/')
+            if len(parts) >= 3:
+                subfolders.add(f"{parts[0]}/{parts[1]}/")
+    
+        logging.info(f"Discovered subfolders: {subfolders}")
+    
+        files = []
+        paginator = s3_client.get_paginator('list_objects_v2')
+    
+        # Step 3: Iterate through subfolders and collect tagged files
         for sub_prefix in subfolders:
-            logging.info(f"sub_prefix: {sub_prefix}")
             for page in paginator.paginate(Bucket=aws_bucket, Prefix=sub_prefix):
                 for obj in page.get('Contents', []):
                     key = obj['Key']
@@ -100,6 +108,7 @@ with DAG(
             return [lst[i:i + size] for i in range(0, len(lst), size)]
     
         return chunk_list(files, page_size)
+
 
 
     
