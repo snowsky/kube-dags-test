@@ -71,16 +71,19 @@ with DAG(
         response = s3_client.list_objects_v2(
             Bucket=aws_bucket,
             Prefix=f"{aws_folder}/",
-            MaxKeys=1000  # Adjust as needed
+            MaxKeys=1000
         )
         keys = [obj['Key'] for obj in response.get('Contents', []) if not obj['Key'].endswith('/')]
     
-        # Step 2: Extract unique two-level prefixes
+        logging.info(f"Sample keys retrieved: {keys[:10]}")
+    
+        # Step 2: Extract unique three-level prefixes
         subfolders = set()
         for key in keys:
             parts = key.split('/')
-            if len(parts) >= 3:
-                subfolders.add(f"{parts[0]}/{parts[1]}/")
+            logging.info(f"Key: {key} | Parts: {parts}")
+            if len(parts) >= 4:
+                subfolders.add(f"{parts[0]}/{parts[1]}/{parts[2]}/")
     
         logging.info(f"Discovered subfolders: {subfolders}")
     
@@ -108,6 +111,7 @@ with DAG(
             return [lst[i:i + size] for i in range(0, len(lst), size)]
     
         return chunk_list(files, page_size)
+
 
 
 
