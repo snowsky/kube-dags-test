@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from io import BytesIO
 import os
 import logging
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 # Constants
 DEFAULT_DEST_FILES_DIRECTORY_ARCHIVE = '/source-biakonzasftp/C-127/archive'
@@ -55,49 +56,48 @@ with DAG(
 
     @task
     def list_s3_file_batches(**kwargs) -> list[list[str]]:
-    import logging
-    from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
-    params = kwargs["params"]
-    aws_bucket = params["aws_bucket"]
-    aws_folder = params["aws_folder"]
-    page_size = params["page_size"]
-    FILE_LIMIT = 2000000
-
-    logging.info(f"Runtime page_size: {page_size}")
-
-    s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
-    s3_client = s3_hook.get_conn()
-
-    # Step 1: List first-level subfolders
-    result = s3_client.list_objects_v2(Bucket=aws_bucket, Prefix=f"{aws_folder}/", Delimiter='/')
-    subfolders = result.get('CommonPrefixes', [])
-
-    files = []
-
-    # Step 2: Iterate through subfolders and collect tagged files
-    for folder in subfolders:
-        sub_prefix = folder['Prefix']
-        paginator = s3_client.get_paginator('list_objects_v2')
-        for page in paginator.paginate(Bucket=aws_bucket, Prefix=sub_prefix):
-            for obj in page.get('Contents', []):
-                key = obj['Key']
-                if key.endswith('/'):
-                    continue
-                tags = s3_client.get_object_tagging(Bucket=aws_bucket, Key=key).get('TagSet', [])
-                if any(tag['Key'] == 'CPProcessed' and tag['Value'].lower() == 'true' for tag in tags):
-                    files.append(key)
-                    if len(files) >= FILE_LIMIT:
-                        break
+        
+    
+        params = kwargs["params"]
+        aws_bucket = params["aws_bucket"]
+        aws_folder = params["aws_folder"]
+        page_size = params["page_size"]
+        FILE_LIMIT = 2000000
+    
+        logging.info(f"Runtime page_size: {page_size}")
+    
+        s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
+        s3_client = s3_hook.get_conn()
+    
+        # Step 1: List first-level subfolders
+        result = s3_client.list_objects_v2(Bucket=aws_bucket, Prefix=f"{aws_folder}/", Delimiter='/')
+        subfolders = result.get('CommonPrefixes', [])
+    
+        files = []
+    
+        # Step 2: Iterate through subfolders and collect tagged files
+        for folder in subfolders:
+            sub_prefix = folder['Prefix']
+            paginator = s3_client.get_paginator('list_objects_v2')
+            for page in paginator.paginate(Bucket=aws_bucket, Prefix=sub_prefix):
+                for obj in page.get('Contents', []):
+                    key = obj['Key']
+                    if key.endswith('/'):
+                        continue
+                    tags = s3_client.get_object_tagging(Bucket=aws_bucket, Key=key).get('TagSet', [])
+                    if any(tag['Key'] == 'CPProcessed' and tag['Value'].lower() == 'true' for tag in tags):
+                        files.append(key)
+                        if len(files) >= FILE_LIMIT:
+                            break
+                if len(files) >= FILE_LIMIT:
+                    break
             if len(files) >= FILE_LIMIT:
                 break
-        if len(files) >= FILE_LIMIT:
-            break
-
-    def chunk_list(lst, size):
-        return [lst[i:i + size] for i in range(0, len(lst), size)]
-
-    return chunk_list(files, page_size)
+    
+        def chunk_list(lst, size):
+            return [lst[i:i + size] for i in range(0, len(lst), size)]
+    
+        return chunk_list(files, page_size)
 
     
 
