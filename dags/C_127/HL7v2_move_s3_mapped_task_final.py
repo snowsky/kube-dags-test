@@ -103,7 +103,7 @@ with DAG(
                     break
             if len(files) >= FILE_LIMIT:
                 break
-    
+        logging.info(f'Total Files To Process: {len(files)}')
         def chunk_list(lst, size):
             return [lst[i:i + size] for i in range(0, len(lst), size)]
     
