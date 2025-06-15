@@ -61,7 +61,7 @@ with DAG(
         aws_folder = params["aws_folder"]
         page_size = params["page_size"]
         FILE_LIMIT = 2000000
-        MAX_KEYS_FOR_DISCOVERY = 1000
+        MAX_KEYS_FOR_DISCOVERY = 1000000
     
         logging.info(f"Runtime page_size: {page_size}")
     
