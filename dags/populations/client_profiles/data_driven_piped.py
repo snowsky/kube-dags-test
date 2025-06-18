@@ -19,11 +19,21 @@ class DataDrivenPipedClientProfile(ClientProfile):
     
     def process_population_data(self, facility_ids):
         self._query_population_data()
+        self._query_population_data_delivery_table()
         self._query_and_insert_mpi(facility_ids)
         logging.info(f'facility ids should be {facility_ids}')
-
+        self._query_to_remove_opt_outs()
 
     def _query_population_data(self):
+        query = f"""
+                DROP TABLE IF EXISTS {self._schema}.{self.target_table}_prep;
+                CREATE TABLE {self._schema}.{self.target_table}_prep AS
+                SELECT MPI, provider_first_name
+                FROM {self._data_source} WHERE 1 = 0;
+                """
+        execute_query(query, self._conn_id)
+      
+    def _query_population_data_delivery_table(self):
         query = f"""
                 DROP TABLE IF EXISTS {self._schema}.{self.target_table};
                 CREATE TABLE {self._schema}.{self.target_table} AS
@@ -40,12 +50,25 @@ class DataDrivenPipedClientProfile(ClientProfile):
         logging.info(f'facility ids unpiped should be {facility_ids_unpiped}')
         logging.info(f'facility ids unpiped quote should be {quoted_values}')
         query = f"""
-                INSERT INTO {self._schema}.{self.target_table} (MPI)
+                INSERT INTO {self._schema}.{self.target_table}_prep (MPI)
                 (SELECT MPI FROM temp.{mpi_source_table}
                 WHERE unit_id IN ({quoted_values})
                 AND admitted > DATE_SUB(now(), INTERVAL 18 MONTH)
                 AND MPI <> '999999999999999'
+                AND MPI <> '<NA>'
                 group by MPI);
+                """
+        execute_query(query, self._conn_id)
+    
+    def _query_to_remove_opt_outs(self):
+        logging.info(f'removing any opt outs before adding to the csg and csga tables')
+        query = f"""
+                INSERT INTO {self._schema}.{self.target_table} (MPI)
+                (SELECT TP.MPI FROM {self._schema}.{self.target_table}_prep TP
+                LEFT JOIN clientresults.opt_out_list OPT on TP.MPI = OPT.MPI
+                WHERE OPT.MPI is null AND TP.MPI <> 'nan'
+                AND TP.MPI <> '999999999999999'
+                AND TP.MPI <> '<NA>');
                 """
         execute_query(query, self._conn_id)
     

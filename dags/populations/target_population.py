@@ -97,8 +97,6 @@ with DAG(
                 sql=f"""
                 insert into clientresults.client_security_groupings{approved_suffix} (`Client`, MPI, server_id)
                 select '{client_profile.client_name}', TP.`MPI`,'{client_profile.ending_db}' from {client_profile.schema}.{client_profile.target_table} TP
-                left join clientresults.opt_out_list OPT on TP.MPI = OPT.MPI
-                where OPT.MPI is null and TP.MPI <> 'nan'
                 group by MPI;
                 """,
                 dag=dag
@@ -178,8 +176,7 @@ with DAG(
                 sql=f"""
                 insert into clientresults.client_extract_mpi_crosswalk (`Client`, MPI, server_id,36_month_visit_reference_accid,ins_member_id,client_identifier,client_identifier_2)
                 select '{client_profile.client_name}', TP.`MPI`,'{client_profile.ending_db}', '', ins_member_id,client_identifier,client_identifier_2 from {client_profile.schema}.{client_profile.target_table} TP
-                left join clientresults.opt_out_list OPT on TP.MPI = OPT.MPI
-                where TP.MPI is not null AND OPT.MPI is null and TP.MPI <> 'nan' and length(TP.MPI) > 1;
+                where TP.MPI is not null and length(TP.MPI) > 1;
                 """,
                 dag=dag
             )
@@ -248,6 +245,6 @@ with DAG(
     c_60_insert_client_security_groupings = c_60_insert_client_security_groupings_task.expand(approved_suffix=assess_client_frequency)
     extract_mpi_crosswalk = extract_mpi_crosswalk_task()
 
-    assess_client_frequency >> reset_client_frequency >> reset_client_frequency_hierarchy >> target_population >>  (clear_results_table_by_client_csg >> extract_client_security_groupings, clear_results_table_by_client_mpi_cw >> extract_mpi_crosswalk) >> c_60_clear_client_security_groupings >> c_60_insert_client_security_groupings
+    assess_client_frequency >> reset_client_frequency >> reset_client_frequency_hierarchy >> target_population >>  clear_results_table_by_client_csg >> extract_client_security_groupings >> clear_results_table_by_client_mpi_cw >> extract_mpi_crosswalk >> c_60_clear_client_security_groupings >> c_60_insert_client_security_groupings
 
 

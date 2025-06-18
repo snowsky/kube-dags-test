@@ -2,7 +2,11 @@ from populations.client_profiles.data_driven import DataDrivenClientProfile
 from populations.client_profiles.data_driven_piped import DataDrivenPipedClientProfile
 from populations.client_profiles.csv_internally_delivered import CsvInternallyDeliveredClientProfile
 from populations.client_profiles.community_mental_health_center_of_crawford_county_internally_delivered import CommunityMentalHealthCenterOfCrawfordCountyInternallyDeliveredClientProfile
-#from populations.client_profiles.hiawatha_community_hospital_internally_delivered import HiawathaCommunityHospitalInternallyDeliveredClientProfile
+from populations.client_profiles.redwood_coast_medical_services_internally_delivered import RedwoodCoastMedicalServicesInternallyDeliveredClientProfile
+from populations.client_profiles.modoc_county_behavioral_health_internally_delivered import ModocCountyBehavioralHealthInternallyDeliveredClientProfile
+from populations.client_profiles.solano_county_health_and_social_services_bh_internally_delivered import SolanoCountyHealthAndSocialServicesBhInternallyDeliveredClientProfile
+from populations.client_profiles.mendocino_county_behavioral_health_internally_delivered import MendocinoCountyBehavioralHealthInternallyDeliveredClientProfile
+from populations.client_profiles.yolo_hospice_inc_internally_delivered import YoloHospiceIncInternallyDeliveredClientProfile
 from typing import List, Tuple
 import os
 
@@ -35,5 +39,60 @@ def get_client_profile(folder_name, ending_db, frequency, facility_ids, airflow_
             raise ValueError(f"multiple files found in: {client_source_path}")
         input_file_path = os.path.join(client_source_path, file_names[0])
         return CommunityMentalHealthCenterOfCrawfordCountyInternallyDeliveredClientProfile(input_file_path, folder_name, ending_db)
+    elif airflow_client_profile == 'redwood_coast_medical_services_internally_delivered':
+        client_source_path = os.path.join(internal_source_path, folder_name)
+        if not os.path.exists(client_source_path):
+            raise ValueError(f"path does not exist: {client_source_path}")
+        file_names = list(os.listdir(client_source_path))
+        if len(file_names) == 0:
+            raise ValueError(f"no files found in: {client_source_path}")
+        elif len(file_names) > 1:
+            raise ValueError(f"multiple files found in: {client_source_path}")
+        input_file_path = os.path.join(client_source_path, file_names[0])
+        return RedwoodCoastMedicalServicesInternallyDeliveredClientProfile(input_file_path, folder_name, ending_db)
+    elif airflow_client_profile == 'modoc_county_behavioral_health_internally_delivered':
+        client_source_path = os.path.join(internal_source_path, folder_name)
+        if not os.path.exists(client_source_path):
+            raise ValueError(f"path does not exist: {client_source_path}")
+        file_names = list(os.listdir(client_source_path))
+        if len(file_names) == 0:
+            raise ValueError(f"no files found in: {client_source_path}")
+        elif len(file_names) > 1:
+            raise ValueError(f"multiple files found in: {client_source_path}")
+        input_file_path = os.path.join(client_source_path, file_names[0])
+        return ModocCountyBehavioralHealthInternallyDeliveredClientProfile(input_file_path, folder_name, ending_db)
+    elif airflow_client_profile == 'solano_county_health_and_social_services_bh_internally_delivered':
+        client_source_path = os.path.join(internal_source_path, folder_name)
+        if not os.path.exists(client_source_path):
+            raise ValueError(f"path does not exist: {client_source_path}")
+        file_names = list(os.listdir(client_source_path))
+        if len(file_names) == 0:
+            raise ValueError(f"no files found in: {client_source_path}")
+        elif len(file_names) > 1:
+            raise ValueError(f"multiple files found in: {client_source_path}")
+        input_file_path = os.path.join(client_source_path, file_names[0])
+        return SolanoCountyHealthAndSocialServicesBhInternallyDeliveredClientProfile(input_file_path, folder_name, ending_db)
+    elif airflow_client_profile == 'mendocino_county_behavioral_health_internally_delivered':
+        client_source_path = os.path.join(internal_source_path, folder_name)
+        if not os.path.exists(client_source_path):
+            raise ValueError(f"path does not exist: {client_source_path}")
+        file_names = list(os.listdir(client_source_path))
+        if len(file_names) == 0:
+            raise ValueError(f"no files found in: {client_source_path}")
+        elif len(file_names) > 1:
+            raise ValueError(f"multiple files found in: {client_source_path}")
+        input_file_path = os.path.join(client_source_path, file_names[0])
+        return MendocinoCountyBehavioralHealthInternallyDeliveredClientProfile(input_file_path, folder_name, ending_db)
+    elif airflow_client_profile == 'yolo_hospice_inc_internally_delivered':
+        client_source_path = os.path.join(internal_source_path, folder_name)
+        if not os.path.exists(client_source_path):
+            raise ValueError(f"path does not exist: {client_source_path}")
+        file_names = list(os.listdir(client_source_path))
+        if len(file_names) == 0:
+            raise ValueError(f"no files found in: {client_source_path}")
+        elif len(file_names) > 1:
+            raise ValueError(f"multiple files found in: {client_source_path}")
+        input_file_path = os.path.join(client_source_path, file_names[0])
+        return YoloHospiceIncInternallyDeliveredClientProfile(input_file_path, folder_name, ending_db)
     else:
         raise ValueError(f"Unknown client profile: {folder_name}")
