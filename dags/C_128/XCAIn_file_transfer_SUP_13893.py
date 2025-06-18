@@ -29,8 +29,8 @@ dag = DAG(
     tags=['C-128'],
     catchup=False,
     params={
-        "max_workers": Param(5, type="integer", minimum=1),
-        "batch_size": Param(100, type="integer", minimum=1) #  - Warning do not set higher than 500 (testing on 2/7 around duration greater than 1 hour hitting timeout defined below)
+        "max_workers": Param(15, type="integer", minimum=1),
+        "batch_size": Param(300, type="integer", minimum=1) #  - Warning do not set higher than 500 (testing on 2/7 around duration greater than 1 hour hitting timeout defined below)
     }
 )
 ENV = 'Prod'
