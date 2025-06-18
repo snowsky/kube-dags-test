@@ -251,7 +251,20 @@ with DAG(
                 ELSE 'UNKNOWN'
             END AS state_standardized,
             '<DATEID>' AS ds
-        FROM patient_contact_parquet_pm s 
+        FROM (
+            
+            SELECT patient_id, state, index_update_dt_tm
+            FROM patient_contact_parquet_pm 
+            -- TODO: this should be checked
+            WHERE index_update > '2024-06'
+            
+            UNION ALL
+            
+            SELECT
+                patient_id, state, index_update_dt_tm 
+            FROM c111_patient_hist_info
+        
+        ) s
         """,
     )
 
