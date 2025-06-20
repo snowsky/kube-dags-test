@@ -217,6 +217,6 @@ with DAG(
     
 
     # DAG task wiring
-    file_batches = list_s3_file_batches()
+    file_batches = list_s3_file_batches()[10]
 
-    process_file_batch.expand(file_keys=file_batches[10])
+    process_file_batch.expand(file_keys=file_batches)
