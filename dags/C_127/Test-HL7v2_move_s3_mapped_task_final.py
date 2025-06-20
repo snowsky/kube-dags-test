@@ -21,7 +21,7 @@ DEFAULT_PAGE_SIZE = 10000
 PARALLEL_TASK_LIMIT = 30
 DEFAULT_AWS_TAG = ['CPProcessed', 'KONZAID']
 DEFAULT_DB_CONN_ID = 'prd-az1-sqlw3-mysql-airflowconnection'
-AZURE_CONNECTION_NAME = 'reportwriterstorage-blob-core-windows-net'
+AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
 
 sql_hook = MySqlHook(mysql_conn_id=DEFAULT_DB_CONN_ID)
 
