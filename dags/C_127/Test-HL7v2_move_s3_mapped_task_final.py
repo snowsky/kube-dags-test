@@ -5,7 +5,6 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.exceptions import AirflowFailException
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from azure.storage.blob import BlobServiceClient
-from dags.lib.konza.utils import get_azure_connection_string
 from datetime import datetime, timedelta
 from io import BytesIO
 import os
