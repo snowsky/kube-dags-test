@@ -81,7 +81,7 @@ with DAG(
         aws_bucket = params["aws_bucket"]
         aws_folder = params["aws_folder"]
         page_size = params["page_size"]
-        FILE_LIMIT = 2000000
+        FILE_LIMIT = 10
         MAX_KEYS_FOR_DISCOVERY = 1000000
     
         logging.info(f"Runtime page_size: {page_size}")
@@ -217,6 +217,6 @@ with DAG(
     
 
     # DAG task wiring
-    file_batches = list_s3_file_batches()[10]
+    file_batches = list_s3_file_batches()
 
     process_file_batch.expand(file_keys=file_batches)
