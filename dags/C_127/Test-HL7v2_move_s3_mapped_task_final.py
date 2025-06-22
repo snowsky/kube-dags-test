@@ -14,7 +14,7 @@ import logging
 # Constants
 DEFAULT_AZURE_CONTAINER = 'content'
 DEFAULT_DEST_PATH_ARCHIVE = 'airflow/C-127/archive'
-DEFAULT_DEST_PATH = 'airflow/C-179/HL7v2In_to_Corepoint'
+DEFAULT_DEST_PATH = 'airflow/C-179/HL7v2In_to_Corepoint_full'
 DEFAULT_AWS_FOLDER = 'HL7v2In/'
 DEFAULT_MAX_POOL_WORKERS = 5
 DEFAULT_MAX_TASKS = 200
