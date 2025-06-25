@@ -19,6 +19,7 @@ from concurrent.futures import as_completed, ThreadPoolExecutor as PoolExecutor
 DEFAULT_SOURCE_FILES_DIRECTORY = 'C-174/'#Dev'/data/biakonzasftp/C-174/Availity/UnZipped/' 
 DEFAULT_DEST_FILES_DIRECTORY = 'C-194/archive_C-174/' #dev'/data/biakonzasftp/C-194/C-174/dest/'
 AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
+AZURE_CONNECTION_CONTAINER = 'airflow'
 AZURE_CONNECTION_STRING = get_azure_connection_string(AZURE_CONNECTION_NAME)
 DEFAULT_MAX_POOL_WORKERS = 5
 DEFAULT_MAX_TASKS = 200
@@ -61,6 +62,7 @@ with DAG(
         "output_files_dir_path": Param(DEFAULT_DEST_FILES_DIRECTORY, type="string"),
         "max_pool_workers": Param(DEFAULT_MAX_POOL_WORKERS, type="integer", minimum=0),
         "max_mapped_tasks": Param(DEFAULT_MAX_TASKS, type="integer", minimum=0),
+        "container_name": Param(AZURE_CONNECTION_CONTAINER, type="string", minimum=0),
         "transfer_to_konzaandssigrouppipelines_bucket": Param(True, type="boolean")
     },
 ) as dag:
