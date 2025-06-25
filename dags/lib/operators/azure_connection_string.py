@@ -1,3 +1,5 @@
+from airflow.hooks.base_hook import BaseHook
+
 def get_azure_connection_string(conn_id: str) -> str:
     """
     Retrieve the Azure Blob Storage connection string from Airflow connections.
