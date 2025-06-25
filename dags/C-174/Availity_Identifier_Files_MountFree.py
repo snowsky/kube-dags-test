@@ -25,7 +25,7 @@ AZURE_CONNECTION_STRING = get_azure_connection_string(AZURE_CONNECTION_NAME)
 DEFAULT_MAX_POOL_WORKERS = 5
 DEFAULT_MAX_TASKS = 500 # Divide MAX_FILES by 500 to limit number of files.  If too many tasks reduce MAX_FILES in parallel
 MAX_FILES = 250_000
-PARALLEL_TASK_LIMIT = 5  # Change this to large number of prod to remove parallel task limit
+PARALLEL_TASK_LIMIT = 1  # Change this to large number of prod to remove parallel task limit
 
 class BucketDetails:
     def __init__(self, aws_conn_id, aws_key_pattern, s3_hook_kwargs):
