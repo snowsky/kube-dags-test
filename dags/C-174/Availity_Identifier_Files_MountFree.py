@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.decorators import task
 from azure.storage.blob import BlobServiceClient
 from airflow.models.param import Param
+from itertools import islice
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.operators.python import get_current_context
