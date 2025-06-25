@@ -72,9 +72,7 @@ with DAG(
         return [blob.name for blob in islice(blob_list, max_files)]
 
     @task
-    def diff_files_task(params: dict):
-        _sanitise_input_directories(params)
-    
+    def diff_files_task(params: dict):  
         source_files = list_blobs_in_directory(params['container_name'], params['source_files_dir_path'])
         dest_files = list_blobs_in_directory(params['container_name'], params['output_files_dir_path'])
     
@@ -84,16 +82,6 @@ with DAG(
             return _split_list_into_batches(unique_files, params['max_mapped_tasks'])
         else:
             return []  
-    def diff_files_task(params: dict):
-        _sanitise_input_directories(params)
-        source_files = _get_files_from_dir(params['source_files_dir_path'])
-        dest_files = _get_files_from_dir(params['output_files_dir_path'])
-        unique_files = [f for f in source_files if f not in dest_files]
-        if unique_files:
-            return _split_list_into_batches(unique_files, params['max_mapped_tasks'])
-        else:
-            return []
-
 
     def _split_list_into_batches(target_list,  max_tasks):
         if target_list:
