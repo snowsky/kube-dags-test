@@ -64,7 +64,6 @@ with DAG(
         "transfer_to_konzaandssigrouppipelines_bucket": Param(True, type="boolean")
     },
 ) as dag:
-    @task
     def list_blobs_in_directory(container_name, directory_path, max_files=MAX_FILES):
         blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
         container_client = blob_service_client.get_container_client(container_name)
