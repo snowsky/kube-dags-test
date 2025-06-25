@@ -84,7 +84,7 @@ with DAG(
             return _split_list_into_batches(unique_files, params['max_mapped_tasks'])
         else:
             return []  
-  def diff_files_task(params: dict):
+    def diff_files_task(params: dict):
         _sanitise_input_directories(params)
         source_files = _get_files_from_dir(params['source_files_dir_path'])
         dest_files = _get_files_from_dir(params['output_files_dir_path'])
