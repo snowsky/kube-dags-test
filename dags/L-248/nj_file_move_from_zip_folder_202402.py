@@ -26,7 +26,7 @@ dag = DAG(
     description='A simple DAG to move the NJ files the HL7In Zipped Dated folders to the L-248',
     #schedule_interval='@hourly',  # Set to run hourly
     #start_date=datetime(2024,9,20),
-    tags=['L-248'],
+    tags=['L-248','Canary','Staging_in_Prod'],
 )
 # Define the S3 bucket name and subfolder
 #BUCKET_NAME = 'konzaandssigrouppipelines'
