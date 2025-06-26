@@ -71,7 +71,14 @@ with DAG(
         blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
         container_client = blob_service_client.get_container_client(container_name)
         blob_list = container_client.list_blobs(name_starts_with=directory_path)
-        return [blob.name for blob in islice(blob_list, max_files)]
+        blob_names = [blob.name for blob in islice(blob_list, max_files)]
+        sanitized_blob_names = []
+        for blob_name in blob_names:
+            assert blob_name.index(directory_path) == 0, f"blob_name {blob_name} does not start with {directory_path}."
+            sanitized_blob_name = blob_name[len(directory_path):]
+            print(sanitized_blob_name)
+            sanitized_blob_names.append(sanitized_blob_name)
+        return sanitized_blob_names
 
     @task
     def diff_files_task(params: dict):  
@@ -80,6 +87,7 @@ with DAG(
     
         unique_files = [f for f in source_files if f not in dest_files]
         unique_files = [f for f in unique_files if not f.split("/")[-1][0] == "."]
+        
         if unique_files:
             return _split_list_into_batches(unique_files, params['max_mapped_tasks'])
         else:
