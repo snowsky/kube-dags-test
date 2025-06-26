@@ -26,15 +26,15 @@ dag = DAG(
     description='A simple DAG to move the NJ files the HL7In Zipped Dated folders to the L-248',
     #schedule_interval='@hourly',  # Set to run hourly
     #start_date=datetime(2024,9,20),
-    tags=['L-248'],
+    tags=['L-248','Canary','Staging_in_Prod'],
 )
 # Define the S3 bucket name and subfolder
 #BUCKET_NAME = 'konzaandssigrouppipelines'
-CURRENT_BUCKET_NAME = '/data/biakonzasftp/C-194/archive_HL7v2/'
+CURRENT_BUCKET_NAME = '/source-biakonzasftp/C-194/archive_HL7v2/'
 #NEW_BUCKET_NAME = '/data/biakonzasftp/C-194/HL7InV3/'
 #S3_SUBFOLDER = 'HL7v3In'
-LOCAL_DESTINATION = '/data/biakonzasftp/L-248/HL7v2_NJ_202308/' #PRD is '/source-biakonzasftp/C-9/optout_load/' #DEV is '/data/biakonzasftp/L-215/'
-TEMP_DIRECTORY = '/data/biakonzasftp/airflow_temp/C-194/'
+LOCAL_DESTINATION = '/source-biakonzasftp/L-248/HL7v2_NJ_202308/' #PRD is '/source-biakonzasftp/C-9/optout_load/' #DEV is '/data/biakonzasftp/L-215/'
+TEMP_DIRECTORY = '/source-biakonzasftp/airflow_temp/C-194/'
 
 # Define source directory and SFTP destination path
 #source_dir = r"I:\hl7v2\hl7_parsed"
