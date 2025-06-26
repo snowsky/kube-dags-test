@@ -107,13 +107,26 @@ with DAG(
         file_paths = [f.replace(target_dir, '') for f in glob.iglob(f'{target_dir}/**/*', recursive=True) if path.isfile(f)]
         return file_paths
 
-    @task(trigger_rule=TriggerRule.NONE_FAILED)
+    @task(
+        trigger_rule=TriggerRule.NONE_FAILED,
+        executor_config={
+            "KubernetesExecutor": {
+                "resources": {
+                    "requests": {"memory": "16Gi", "cpu": "4000m"},
+                    "limits": {"memory": "16Gi", "cpu": "4000m"}
+                }
+            }
+        }
+    )
     def copy_file_task(input_file_list, params: dict):
-        max_workers = params['max_pool_workers']
-        with PoolExecutor(max_workers=max_workers) as executor:
-            future_file_dict = {executor.submit(partial(_copy_file, params), f): f for f in input_file_list}
-        _, exceptions = _get_results_from_futures(future_file_dict)
-        if exceptions:
+        result_dict = {}
+        exceptions = []
+        for file_path in input_file_list:
+            try:
+                result_dict[file_path] = _copy_file(params, file_path)
+            except Exception as e:
+                exceptions.append(str(f'{file}: {str(e)})'))
+        if len(exceptions) > 0:
             raise AirflowFailException(f'exceptions raised: {exceptions}')
 
     def _copy_file(params, file):
