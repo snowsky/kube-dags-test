@@ -26,6 +26,7 @@ DEFAULT_MAX_POOL_WORKERS = 1
 DEFAULT_MAX_TASKS = 200 # Divide MAX_FILES by 500 to limit number of files.  If too many tasks reduce MAX_FILES in parallel
 MAX_FILES = 100_000
 PARALLEL_TASK_LIMIT = 1  # Change this to large number of prod to remove parallel task limit
+AIRFLOW_SFTP_MOUNT_PATH = '/data/biakonzasftp'
 
 class BucketDetails:
     def __init__(self, aws_conn_id, aws_key_pattern, s3_hook_kwargs):
@@ -64,7 +65,8 @@ with DAG(
         "max_pool_workers": Param(DEFAULT_MAX_POOL_WORKERS, type="integer", minimum=0),
         "max_mapped_tasks": Param(DEFAULT_MAX_TASKS, type="integer", minimum=0),
         "container_name": Param(AZURE_CONNECTION_CONTAINER, type="string", minimum=0),
-        "transfer_to_konzaandssigrouppipelines_bucket": Param(True, type="boolean")
+        "transfer_to_konzaandssigrouppipelines_bucket": Param(True, type="boolean"),
+        "sftp_mount_path": Param(AIRFLOW_SFTP_MOUNT_PATH, type="string"),
     },
 ) as dag:
     def list_blobs_in_directory(container_name, directory_path, max_files=MAX_FILES):
@@ -135,11 +137,11 @@ with DAG(
             raise AirflowFailException(f'exceptions raised: {exceptions}')
 
     def _copy_file(params, file):
-        input_file_path = path.join(params['source_files_dir_path'], file)
+        input_file_path = path.join(params['sftp_mount_path'], params['source_files_dir_path'], file)
         
         # Create a subfolder with the current date in YYYYMMDD format
         date_folder = datetime.now().strftime('%Y%m%d')
-        dest_file_path = path.join(params['output_files_dir_path'], date_folder, file)
+        dest_file_path = path.join(params['sftp_mount_path'], params['output_files_dir_path'], date_folder, file)
         
         makedirs(path.dirname(dest_file_path), exist_ok=True)
         shutil.copy2(input_file_path, dest_file_path)
@@ -192,7 +194,7 @@ with DAG(
         return upload_file_to_s3_task_def
 
     def _upload_file_to_s3(params, aws_key_pattern, aws_conn_id, aws_bucket_name, s3_hook_kwargs, file):
-        input_file_path = path.join(params['source_files_dir_path'], file)
+        input_file_path = path.join(params['sftp_mount_path'], params['source_files_dir_path'], file)
         aws_key = aws_key_pattern
         # Add/edit replacements depending upon aws key pattern.
         replacements = {"{input_file}": file, "{input_file_replaced}": file.replace('/','__')}
