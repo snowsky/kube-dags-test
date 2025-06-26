@@ -476,3 +476,17 @@ def copy_populated_board(
                         )
 
                         print(f"Error: {error}")
+
+def get_board_custom_fields(hostname: str, token: str, board_id: str):
+    """
+    Function to get custom fields from a board.
+    """
+
+    url = f"{hostname}/api/boards/{board_id}/custom-fields"
+
+    headers = {
+        "Accept": "*/*",
+        "Authorization": f"Bearer {token}",
+    }
+
+    return api_get_request(url, headers)

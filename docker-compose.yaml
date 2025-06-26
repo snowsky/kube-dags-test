@@ -24,7 +24,7 @@
 # The following variables are supported:
 #
 # AIRFLOW_IMAGE_NAME           - Docker image name used to run Airflow.
-#                                Default: apache/airflow:2.8.3
+#                                Default: apache/airflow:2.9.0
 # AIRFLOW_UID                  - User ID in Airflow containers
 #                                Default: 50000
 # AIRFLOW_PROJ_DIR             - Base path to which all the files will be volumed.
@@ -43,13 +43,12 @@
 #                                Default: ''
 #
 # Feel free to modify this file to suit your needs.
----
 x-airflow-common:
   &airflow-common
   # In order to add custom dependencies or upgrade provider packages you can use your extended image.
   # Comment the image line, place your Dockerfile in the directory where you placed the docker-compose.yaml
   # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
-  #image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.8.3}
+  #  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.9.0}
   build: .
   environment:
     &airflow-common-env
@@ -59,6 +58,7 @@ x-airflow-common:
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'true'
     AIRFLOW__CORE__TEST_CONNECTION: 'Enabled'
+    TEST_ENV: 'true'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
     # yamllint disable rule:line-length
     # Use simple http server on scheduler for health checks
@@ -67,20 +67,16 @@ x-airflow-common:
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     # WARNING: Use _PIP_ADDITIONAL_REQUIREMENTS option ONLY for a quick checks
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
-    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
-    TEST_ENV: 'true'
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-} attrs==23.2.0 apache-airflow==2.9.0
+    # The following line can be used to set a custom config file, stored in the local config folder
+    # If you want to use it, outcomment it and replace airflow.cfg with the name of your config file
+    # AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
-    - ${AIRFLOW_PROJ_DIR:-.}/samples:/opt/airflow/samples
-    - ${AIRFLOW_PROJ_DIR:-.}/test/dags/populations/db_tables:/opt/airflow/example_data
-    - ${AIRFLOW_PROJ_DIR:-.}/test/dags/sla113/reportwriterstorage:/opt/airflow/reportwriterstorage
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-    - ${XML_MOUNT_PATH}:/opt/airflow/ccda
-    - ${CCD_UTILS_MOUNT_PATH}:/opt/airflow/dags/ccd-utils
-    - ${AIRFLOW_PROJ_DIR:-.}/test/dags/populations/pop_data:/opt/airflow/dags/sftp_mock/pop_data/
-    - ${AIRFLOW_PROJ_DIR:-.}/test/dags/populations/pop_data:/source-biakonzasftp/
+    - ${AIRFLOW_PROJ_DIR:-.}/test/dags/C_165/db_tables:/opt/airflow/example_data
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -102,12 +98,14 @@ services:
       retries: 5
       start_period: 5s
     restart: always
+    networks:
+      - shared
 
   airflow-webserver:
     <<: *airflow-common
     command: webserver
     ports:
-      - "8080:8080"
+      - "8081:8080"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 30s
@@ -115,11 +113,13 @@ services:
       retries: 5
       start_period: 30s
     restart: always
+    networks:
+      - shared
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
-  
+
   airflow-scheduler:
     <<: *airflow-common
     command: scheduler
@@ -130,6 +130,8 @@ services:
       retries: 5
       start_period: 30s
     restart: always
+    networks:
+      - shared
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
@@ -139,6 +141,8 @@ services:
     <<: *airflow-common
     entrypoint: /bin/bash
     # yamllint disable rule:line-length
+    networks:
+      - shared
     command:
       - -c
       - |
@@ -186,7 +190,6 @@ services:
         fi
         mkdir -p /sources/logs /sources/dags /sources/plugins
         chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
-        python3 /sources/test-database-setup.py
         exec /entrypoint airflow version
     # yamllint enable rule:line-length
     environment:
@@ -204,6 +207,8 @@ services:
     <<: *airflow-common
     profiles:
       - debug
+    networks:
+      - shared
     environment:
       <<: *airflow-common-env
       CONNECTION_CHECK_MAX_COUNT: "0"
@@ -216,6 +221,8 @@ services:
   mariadb:
     image: mariadb
     restart: always
+    networks:
+      - shared
     environment:
       MARIADB_ROOT_PASSWORD: example
     ports:
@@ -223,3 +230,9 @@ services:
 
 volumes:
   postgres-db-volume:
+
+networks:
+  shared:
+    external: true
+    name: shared-network
+

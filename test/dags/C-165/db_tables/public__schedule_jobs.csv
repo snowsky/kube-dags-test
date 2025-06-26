@@ -1,0 +1,75 @@
+id,script_name,server,file_path,updated_at
+5,Raw_HL7v2_Feed__L_10,prd-az1-sqlw2,\\prd-az1-sqlw2.ad.konza.org\batch\py Operations\Raw_HL7v2_Feed__L_10\Raw_HL7v2_Feed__L_10.bat,2025-01-15 15:07:13.899 -0600
+12,Raw_HL7v2_Feed__L_102,prd-az1-sqlw2,\\prd-az1-sqlw2.ad.konza.org\batch\Raw_HL7v2_Feed__L_102\Raw_HL7v2_Feed__L_102.bat,2025-01-15 15:07:45.615 -0600
+1,ARCHIVE_DELIVERY__L_23,prd-az1-ops2,\\prd-az1-sqlw2.ad.konza.org\batch\py Operations\ARCHIVE_DELIVERY__L_23\SFTP RoundRobin__L_23.bat,2025-03-25 16:18:37.436 -0500
+13,HL7v2 Files to Expandable Drive,prd-az1-sqlw2,\\prd-az1-sqlw2.ad.konza.org\batch\py Operations\Move Many Files\HL7v2 Files to Expandable Drive.py,2025-03-25 16:18:37.466 -0500
+2,ARCHIVE_DELIVERY__L_68,prd-az1-ops2,\\prd-az1-sqlw2\batch\py Operations\ARCHIVE_DELIVERY__L_68\SFTP RoundRobin__L_68.bat,2025-03-25 16:18:37.494 -0500
+3,CDA_KONZA_SFTP_Retrieval__L_69,prd-az1-ops2,\\prd-az1-sqlw2\batch\py Operations\CDA_KONZA_SFTP_Retrieval__L_69\SFTP RoundRobin__L_69.bat,2025-03-25 16:18:37.527 -0500
+4,KONZA_SSI_eHealth_Exchange_Distribution,prd-az1-ops2,\\prd-az1-sqlw2.ad.konza.org\batch\KONZA SSI eHealth Exchange Distribution\s3 Boto3 Bucket RoundRobin.bat,2025-03-25 16:18:37.549 -0500
+8,CDA_EMR_SFTP_Retrieval__L_61,prd-az1-ops1,\\prd-az1-sqlw2.ad.konza.org\batch\py Operations\CDA_EMR_SFTP_Retrieval__L_61\SFTP RoundRobin_Advanced_MD.bat,2025-03-25 16:18:37.576 -0500
+5,Raw_HL7v2_Feed__L_10,prd-az1-sqlw2,\\prd-az1-sqlw2.ad.konza.org\batch\py Operations\Raw_HL7v2_Feed__L_10\Raw_HL7v2_Feed__L_10.bat,2025-03-25 16:18:37.602 -0500
+10,Internal Ticketing,prd-az1-ops1,\\prd-az1-sqlw2\batch\py Operations\Internal Ticketing\Internal Ticketing.bat,2025-03-25 16:18:37.627 -0500
+11,Quality_Review_PRD-AZ1-SFTP1,prd-az1-ops1,\\prd-az1-sqlw2.ad.konza.org\batch\py Operations\directory_sync_PRD-AZ1-SFTP1.bat,2025-03-25 16:18:37.649 -0500
+6,Archive_to_Storage_Account,prd-az1-ops1,\\prd-az1-sqlw2.ad.konza.org\batch\py Operations\Archive_to_Storage_Account.bat,2025-03-25 16:18:37.677 -0500
+15,SacValley SFTP RoundRobin,prd-az1-ops1,\\prd-az1-sqlw2.ad.konza.org\batch\py Operations\SacValley SFTP RoundRobin.bat,2025-03-25 16:18:37.699 -0500
+16,Populate_Security_Groupings_Daily,prd-az1-ops1,\\prd-az1-sqlw2.ad.konza.org\batch\php ETL\Populate_Security_Groupings_Daily.bat,2025-03-25 16:18:37.720 -0500
+17,SLA Status Update Request,prd-az1-ops1,\\prd-az1-sqlw2.ad.konza.org\batch\py_Administrative\Administrator_Audits\py_Administrative\_SLA Status Update Request.bat,2025-03-25 16:18:37.745 -0500
+18,Internal Ticketing_Nightly,prd-az1-ops1,\\prd-az1-sqlw2.ad.konza.org\batch\py Operations\Internal Ticketing\Internal Ticketing_Nightly.bat,2025-03-25 16:18:37.766 -0500
+19,Internal Ticketing_every 4 hours,prd-az1-ops1,\\prd-az1-sqlw2\batch\py Operations\Internal Ticketing\Internal Ticketing.bat,2025-03-25 16:18:37.796 -0500
+20,ERTA_Server_Agent,prd-az1-ops1,\\prd-az1-sqlw2\batch\py Operations\Server_Agents\server_agent.bat,2025-03-25 16:18:37.818 -0500
+21,DH_SFTP_to_Live_Data_Extracts,prd-az1-ops1,\\prd-az1-sqlw2.ad.konza.org\batch\DH_SFTP_to_Live_Data_Extracts\DH-SFTP-Move-Load-Files.bat,2025-03-25 16:18:37.840 -0500
+22,Corepoint Data Quality Reports,prd-az1-ops1,C:\Usersjmontgomery\Log_transfer.bat,2025-03-25 16:18:37.861 -0500
+23,Dashboard_Update_Dates,prd-az1-ops1,\\prd-az1-sqlw2\batch\py Operations\Operational Statistics\Dashboard_Update_Dates.bat,2025-03-25 16:18:37.882 -0500
+24,SSI_SacValley_MedShare_OID_Distribution,prd-az1-ops2,\\prd-az1-sqlw2\batch\SSI_SacValley_OID_Distribution\SSI_SacValley_OID_Distribution.bat,2025-03-25 16:18:37.903 -0500
+25,SSI_KHIN_OID_Distribution,prd-az1-ops2,\\prd-az1-sqlw2\batch\SSI_KHIN_OID_Distribution\SSI_KHIN_OID_Distribution.bat,2025-03-25 16:18:37.924 -0500
+26,Card Handling,prd-az1-ops1,\\prd-az1-sqlw2.ad.konza.org\batch\py_Administrative\py_Administrative\Card Handling.bat,2025-03-25 16:18:37.945 -0500
+27,L_216_Data_Curation_Zip_Send_processing,prd-az1-ops2,\\prd-az1-sqlw2.ad.konza.org\batch\L_216_Data_Curation_Zip_SendL_216.bat,2025-03-25 16:18:37.973 -0500
+28,HL7v2_handler_demand_based_global_multithread,prd-az1-sqlw2,\\prd-az1-sqlw2.ad.konza.org\batch\HL7v2 Parser\HL7v2_handler_demand_based_global_multithread.bat,2025-03-25 16:18:37.994 -0500
+29,Run HL7v3In_CCDs_In_Today_date,prd-az1-sqlw2,E:\batch\py Operations\HL7v3In_CCDs_In_Today_date.bat,2025-03-25 16:18:38.015 -0500
+30,CP HL7 Daily Tasks,prd-az1-sqlw2,C:\xferScriptscp-hl7-daily-tasks.bat,2025-03-25 16:18:38.036 -0500
+31,ERTA_Server_Agent,prd-az1-ops2,\\prd-az1-sqlw2\batch\py Operations\Server_Agents\server_agent.bat,2025-03-25 16:18:38.057 -0500
+32,HL7v2_file_move_KONZA,prd-az1-sqlw2,E:\batch\py Operations\Move Many Files\HLv2 Files to Expandable Drive.bat,2025-03-25 16:18:38.078 -0500
+33,Run Find_Original_HL7v2,prd-az1-sqlw2,E:\batch\py Operations\Investigate Scripts\Find_Original_HL7v2.bat,2025-03-25 16:18:38.103 -0500
+34,ERTA_Server_Agent,prd-az1-sqlw2,\\prd-az1-sqlw2\batch\py Operations\Server_Agents\server_agent.bat,2025-03-25 16:18:38.124 -0500
+35,Run Find_Original_HL7v2_SacValley,prd-az1-sqlw2,E:\batch\py Operations\Investigate Scripts\Find_Original_HL7v2_SacValley.bat,2025-03-25 16:18:38.148 -0500
+36,Run HL7v2In_SacValley_MedShare_Today_date,prd-az1-sqlw2,E:\batch\py Operations\HL7v2In_SacValley_MedShare_Today_date.bat,2025-03-25 16:18:38.169 -0500
+37,Run HL7v2In_Today_date,prd-az1-sqlw2,E:\batch\py Operations\HL7v2In_Today_date.bat,2025-03-25 16:18:38.198 -0500
+38,Run HL7v2In_Today_date_backload,prd-az1-sqlw2,E:\batch\py Operations\HL7v2In_Today_date_backload.bat,2025-03-25 16:18:38.221 -0500
+39,ASA_Packet_Tracer_to_keep_CONNIE_CRISP_VPN_Connected,prd-az1-log2,\\prd-az1-log2\home\jmontgomery\cisco_asa_packet_tracer_CONNIE_CRISP.py,2025-03-27 11:31:28.408 -0500
+,,,,2025-03-27 11:31:28.459 -0500
+,,,,2025-03-27 11:31:28.508 -0500
+,,,,2025-03-27 11:31:28.557 -0500
+,,,,2025-03-27 11:31:28.674 -0500
+,,,,2025-03-27 11:31:28.727 -0500
+,,,,2025-03-27 11:31:28.777 -0500
+,,,,2025-03-27 11:31:28.827 -0500
+,,,,2025-03-27 11:31:28.876 -0500
+,,,,2025-03-27 11:31:28.929 -0500
+,,,,2025-03-27 11:31:28.987 -0500
+,,,,2025-03-27 11:31:29.044 -0500
+,,,,2025-03-27 11:31:29.102 -0500
+,,,,2025-03-27 11:31:29.155 -0500
+,,,,2025-03-27 11:31:29.202 -0500
+,,,,2025-03-27 11:31:29.251 -0500
+,,,,2025-03-27 11:31:29.301 -0500
+,,,,2025-03-27 11:31:29.351 -0500
+,,,,2025-03-27 11:31:29.405 -0500
+,,,,2025-03-27 11:31:29.454 -0500
+,,,,2025-03-27 11:31:29.512 -0500
+,,,,2025-03-27 11:31:29.561 -0500
+,,,,2025-03-27 11:31:29.687 -0500
+,,,,2025-03-27 11:31:29.736 -0500
+,,,,2025-03-27 11:31:29.787 -0500
+,,,,2025-03-27 11:31:29.841 -0500
+,,,,2025-03-27 11:31:29.894 -0500
+,,,,2025-03-27 11:31:29.943 -0500
+,,,,2025-03-27 11:31:29.993 -0500
+,,,,2025-03-27 11:31:30.045 -0500
+,,,,2025-03-27 11:31:30.108 -0500
+,,,,2025-03-27 11:31:30.160 -0500
+,,,,2025-03-27 11:31:30.209 -0500
+,,,,2025-03-27 11:31:30.258 -0500
+,,,,2025-03-27 11:31:30.308 -0500
+,,,,2025-03-27 11:31:30.357 -0500
+40,ASA_Packet_Tracer_to_keep_Hutchinson_Clinic_VPN_Connected,prd-az1-log2,\\prd-az1-log2\home\jmontgomery\cisco_asa_packet_tracer_Hutchinson_Clinic.py,2025-03-20 20:10:54.207 -0500
+41,ASA_Packet_Tracer_to_keep_Salina_Regional_VPN_Connected,prd-az1-log2,\\prd-az1-log2\home\jmontgomery\cisco_asa_packet_tracer_Salina.py,2025-03-20 20:10:21.321 -0500

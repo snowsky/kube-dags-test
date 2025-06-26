@@ -13,9 +13,9 @@ def login(hostname: str, username: str, password: str):
 
     url = f"{hostname}/users/login"
     payload = {"username": username, "password": password}
-    headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "*/*"}
+    headers = {"Content-Type": "application/json", "Accept": "*/*"}
 
-    login_response = api_post_request(url, headers, payload, payload_type="form-data")
+    login_response = api_post_request(url, headers, payload, payload_type="json")
 
     token = login_response["token"]
 

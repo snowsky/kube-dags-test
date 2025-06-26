@@ -16,7 +16,7 @@ from lib.wekan.utils.wekan import (
 os.environ["no_proxy"] = "*"
 
 
-def api_get_request(url: str, headers: dict, timeout: int = 10):
+def api_get_request(url: str, headers: dict, timeout: int = 10, params=None):
     """
     Function to make an API GET request.
     """
@@ -28,6 +28,7 @@ def api_get_request(url: str, headers: dict, timeout: int = 10):
             url,
             headers=headers,
             timeout=timeout,
+            params=params
         )
 
         print(f"api_get_request: {response}")

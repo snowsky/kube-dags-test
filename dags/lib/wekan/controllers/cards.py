@@ -56,6 +56,38 @@ def edit_card(hostname: str, token: str, payload: dict):
 
     return api_put_request(url, headers, final_payload)
 
+def edit_card_data(hostname: str, token: str, board_id: str, list_id: str, card_id: str, payload: dict):
+    """
+    Function to edit a board card data.
+    """
+
+    if not hostname or not token or not board_id or not list_id or not card_id or not payload:
+        raise Exception("Missing hostname, token, board_id, list_id, card_id or card_payload.")
+
+    url = f"{hostname}/api/boards/{board_id}/lists/{list_id}/cards/{card_id}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-type": "application/json"
+    }
+
+    return api_put_request(url, headers, payload)
+
+def edit_card_custom_field(hostname: str, token: str, board_id: str, list_id: str, card_id: str, custom_field_id: str, value):
+    """
+    Function to edit a board card custom field.
+    """
+
+    if not hostname or not token or not board_id or not list_id or not card_id or not custom_field_id or not value:
+        raise Exception("Missing hostname, token, board_id, list_id, card_id, custom_field_id or value.")
+
+    url = f"{hostname}/api/boards/{board_id}/lists/{list_id}/cards/{card_id}/customFields/{custom_field_id}"
+    headers = {
+        "Accept": "*/*",
+        "Authorization": f"Bearer {token}",
+    }
+    payload = {"value": value}
+
+    return api_post_request(url, headers, payload)
 
 def get_card(hostname: str, token: str, board_id: str, list_id: str, card_id: str):
     """
