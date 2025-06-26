@@ -119,14 +119,11 @@ with DAG(
         }
     )
     def copy_file_task(input_file_list, params: dict):
-        result_dict = {}
-        exceptions = []
-        for file_path in input_file_list:
-            try:
-                result_dict[file_path] = _copy_file(params, file_path)
-            except Exception as e:
-                exceptions.append(str(f'{file}: {str(e)})'))
-        if len(exceptions) > 0:
+        max_workers = params['max_pool_workers']
+        with PoolExecutor(max_workers=max_workers) as executor:
+            future_file_dict = {executor.submit(partial(_copy_file, params), f): f for f in input_file_list}
+        _, exceptions = _get_results_from_futures(future_file_dict)
+        if exceptions:
             raise AirflowFailException(f'exceptions raised: {exceptions}')
 
     def _copy_file(params, file):
@@ -164,9 +161,20 @@ with DAG(
         return results, exceptions
 
     def create_upload_file_to_s3_task(bucket_name):
-        @task(task_id=bucket_name)
+        @task(
+            task_id=bucket_name,
+            executor_config={
+                "KubernetesExecutor": {
+                    "resources": {
+                        "requests": {"memory": "16Gi", "cpu": "4000m"},
+                        "limits": {"memory": "16Gi", "cpu": "4000m"}
+                    }
+                }
+            }
+        )
         def upload_file_to_s3_task_def(input_file_list, aws_conn_id, aws_key_pattern, aws_bucket_name, s3_hook_kwargs,
                                    params: dict):
+            
             max_workers = params['max_pool_workers']
             with PoolExecutor(max_workers=max_workers) as executor:
                 future_file_dict = {executor.submit(partial(_upload_file_to_s3, params, aws_key_pattern, aws_conn_id,
