@@ -46,3 +46,49 @@ def scale_trino_workers(namespace="trino", deployment_name="trino-worker", repli
     except Exception as e:
         print(f"Error scaling deployment: {e}")
         raise
+
+class ScaleTrinoWorkersOperator(PythonOperator):
+    """
+    Custom operator that scales trino workers.
+    
+    Args:
+        task_id (str): the task id.
+        namespace (str): Kubernetes namespace where the deployment exists
+        deployment_name (str): Name of the deployment to scale
+        replicas (int): Desired number of replicas (workers)
+        downscaling_okay (bool): If this is set to True, the function will reduce the number of workers 
+          if the current number of replicas in the cluster is greater than the desired number of workers.
+        **kwargs: Additional arguments passed to PythonOperator
+    """
+    
+    def __init__(
+        self,
+        task_id: str,
+        namespace="trino",
+        deployment_name="trino-worker",
+        replicas=3,
+        downscaling_okay=True,
+        delay=120,
+        **kwargs
+    ):
+        # Define the python_callable that will be executed
+        def _execute_function():
+            return scale_trino_workers(
+                namespace=namespace, 
+                deployment_name=deployment_name,
+                replicas=replicas,
+                downscaling_okay=downscaling_okay,
+                delay=delay
+            )
+        
+        # Initialize the parent PythonOperator with our wrapper function
+        super().__init__(
+            task_id=task_id,
+            python_callable=_execute_function,
+            **kwargs
+        )
+        self.namespace = namespace
+        self.deployment_name = deployment_name
+        self.replicas = replicas
+        self.downscaling_okay = downscaling_okay
+        self.delay = delay
