@@ -79,7 +79,7 @@ with DAG(
         dest_files = list_blobs_in_directory(params['container_name'], params['output_files_dir_path'])
     
         unique_files = [f for f in source_files if f not in dest_files]
-    
+        unique_files = [f for f in unique_files if not f.split("/")[-1][0] == "."]
         if unique_files:
             return _split_list_into_batches(unique_files, params['max_mapped_tasks'])
         else:
