@@ -85,7 +85,7 @@ with DAG(
     @task
     def diff_files_task(params: dict):  
         source_files = list_blobs_in_directory(params['container_name'], params['source_files_dir_path'])
-        dest_files = list_blobs_in_directory(params['container_name'], params['output_files_dir_path'])
+        dest_files = [] #list_blobs_in_directory(params['container_name'], params['output_files_dir_path'])
     
         unique_files = [f for f in source_files if f not in dest_files]
         unique_files = [f for f in unique_files if not f.split("/")[-1][0] == "."]
