@@ -1,6 +1,7 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
+import logging
 from azure.storage.blob import BlobServiceClient
 from lib.operators.azure_connection_string import get_azure_connection_string
 import time
@@ -24,12 +25,12 @@ default_args = {
 }
 
 def move_blobs():
+    logging.info("Starting blob move process...")
     blob_service_client = BlobServiceClient.from_connection_string(CONNECTION_STRING)
     container_client = blob_service_client.get_container_client(CONTAINER_NAME)
 
-    print("Listing blobs...")
     blob_list = list(container_client.list_blobs(name_starts_with=SOURCE_PREFIX))
-    print(f"Total blobs found: {len(blob_list)}")
+    logging.info(f"Total blobs found: {len(blob_list)}")
 
     for batch_index in range(MAX_BATCHES):
         start = batch_index * BATCH_SIZE
@@ -37,7 +38,9 @@ def move_blobs():
         batch_blobs = blob_list[start:end]
         destination_prefix = DESTINATION_PREFIX_TEMPLATE.format(batch_index + 2)
 
-        print(f"\nProcessing batch {batch_index + 1}: {len(batch_blobs)} blobs to {destination_prefix}")
+        logging.info(f"Processing batch {batch_index + 1}: {len(batch_blobs)} blobs to {destination_prefix}")
+
+        successful_copies = 0
 
         for blob in batch_blobs:
             source_blob_name = blob.name
@@ -46,20 +49,29 @@ def move_blobs():
             source_blob_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{CONTAINER_NAME}/{source_blob_name}"
             destination_blob_client = container_client.get_blob_client(destination_blob_name)
 
-            print(f"Copying {source_blob_name} to {destination_blob_name}...")
-            destination_blob_client.start_copy_from_url(source_blob_url)
+            try:
+                destination_blob_client.start_copy_from_url(source_blob_url)
 
-            while True:
-                props = destination_blob_client.get_blob_properties()
-                if props.copy.status != "pending":
-                    break
-                time.sleep(1)
+                while True:
+                    props = destination_blob_client.get_blob_properties()
+                    if props.copy.status != "pending":
+                        break
+                    time.sleep(1)
 
-            if props.copy.status == "success":
-                print(f"Copy succeeded. Deleting original blob: {source_blob_name}")
-                container_client.delete_blob(source_blob_name)
-            else:
-                print(f"Copy failed for {source_blob_name}. Status: {props.copy.status}")
+                if props.copy.status == "success":
+                    container_client.delete_blob(source_blob_name)
+                    successful_copies += 1
+                    logging.info(f"Copied and deleted: {source_blob_name} → {destination_blob_name}")
+                else:
+                    logging.warning(f"Copy failed for {source_blob_name}. Status: {props.copy.status}")
+
+            except Exception as e:
+                logging.error(f"Error processing {source_blob_name}: {e}")
+
+        logging.info(f"Batch {batch_index + 1} completed: {successful_copies}/{len(batch_blobs)} blobs successfully moved.")
+
+    logging.info("Blob move process completed.")
+
 
 with DAG(
     'azure_blob_batch_mover',
