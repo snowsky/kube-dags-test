@@ -12,8 +12,8 @@ CONTAINER_NAME = "airflow"
 CONNECTION_STRING = get_azure_connection_string(AZURE_CONNECTION_NAME)
 SOURCE_PREFIX = "L-248/HL7v2_NJ/"
 DESTINATION_PREFIX_TEMPLATE = "L-248/HL7v2_NJ_Original_{}/"
-BATCH_SIZE = 2_000_000
-MAX_BATCHES = 4
+MAX_BATCHES = 49
+BATCH_SIZE = 40_000_000 // MAX_BATCHES  # ≈ 816,327
 
 default_args = {
     'owner': 'airflow',
@@ -24,34 +24,29 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-def move_blobs():
-    logging.info("Starting blob move process...")
+def move_batch(batch_index):
+    logging.getLogger('azure').setLevel(logging.WARNING)
+    logging.info(f"Starting batch {batch_index + 1}...")
+
     blob_service_client = BlobServiceClient.from_connection_string(CONNECTION_STRING)
     container_client = blob_service_client.get_container_client(CONTAINER_NAME)
 
     blob_iterator = container_client.list_blobs(name_starts_with=SOURCE_PREFIX)
 
-    batch = []
-    batch_index = 0
-    total_moved = 0
+    start_index = batch_index * BATCH_SIZE
+    end_index = start_index + BATCH_SIZE
+    batch_blobs = []
 
-    for blob in blob_iterator:
-        batch.append(blob)
-        if len(batch) >= BATCH_SIZE:
-            if batch_index >= MAX_BATCHES:
-                break
-            destination_prefix = DESTINATION_PREFIX_TEMPLATE.format(batch_index + 2)
-            logging.info(f"Processing batch {batch_index + 1} with {len(batch)} blobs to {destination_prefix}")
-            total_moved += process_batch(container_client, blob_service_client, batch, destination_prefix)
-            batch = []
-            batch_index += 1
+    for i, blob in enumerate(blob_iterator):
+        if i >= end_index:
+            break
+        if i >= start_index:
+            batch_blobs.append(blob)
 
-    if batch and batch_index < MAX_BATCHES:
-        destination_prefix = DESTINATION_PREFIX_TEMPLATE.format(batch_index + 2)
-        logging.info(f"Processing final batch {batch_index + 1} with {len(batch)} blobs to {destination_prefix}")
-        total_moved += process_batch(container_client, blob_service_client, batch, destination_prefix)
-
-    logging.info(f"Blob move process completed. Total blobs moved: {total_moved}")
+    destination_prefix = DESTINATION_PREFIX_TEMPLATE.format(batch_index + 2)
+    logging.info(f"Processing batch {batch_index + 1} with {len(batch_blobs)} blobs to {destination_prefix}")
+    total_moved = process_batch(container_client, blob_service_client, batch_blobs, destination_prefix)
+    logging.info(f"Completed batch {batch_index + 1}. Total blobs moved: {total_moved}")
 
 def process_batch(container_client, blob_service_client, batch_blobs, destination_prefix):
     successful_copies = 0
@@ -80,18 +75,19 @@ def process_batch(container_client, blob_service_client, batch_blobs, destinatio
     return successful_copies
 
 with DAG(
-    'azure_blob_batch_mover_streamed',
+    'azure_blob_batch_mover_parallel',
     default_args=default_args,
-    description='Stream and move Azure blobs in batches of 2 million',
+    description='Move 40M Azure blobs in 49 parallel batches',
     schedule_interval='@daily',
     start_date=datetime(2024, 1, 1),
     catchup=False,
     tags=['L-248'],
+    max_active_tasks=10,  # Optional: limit concurrency
 ) as dag:
 
-    move_blobs_task = PythonOperator(
-        task_id='move_blobs_in_batches',
-        python_callable=move_blobs
-    )
-
-    move_blobs_task
+    for batch_index in range(MAX_BATCHES):
+        PythonOperator(
+            task_id=f'move_batch_{batch_index + 2}',
+            python_callable=move_batch,
+            op_args=[batch_index],
+        )
