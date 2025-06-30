@@ -2,11 +2,13 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 from azure.storage.blob import BlobServiceClient
+from lib.operators.azure_connection_string import get_azure_connection_string
 import time
 
 # Configuration
-CONNECTION_STRING = "biakonzasftp-blob-core-windows-net"
+AZURE_CONNECTION_NAME = "biakonzasftp-blob-core-windows-net"
 CONTAINER_NAME = "airflow"
+CONNECTION_STRING = get_azure_connection_string(AZURE_CONNECTION_NAME)
 SOURCE_PREFIX = "L-248/HL7v2_NJ/"
 DESTINATION_PREFIX_TEMPLATE = "L-248/HL7v2_NJ_Original_{}/"
 BATCH_SIZE = 2_000_000
