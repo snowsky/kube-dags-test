@@ -10,11 +10,10 @@ from lib.operators.azure_connection_string import get_azure_connection_string
 AZURE_CONNECTION_NAME = "biakonzasftp-blob-core-windows-net"
 CONTAINER_NAME = "airflow"
 CONNECTION_STRING = get_azure_connection_string(AZURE_CONNECTION_NAME)
-SOURCE_PREFIX_BASE = "L-248/HL7v2_NJ/"
+SOURCE_PREFIX = "L-248/HL7v2_NJ/"
 DESTINATION_PREFIX_TEMPLATE = "L-248/HL7v2_NJ_Original_{}/"
 BATCH_SIZE = 2_000_000
 MAX_BATCHES = 4
-PREFIX_PARTITIONS = ['A', 'B', 'C', 'D']  # Expand as needed
 
 default_args = {
     'owner': 'airflow',
@@ -25,13 +24,12 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-def move_blobs_for_prefix(prefix):
-    logging.info(f"Starting blob move for prefix: {prefix}")
+def move_blobs():
+    logging.info("Starting blob move process...")
     blob_service_client = BlobServiceClient.from_connection_string(CONNECTION_STRING)
     container_client = blob_service_client.get_container_client(CONTAINER_NAME)
 
-    full_prefix = f"{SOURCE_PREFIX_BASE}{prefix}"
-    blob_iterator = container_client.list_blobs(name_starts_with=full_prefix)
+    blob_iterator = container_client.list_blobs(name_starts_with=SOURCE_PREFIX)
 
     batch = []
     batch_index = 0
@@ -43,23 +41,23 @@ def move_blobs_for_prefix(prefix):
             if batch_index >= MAX_BATCHES:
                 break
             destination_prefix = DESTINATION_PREFIX_TEMPLATE.format(batch_index + 2)
-            logging.info(f"Processing batch {batch_index + 1} for prefix {prefix} with {len(batch)} blobs")
+            logging.info(f"Processing batch {batch_index + 1} with {len(batch)} blobs to {destination_prefix}")
             total_moved += process_batch(container_client, blob_service_client, batch, destination_prefix)
             batch = []
             batch_index += 1
 
     if batch and batch_index < MAX_BATCHES:
         destination_prefix = DESTINATION_PREFIX_TEMPLATE.format(batch_index + 2)
-        logging.info(f"Processing final batch {batch_index + 1} for prefix {prefix} with {len(batch)} blobs")
+        logging.info(f"Processing final batch {batch_index + 1} with {len(batch)} blobs to {destination_prefix}")
         total_moved += process_batch(container_client, blob_service_client, batch, destination_prefix)
 
-    logging.info(f"Completed blob move for prefix {prefix}. Total blobs moved: {total_moved}")
+    logging.info(f"Blob move process completed. Total blobs moved: {total_moved}")
 
 def process_batch(container_client, blob_service_client, batch_blobs, destination_prefix):
     successful_copies = 0
     for blob in batch_blobs:
         source_blob_name = blob.name
-        destination_blob_name = source_blob_name.replace(SOURCE_PREFIX_BASE, destination_prefix, 1)
+        destination_blob_name = source_blob_name.replace(SOURCE_PREFIX, destination_prefix, 1)
         source_blob_url = f"https://{blob_service_client.account_name}.blob.core.windows.net/{CONTAINER_NAME}/{source_blob_name}"
         destination_blob_client = container_client.get_blob_client(destination_blob_name)
 
@@ -84,16 +82,16 @@ def process_batch(container_client, blob_service_client, batch_blobs, destinatio
 with DAG(
     'azure_blob_batch_mover_streamed',
     default_args=default_args,
-    description='Stream and move Azure blobs in batches using prefix partitioning',
+    description='Stream and move Azure blobs in batches of 2 million',
     schedule_interval='@daily',
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    tags=['L-248'],
+    tags=['azure', 'blob', 'batch'],
 ) as dag:
 
-    for prefix in PREFIX_PARTITIONS:
-        task = PythonOperator(
-            task_id=f'move_blobs_prefix_{prefix.lower()}',
-            python_callable=move_blobs_for_prefix,
-            op_args=[prefix],
-        )
+    move_blobs_task = PythonOperator(
+        task_id='move_blobs_in_batches',
+        python_callable=move_blobs
+    )
+
+    move_blobs_task
