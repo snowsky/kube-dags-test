@@ -86,7 +86,7 @@ with DAG(
     schedule_interval='@daily',
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    tags=['azure', 'blob', 'batch'],
+    tags=['L-248'],
 ) as dag:
 
     move_blobs_task = PythonOperator(
