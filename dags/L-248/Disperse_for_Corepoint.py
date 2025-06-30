@@ -82,7 +82,7 @@ with DAG(
     start_date=datetime(2024, 1, 1),
     catchup=False,
     tags=['L-248'],
-    max_active_tasks=10,  # Optional: limit concurrency
+    max_active_tasks=50,  # Optional: limit concurrency
 ) as dag:
 
     for batch_index in range(MAX_BATCHES):
