@@ -44,7 +44,7 @@ TEMP_DIRECTORY = '/source-biakonzasftp/airflow_temp/C-194/'
 ##start_date = datetime.date(2020, 1, 1)
 #start_date = datetime.date(2023, 9, 1)
 #end_date = datetime.date(2023, 9, 5)
-start_date = datetime(2023, 10, 2, 0, 0, 0)
+start_date = datetime(2023, 10, 11, 0, 0, 0)
 end_date = datetime(2023, 10, 31, 0, 0, 0)
 #logging.info(f'start date should be {start_date}')
 
