@@ -24,7 +24,7 @@ AZURE_CONNECTION_CONTAINER = 'airflow'
 AZURE_CONNECTION_STRING = get_azure_connection_string(AZURE_CONNECTION_NAME)
 DEFAULT_MAX_POOL_WORKERS = 10
 DEFAULT_MAX_TASKS = 200 # Divide MAX_FILES by 500 to limit number of files.  If too many tasks reduce MAX_FILES in parallel
-MAX_FILES = 1_000_000
+MAX_FILES = 10_000_000
 PARALLEL_TASK_LIMIT = 20  # Change this to large number of prod to remove parallel task limit
 AIRFLOW_SFTP_MOUNT_PATH = '/source-biakonzasftp'
 
