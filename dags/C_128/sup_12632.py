@@ -505,7 +505,9 @@ def transfer_batch_to_sftp(batch: List[str]):
         delete_single_file_from_s3(file_key, aws_conn_id="konzaandssigrouppipelines", bucket_name=BUCKET_NAME)
 
 
-@task(dag=dag)
+@task(dag=dag,
+          execution_timeout=timedelta(hours=3)
+      )
 def divide_files_into_batches(xml_files: List[str], batch_size: str) -> List[List[str]]:
     batch_size = int(batch_size)  # Convert batch_size to integer
     return [
