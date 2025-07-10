@@ -25,6 +25,14 @@ from lib.wekan.controllers.cards import (
 from lib.wekan.controllers.boards import get_board_custom_fields
 from lib.wekan.types.boards import WekanConfiguration
 from C_165.ticket_reasons import TicketReason, TicketReasonCategories, TICKET_REASONS
+from airflow.models import Connection
+from airflow.hooks.base import BaseHook
+ 
+conn = BaseHook.get_connection("erta_wekan_robot")
+ 
+hostname = conn.host
+username = conn.login
+password = conn.password
 
 CONNECTIONS = {
     "OPERATIONS_LOGGER": "prd-az1-ops3-airflowconnection",  # operations_logger
@@ -1218,11 +1226,11 @@ with DAG(
 
         output = {**response, "hostname": hostname}
         return output
-
+        
     configuration = login_user_task(
-        hostname="{{params.hostname}}",
-        username="{{params.username}}",
-        password="{{params.password}}",
+        hostname=hostname,
+        username=username,
+        password=password,
     )
 
     process_support_tickets = process_support_tickets_task(configuration)
