@@ -27,8 +27,8 @@ from lib.wekan.types.boards import WekanConfiguration
 from C_165.ticket_reasons import TicketReason, TicketReasonCategories, TICKET_REASONS
 
 CONNECTIONS = {
-    "OPERATIONS_LOGGER": "MariaDB",  # operations_logger
-    "FORM_OPERATIONS": "MariaDB",  # formoperations
+    "OPERATIONS_LOGGER": "prd-az1-ops3-airflowconnection",  # operations_logger
+    "FORM_OPERATIONS": "formoperations_prd_az1_opssql_database_windows_net",  # formoperations
 }
 
 
