@@ -123,11 +123,11 @@ with DAG(
     # schedule_interval='@monthly',
     # start_date=datetime(2025, 2, 1),
     tags=["wekan", "card-addition", "C-165", "Canary"],
-    params={
-        "hostname": "http://wekan.wekan.svc:8080",
-        "username": "c354e7f1-2afc-40e0-b554-7e26c57cbdb4",  # User Unique ID from Entra for erta_robot@konzalogin.onmicrosoft.com
-        "password": "password",
-    },
+    #params={
+    #    "hostname": "http://wekan.wekan.svc:8080",
+    #    "username": "c354e7f1-2afc-40e0-b554-7e26c57cbdb4",  # User Unique ID from Entra for erta_robot@konzalogin.onmicrosoft.com
+    #    "password": "password",
+    #},
 ) as dag:
 
     trigger_check = ReturningMySqlOperator(
