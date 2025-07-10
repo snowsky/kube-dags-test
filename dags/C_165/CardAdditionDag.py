@@ -1,9 +1,11 @@
 from airflow import DAG
-from airflow.providers.mysql.operators.mysql import MySqlOperator
-from airflow.providers.mysql.hooks.mysql import MySqlHook
+from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.providers.microsoft.mssql.hooks.mssql import MsSqlHook
 from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException, AirflowException
 from airflow import XComArg
+from airflow.hooks.base import BaseHook
 
 from datetime import datetime
 import re
@@ -11,7 +13,7 @@ from math import ceil
 import typing
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Type
 from MySQLdb.cursors import DictCursor
 from datetime import datetime, timedelta
 import json
@@ -25,18 +27,23 @@ from lib.wekan.controllers.cards import (
 from lib.wekan.controllers.boards import get_board_custom_fields
 from lib.wekan.types.boards import WekanConfiguration
 from C_165.ticket_reasons import TicketReason, TicketReasonCategories, TICKET_REASONS
-from airflow.models import Connection
-from airflow.hooks.base import BaseHook
+
  
 conn = BaseHook.get_connection("erta_wekan_robot")
- 
+
 hostname = conn.host
 username = conn.login
 password = conn.password
 
+
+@dataclass
+class ConnectionInfo:
+    conn_id: str
+    hook: Type[BaseHook]
+
 CONNECTIONS = {
-    "OPERATIONS_LOGGER": "prd-az1-ops3-airflowconnection",  # operations_logger
-    "FORM_OPERATIONS": "formoperations_prd_az1_opssql_database_windows_net",  # formoperations
+    "OPERATIONS_LOGGER": ConnectionInfo(conn_id="prd-az1-ops3-airflowconnection", hook=PostgresHook),  # operations_logger
+    "FORM_OPERATIONS": ConnectionInfo(conn_id="formoperations_prd_az1_opssql_database_windows_net", hook=MsSqlHook),  # formoperations
 }
 
 
@@ -106,12 +113,11 @@ class Ticket:
     custom_priority: Optional[CustomPriority] = None
 
 
-class ReturningMySqlOperator(MySqlOperator):
+class ReturningPostgresOperator(PostgresOperator):
     def execute(self, context):
         self.log.info("Executing: %s", self.sql)
-        hook = MySqlHook(mysql_conn_id=self.conn_id)
+        hook = PostgresHook(postgres_conn_id=self.conn_id)
         return hook.get_records(self.sql, parameters=self.parameters)
-
 
 default_args = {
     "owner": "airflow",
@@ -123,30 +129,25 @@ with DAG(
     # schedule_interval='@monthly',
     # start_date=datetime(2025, 2, 1),
     tags=["wekan", "card-addition", "C-165", "Canary"],
-    #params={
-    #    "hostname": "http://wekan.wekan.svc:8080",
-    #    "username": "c354e7f1-2afc-40e0-b554-7e26c57cbdb4",  # User Unique ID from Entra for erta_robot@konzalogin.onmicrosoft.com
-    #    "password": "password",
-    #},
 ) as dag:
 
-    trigger_check = ReturningMySqlOperator(
+    trigger_check = ReturningPostgresOperator(
         task_id="trigger_check",
-        mysql_conn_id=CONNECTIONS["OPERATIONS_LOGGER"],
+        postgres_conn_id=CONNECTIONS["OPERATIONS_LOGGER"].conn_id,
         sql=f"""
         SELECT COUNT(*)
         FROM public.restart_trigger rt
         INNER JOIN public.schedule_jobs sj
             ON rt.trigger_name = sj.server
         WHERE rt.switch = 0
-            AND sj.script_name = "Internal Ticketing";
+            AND sj.script_name = 'Internal Ticketing';
         """,
         dag=dag,
     )
 
-    overlap_check = ReturningMySqlOperator(
+    overlap_check = ReturningPostgresOperator(
         task_id="overlap_check",
-        mysql_conn_id=CONNECTIONS["OPERATIONS_LOGGER"],
+        postgres_conn_id=CONNECTIONS["OPERATIONS_LOGGER"].conn_id,
         sql=f"""
         SELECT COUNT(*)
         FROM public.job_triggers
@@ -156,9 +157,9 @@ with DAG(
         dag=dag,
     )
 
-    update_job_triggers = MySqlOperator(
+    update_job_triggers = ReturningPostgresOperator(
         task_id="update_job_triggers",
-        mysql_conn_id=CONNECTIONS["OPERATIONS_LOGGER"],
+        postgres_conn_id=CONNECTIONS["OPERATIONS_LOGGER"].conn_id,
         sql=f"""
         UPDATE public.job_triggers
         SET trigger_status = 1
@@ -186,7 +187,7 @@ with DAG(
         )
         sql = f"""
         SELECT data_extract_description,escalation_option,project_ids,L_120__authorized_identifier,L_120__authorized_identifier_type,L_120__hl7v2_client_delivery_paused,L_120__authorization_party,L_120__id,L_102__authorized_identifier,L_120__hl7v2_client_name,L_68__id,L_68__authorization_reference,L_68__authorized_identifier_oid,L_68__authorized_filter_file_beginning_pattern,L_68__authorizing_party,L_68__delivery_paused,L_68__participant_client_name,L_68__source_base_path,L_68__destination_path_override,L_68__client_folder_name,audit_type,L_69__id, L_69__source_file_zipped, L_102__authorized_identifier_type,L_102__hl7v2_client_delivery_paused,L_102__authorization_party,L_102__id,L_102__authorized_identifier,L_102__hl7v2_client_name,L_87__client_folder_name,L_87__destination_path_override,L_87__source_base_path,L_87__participant_client_name,L_87__authorization_reference,L_87__delivery_paused,L_87__authorizing_party,L_87__authorized_filter_file_beginning_pattern,L_87__authorized_identifier_oid,L_87__id,id,behalf_of_email,client_legal_name,ticket_reason,ticket_reference_other_system,requestor_info, ehx__ID ,ehx__ssi_payor_client_name ,ehx__authorized_identifier ,ehx__authorization_party ,ehx__dh_fusion_delivery_paused ,ehx__authorized_identifer_type ,ehx__konza_client_destination_delivery_paused ,ehx__dh_raw_ehx_ccd_delivery_location ,L_10__id ,L_10__hl7v2_client_name ,L_10__authorized_identifier ,L_10__authorization_party ,L_10__authorized_identifier_type ,L_10__crawler_id_last_loaded, L_10__hl7v2_client_delivery_paused ,L_69__emr_client_name ,L_69__authorized_identifier ,L_69__authorization_party ,L_69__emr_client_delivery_paused ,L_69__authorized_identifier_type ,L_69__authorization_reference ,L_69__participant_client_name ,ticket_reason_extended ,attachment,ehx__ssi_prefix,ehx__auto_submit_panel_to_corepoint 
-        FROM public.konza_support 
+        FROM konza_support
         WHERE added_card_reference is null
         AND {conditions}
         ORDER by id desc;
@@ -336,8 +337,8 @@ with DAG(
             )
         return support_tickets
 
-    def _execute_query(sql: str, conn_id: str, return_dict: bool = True) -> dict:
-        hook = MySqlHook(mysql_conn_id=conn_id)
+    def _execute_query(sql: str, conn_info: ConnectionInfo, return_dict: bool = True) -> dict:
+        hook = conn_info.hook(**{conn_info.hook.conn_name_attr: conn_info.conn_id})
         with hook.get_conn() as conn:
             with conn.cursor(DictCursor) as cursor:
                 cursor.execute(sql)
@@ -347,10 +348,10 @@ with DAG(
     @task
     def process_support_tickets_task(configuration: XComArg):
         support_results = _execute_query(
-            _generate_support_ticket_query_str(), CONNECTIONS["OPERATIONS_LOGGER"]
+            _generate_support_ticket_query_str(), CONNECTIONS["FORM_OPERATIONS"]
         )
         all_projects_results = _execute_query(
-            "SELECT ProjectId, Priority from public.all_projects;",
+            "SELECT ProjectId, Priority from all_projects;",
             CONNECTIONS["FORM_OPERATIONS"],
         )
         support_tickets = _extract_results_into_support_tickets(
@@ -401,7 +402,7 @@ with DAG(
         new_card_id = response["_id"]
 
         form_sql = (
-            "update public.konza_support set added_card_reference = '"
+            "update konza_support set added_card_reference = '"
             + new_card_id
             + "' , project_ids = '"
             + ",".join(ticket.project_ids).replace("'", "")
@@ -1009,7 +1010,7 @@ with DAG(
 
         if not do_create_wekan_card:
             form_sql = (
-                "update public.konza_support set added_card_reference = '"
+                "update konza_support set added_card_reference = '"
                 + new_card_id
                 + "' , project_ids = '"
                 + ",".join(ticket.project_ids).replace("'", "")
