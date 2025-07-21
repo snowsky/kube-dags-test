@@ -2,9 +2,14 @@ import hl7
 import re
 import yaml
 import pytest
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Tuple
 
-MSH4_OID_CONFIG = 'msh4_oid.yaml'
+# todo: this needs to be reverted when landing in PROD
+#For Dev :
+MSH4_OID_CONFIG = '/home/jovyan/konza-dags/dags/hl7v2/msh4_oid.yaml'
+#For PROD :
+#MSH4_OID_CONFIG = 'dags/hl7v2/msh4_oid.yaml'
+
 
 def validate_hl7v2_oid(oid: str) -> bool:
     """
@@ -115,11 +120,13 @@ def yaml_to_list(yaml_file_path) -> List[Dict]:
         print(f"Error: {str(e)}")
         return []
 
-def load_msh4_oid_config() -> Dict[str, str]:
+def load_msh4_oid_config() -> Tuple[Dict[str, str], Dict[str, str]]:
     
     config_list = yaml_to_list(MSH4_OID_CONFIG)
     facility_name_to_oid = {x['facilityName']: x['euidOid'] for x in config_list}
-    return facility_name_to_oid
+    facility_mnemonic_to_oid = {x['facilityMnemonic']: x['euidOid'] for x in config_list}
+
+    return facility_name_to_oid, facility_mnemonic_to_oid
 
 def get_msh4(file_path: str) -> hl7.Segment:
     with open(file_path) as f:
@@ -132,8 +139,10 @@ def get_msh4(file_path: str) -> hl7.Segment:
         return None
     # Note: the MSH segment is 1-indexed
     return str(msh_segment[0][4])
-    
-_facility_name_to_oid = load_msh4_oid_config()
+
+# todo:switch to loading dicts once inside the function  
+_facility_name_to_oid, _facility_mnemonic_to_oid = load_msh4_oid_config() 
+
 def get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(hl7v2_file_path: str) -> str:
 
     msh4 = get_msh4(hl7v2_file_path) 
@@ -142,6 +151,7 @@ def get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(hl7v2_file_path: str)
         return msh4
     elif msh4 in _facility_name_to_oid:
         return _facility_name_to_oid[msh4]
+    elif msh4 in _facility_mnemonic_to_oid:
+        return _facility_mnemonic_to_oid[msh4]
     else:
         raise ValueError(f'Cannot find euidOid for facility "{msh4}"')
-
