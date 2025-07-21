@@ -28,7 +28,7 @@ dag = DAG(
     catchup=False,
     max_active_runs=1,
     concurrency=100,
-    tags=['hl7v2'],
+    tags=['hl7v2', 'Canary', 'Staging_in_Prod'],
     #params={"hl7_file_path": Param("", type="string", description="Full path to HL7 file")},
 )
 
