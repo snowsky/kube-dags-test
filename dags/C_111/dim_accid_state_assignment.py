@@ -311,7 +311,7 @@ with DAG(
             SELECT 
               patient_id,
               MAX(index_update_dt_tm) AS latest_index_update_dt_tm,
-              MAX(IF(state != 'UNKNOWN', index_update_dt_tm, NULL)) AS used_index_update_dt_tm
+              MAX(IF(state != 'UNKNOWN', index_update_dt_tm, NULL)) AS used_index_update_dt_tm,
               MAX_BY(state, IF(state != 'UNKNOWN', index_update_dt_tm, NULL)) AS imputed_state
             FROM hive.parquet_master_data.dim_accid_state_assignment
             WHERE ds <= '<DATEID>'
