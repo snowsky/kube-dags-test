@@ -306,7 +306,8 @@ with DAG(
           latest_index_update_dt_tm,
           used_index_update_dt_tm,
           imputed_state,
-          IF(latest_index_update_dt_tm = used_index_update_dt_tm, 'latest_update', 'latest_update_not_unknown') AS algorithm_used
+          IF(latest_index_update_dt_tm = used_index_update_dt_tm, 'latest_update', 'latest_update_not_unknown') AS algorithm_used,
+          '<DATEID>' AS ds
         FROM (
             SELECT 
               patient_id,
