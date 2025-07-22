@@ -10,7 +10,7 @@ from lib.operators.azure_connection_string import get_azure_connection_string
 AZURE_CONNECTION_NAME = "biakonzasftp-blob-core-windows-net"
 CONTAINER_NAME = "airflow"
 CONNECTION_STRING = get_azure_connection_string(AZURE_CONNECTION_NAME)
-SOURCE_PREFIX = "C-179/HL7v2In_to_Corepoint_full/"
+SOURCE_PREFIX = "C-179/HL7v2In_to_Corepoint_full/" #
 DESTINATION_PREFIX_TEMPLATE = "C-179/CPProcessing_{}/"
 MAX_BATCHES = 5
 BATCH_SIZE = 3_000_000 // MAX_BATCHES  # ≈ 816,327
