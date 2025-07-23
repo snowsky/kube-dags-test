@@ -7,20 +7,37 @@ from pathlib import Path
 from airflow import DAG
 from airflow.decorators import task
 from airflow.models.param import Param
-#import hl7
-#import os
-#from airflow.operators.python import get_current_context
-#from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
-# Optional, if used in your utils file
-MSH4_OID_CONFIG = 'hl7v2/msh4_oid.yaml'
+from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback
+
+import logging
+ # For Prod
+import os
+import hl7
+
 
 # DAG definition
+
 default_args = {
     'owner': 'airflow',
 }
 
-dag = DAG(
+class BucketDetails:
+    def __init__(self, aws_conn_id, aws_key_pattern, s3_hook_kwargs):
+        self.aws_conn_id = aws_conn_id
+        self.aws_key_pattern = aws_key_pattern
+        self.s3_hook_kwargs = s3_hook_kwargs
+
+AWS_BUCKETS = {
+    'com-ssigroup-insight-attribution-data': BucketDetails(
+        aws_conn_id='konzaandssigrouppipelines',
+        aws_key_pattern='subscriberName=KONZA/subscriptionName=HL7V2/source=HL7v2/status=pending/domainOid={OID}/{OID}',
+        s3_hook_kwargs={'encrypt': True, 'acl_policy': 'bucket-owner-full-control'}
+    )
+}
+
+with DAG(
     dag_id='hl7v2_msh4_oid',
     default_args=default_args,
     description='Parses HL7 files and resolves domain OID (MSH-4)',
@@ -29,32 +46,74 @@ dag = DAG(
     max_active_runs=1,
     concurrency=100,
     tags=['hl7v2', 'Canary', 'Staging_in_Prod'],
-    #params={"hl7_file_path": Param("", type="string", description="Full path to HL7 file")},
-)
+    params={
+        "max_workers": Param(50, type="integer", minimum=1),
+        "batch_size": Param(500, type="integer", minimum=1)
+    }
+) as dag:
+    
+    @task(dag=dag)
+    def list_and_chunk_files(batch_size: Union[str, int] = 1000) -> List[List[str]]:
+        #import os
 
-@task(dag=dag)
-def extract_oid_from_hl7():
-    """Reads the file path from DAG params, resolves the OID, and prints it."""
-    import os
-    import subprocess
-    subprocess.check_output(["pip", "install", "hl7"])
-    import hl7
-    from airflow.operators.python import get_current_context
-    from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback
+        #base_dir = "/data/biakonzasftp/C-179/OB To SSI EUID2"
+        base_dir = "/source-biakonzasftp/C-179/OB To SSI EUID2"
 
+        batch_size = int(batch_size)
+        max_mapped_tasks = 1024
 
-    #ctx = get_current_context()
-    #file_path = ctx["params"]["hl7_file_path"]
-    #file_path = "/data/biakonzasftp/C-179/OB To SSI EUID1/EUIDTOSSI_20250711160157376.txt"
+        all_files = [
+            os.path.join(base_dir, f)
+            for f in os.listdir(base_dir)
+            if f.endswith(".hl7") or f.endswith(".txt")
+        ]
 
-    file_path = "/data/biakonzasftp/C-179/OB To SSI EUID1/fe69cf89-51e6-4469-9485-05fa65b1b0b3.hl7"
+        if len(all_files) > max_mapped_tasks:
+            batch_size = max(batch_size, (len(all_files) // max_mapped_tasks) + 1)
 
-    if not file_path or not os.path.exists(file_path):
-        raise FileNotFoundError(f"HL7 file not found: {file_path}")
+        chunks = [all_files[i:i + batch_size] for i in range(0, len(all_files), batch_size)]
+        logging.info(f"Total files: {len(all_files)} | Batch size: {batch_size} | Total batches: {len(chunks)}")
+        return chunks
+        
+    @task(dag=dag)
+    def extract_and_upload(file_paths: List[str]):
+        #from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback
+        #import subprocess
+        #subprocess.check_output(["pip", "install", "hl7"])
+        #import hl7
 
-    oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(file_path)
-    print(f"Resolved OID: {oid}")
-    return oid
+        bucket_name = 'com-ssigroup-insight-attribution-data'
+        bucket_config = AWS_BUCKETS[bucket_name]
+        aws_conn_id = bucket_config.aws_conn_id
+        aws_key_pattern = bucket_config.aws_key_pattern
+        s3_hook_kwargs = bucket_config.s3_hook_kwargs
+        s3_hook = S3Hook(aws_conn_id=aws_conn_id)
 
-# task
-extract_oid_from_hl7()
+        uploaded_items = []
+
+        for file_path in file_paths:
+            try:
+                oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(file_path)
+                if oid:
+                    s3_key = aws_key_pattern.format(OID=oid)
+                    if not s3_hook.check_for_key(s3_key, bucket_name=bucket_name):
+                        s3_hook.load_string(
+                            string_data=oid,
+                            key=s3_key,
+                            bucket_name=bucket_name,
+                            **s3_hook_kwargs
+                        )
+                        logging.info(f"Uploaded OID string to s3://{bucket_name}/{s3_key}")
+                    else:
+                        logging.info(f"Key already exists: {s3_key}")
+
+                    # Same logging-style structure
+                    uploaded_items.append({"oid": oid, "file_path": file_path})
+            except Exception as e:
+                logging.warning(f"Failed: {file_path} | {e}")
+
+        logging.info(f"Batch uploaded items: {uploaded_items}")
+
+    # DAG Chain
+    file_batches = list_and_chunk_files(batch_size="{{ params.batch_size }}")
+    extract_and_upload.expand(file_paths=file_batches)
