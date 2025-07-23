@@ -15,7 +15,7 @@ import logging
 DEFAULT_AZURE_CONTAINER = 'airflow'
 DEFAULT_DEST_PATH_ARCHIVE = 'C-127/archive'
 DEFAULT_DEST_PATH = 'C-179/HL7v2In_to_Corepoint_full'
-AZURE_CONN_ID = 'azure_blob_conn'  # Airflow connection ID for Azure Blob Storage
+AZURE_CONN_ID = 'biakonzasftp-blob-core-windows-net'  # Airflow connection ID for Azure Blob Storage
 
 class BucketDetails:
     def __init__(self, aws_conn_id, s3_hook_kwargs):
