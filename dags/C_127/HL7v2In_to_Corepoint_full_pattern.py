@@ -68,7 +68,7 @@ def process_s3_to_azure(**kwargs):
         s3_hook.delete_objects(bucket=aws_bucket_name, keys=[file_key])
 
 with DAG(
-    dag_id='s3_to_azure_blob_transfer_v2',
+    dag_id='HL7v2In_to_Corepoint_full_pattern',
     default_args=default_args,
     schedule_interval=None,
     start_date=datetime(2025, 1, 1),
