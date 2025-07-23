@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.models import Param, Variable
 from airflow.operators.python import PythonOperator
 from airflow.decorators import task
+from airflow.hooks.base import BaseHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from azure.storage.blob import BlobServiceClient
 from datetime import datetime, timedelta
