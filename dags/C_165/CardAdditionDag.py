@@ -159,7 +159,7 @@ with DAG(
         SELECT COUNT(*)
         FROM public.job_triggers
         WHERE associated_table = 'card_addition_erta_com_konza_support_curl'
-            AND trigger_status = 0;
+            AND trigger_status = '0';
         """,
         dag=dag,
     )
@@ -170,7 +170,7 @@ with DAG(
         database=CONNECTIONS["OPERATIONS_LOGGER"].database,
         sql=f"""
         UPDATE public.job_triggers
-        SET trigger_status = 1
+        SET trigger_status = '1'
         WHERE associated_table = 'card_addition_erta_com_konza_support_curl';
         """,
         dag=dag,
