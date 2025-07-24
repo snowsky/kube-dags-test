@@ -345,7 +345,7 @@ with DAG(
         return support_tickets
 
     def _execute_query(sql: str, conn_info: ConnectionInfo, return_dict: bool = True) -> dict:
-        hook = conn_info.hook(**{conn_info.hook.conn_name_attr: conn_info.conn_id})
+        hook = conn_info.hook(**{conn_info.hook.conn_name_attr: conn_info.conn_id, "schema": conn_info.database})
         with hook.get_conn() as conn:
             with conn.cursor(DictCursor) as cursor:
                 cursor.execute(sql)
