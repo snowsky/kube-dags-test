@@ -154,6 +154,7 @@ with DAG(
     overlap_check = ReturningPostgresOperator(
         task_id="overlap_check",
         postgres_conn_id=CONNECTIONS["OPERATIONS_LOGGER"].conn_id,
+        database=CONNECTIONS["OPERATIONS_LOGGER"].database,
         sql=f"""
         SELECT COUNT(*)
         FROM public.job_triggers
