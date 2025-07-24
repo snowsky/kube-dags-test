@@ -6,9 +6,9 @@ from typing import Dict, List, Union, Tuple
 
 # todo: this needs to be reverted when landing in PROD
 #For Dev :
-MSH4_OID_CONFIG = '/home/jovyan/konza-dags/dags/hl7v2/msh4_oid.yaml'
+#MSH4_OID_CONFIG = '/home/jovyan/konza-dags/dags/hl7v2/msh4_oid.yaml'
 #For PROD :
-#MSH4_OID_CONFIG = 'dags/hl7v2/msh4_oid.yaml'
+MSH4_OID_CONFIG = 'dags/hl7v2/msh4_oid.yaml'
 
 
 def validate_hl7v2_oid(oid: str) -> bool:
