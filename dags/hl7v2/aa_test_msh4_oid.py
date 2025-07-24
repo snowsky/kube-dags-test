@@ -8,6 +8,7 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.operators.python import get_current_context
 
 from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback
 
@@ -18,6 +19,8 @@ import hl7
 
 
 # DAG definition
+
+MSH4_OID_CONFIG = 'hl7v2/msh4_oid.yaml'
 
 default_args = {
     'owner': 'airflow',
