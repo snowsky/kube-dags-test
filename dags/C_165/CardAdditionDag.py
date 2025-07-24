@@ -40,9 +40,10 @@ password = conn.password
 class ConnectionInfo:
     conn_id: str
     hook: Type[BaseHook]
+    database: Optional[str] = None
 
 CONNECTIONS = {
-    "OPERATIONS_LOGGER": ConnectionInfo(conn_id="prd-az1-ops3-airflowconnection", hook=PostgresHook),  # operations_logger
+    "OPERATIONS_LOGGER": ConnectionInfo(conn_id="prd-az1-ops3-airflowconnection", hook=PostgresHook, database="sourceoftruth"),  # operations_logger
     "FORM_OPERATIONS": ConnectionInfo(conn_id="formoperations_prd_az1_opssql_database_windows_net", hook=MsSqlHook),  # formoperations
 }
 
@@ -114,9 +115,13 @@ class Ticket:
 
 
 class ReturningPostgresOperator(PostgresOperator):
+    def __init__(self, *args, database=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.database = database
+
     def execute(self, context):
         self.log.info("Executing: %s", self.sql)
-        hook = PostgresHook(postgres_conn_id=self.conn_id)
+        hook = PostgresHook(postgres_conn_id=self.conn_id, schema=self.database)
         return hook.get_records(self.sql, parameters=self.parameters)
 
 default_args = {
@@ -134,6 +139,7 @@ with DAG(
     trigger_check = ReturningPostgresOperator(
         task_id="trigger_check",
         postgres_conn_id=CONNECTIONS["OPERATIONS_LOGGER"].conn_id,
+        database=CONNECTIONS["OPERATIONS_LOGGER"].database,
         sql=f"""
         SELECT COUNT(*)
         FROM public.restart_trigger rt
@@ -160,6 +166,7 @@ with DAG(
     update_job_triggers = ReturningPostgresOperator(
         task_id="update_job_triggers",
         postgres_conn_id=CONNECTIONS["OPERATIONS_LOGGER"].conn_id,
+        database=CONNECTIONS["OPERATIONS_LOGGER"].database,
         sql=f"""
         UPDATE public.job_triggers
         SET trigger_status = 1
