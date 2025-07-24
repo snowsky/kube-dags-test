@@ -1,4 +1,5 @@
 from airflow import DAG
+import logging
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.microsoft.mssql.hooks.mssql import MsSqlHook
