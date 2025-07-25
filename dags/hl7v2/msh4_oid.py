@@ -13,7 +13,9 @@ from typing import Dict, List, Union, Tuple
 # AA Testing V1 : 
 #MSH4_OID_CONFIG = '/home/jovyan/konza-dags/dags/hl7v2/msh4_oid.yaml'
 # AA Testing V2 : 
-MSH4_OID_CONFIG = '/konza-dags/dags/hl7v2/msh4_oid.yaml'
+#MSH4_OID_CONFIG = '/konza-dags/dags/hl7v2/msh4_oid.yaml'
+MSH4_OID_CONFIG = '/source-biakonzasftp/C-179/msh4_oid.yaml'
+
 
 def validate_hl7v2_oid(oid: str) -> bool:
     """
