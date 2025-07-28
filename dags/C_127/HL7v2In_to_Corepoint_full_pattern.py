@@ -1,21 +1,22 @@
 from airflow import DAG
-from airflow.models import Param, Variable
-from airflow.operators.python import PythonOperator
+from airflow.models import Param
 from airflow.decorators import task
 from airflow.hooks.base import BaseHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from azure.storage.blob import BlobServiceClient
-from datetime import datetime, timedelta
+from datetime import datetime
 from urllib.parse import unquote
 import os
 import re
 import logging
+import chardet
 
 # Constants
 DEFAULT_AZURE_CONTAINER = 'airflow'
 DEFAULT_DEST_PATH_ARCHIVE = 'C-127/archive'
 DEFAULT_DEST_PATH = 'C-179/HL7v2In_to_Corepoint_full'
-AZURE_CONN_ID = 'biakonzasftp-blob-core-windows-net'  # Airflow connection ID for Azure Blob Storage
+AZURE_CONN_ID = 'biakonzasftp-blob-core-windows-net'
+CHUNK_SIZE = 10000  # Number of files per task
 
 class BucketDetails:
     def __init__(self, aws_conn_id, s3_hook_kwargs):
@@ -25,8 +26,6 @@ class BucketDetails:
 AWS_BUCKETS = {
     'konzaandssigrouppipelines': BucketDetails('konzaandssigrouppipelines', {}),
 }
-
-default_args = {'owner': 'airflow'}
 
 def check_and_rename_filename(file_key):
     decoded_key = unquote(file_key)
@@ -38,52 +37,58 @@ def check_and_rename_filename(file_key):
         return f"root={root}_extension={extension}_{uuid}"
     return file_name if file_name else f"unnamed_{hash(file_key)}"
 
-import chardet
+def chunk_list(data, chunk_size):
+    for i in range(0, len(data), chunk_size):
+        yield data[i:i + chunk_size]
 
-def process_s3_to_azure(**kwargs):
-    params = kwargs["params"]
-    aws_bucket_name = params["aws_bucket"]
-    aws_folder = params["aws_folder"]
+@task
+def list_s3_keys(aws_bucket: str, aws_folder: str) -> list:
+    s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
+    keys = s3_hook.list_keys(bucket_name=aws_bucket, prefix=aws_folder)
+    return [k for k in keys if not k.endswith('/')]
 
-    bucket_details = AWS_BUCKETS[aws_bucket_name]
-    s3_hook = S3Hook(aws_conn_id=bucket_details.aws_conn_id)
+@task
+def chunk_keys(keys: list) -> list:
+    return list(chunk_list(keys, CHUNK_SIZE))
 
+@task
+def process_key_batch(file_keys: list, aws_bucket: str):
+    s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
     azure_conn = BaseHook.get_connection(AZURE_CONN_ID)
     azure_connection_string = azure_conn.extra_dejson.get("connection_string")
     blob_service_client = BlobServiceClient.from_connection_string(azure_connection_string)
 
-    keys = s3_hook.list_keys(bucket_name=aws_bucket_name, prefix=aws_folder)
-    for file_key in keys:
-        if file_key.endswith('/'):
-            continue
-
-        file_name = check_and_rename_filename(file_key)
-        current_date = datetime.now().strftime('%Y%m%d')
-        dest1_path = os.path.join(DEFAULT_DEST_PATH, file_name)
-        dest2_path = os.path.join(DEFAULT_DEST_PATH_ARCHIVE, current_date, file_name)
-
-        file_obj = s3_hook.get_key(key=file_key, bucket_name=aws_bucket_name)
-        raw_bytes = file_obj.get()["Body"].read()
-
-        detected = chardet.detect(raw_bytes)
-        encoding = detected.get("encoding", "utf-8")  # fallback to utf-8 if detection fails
-
+    for file_key in file_keys:
         try:
-            file_content = raw_bytes.decode(encoding)
-        except UnicodeDecodeError:
-            logging.warning(f"Failed to decode {file_key} with detected encoding {encoding}. Uploading raw bytes.")
-            file_content = raw_bytes  # fallback to raw bytes
+            file_name = check_and_rename_filename(file_key)
+            current_date = datetime.now().strftime('%Y%m%d')
+            dest1_path = os.path.join(DEFAULT_DEST_PATH, file_name)
+            dest2_path = os.path.join(DEFAULT_DEST_PATH_ARCHIVE, current_date, file_name)
 
-        for dest_path in [dest1_path, dest2_path]:
-            blob_client = blob_service_client.get_blob_client(container=DEFAULT_AZURE_CONTAINER, blob=dest_path)
-            blob_client.upload_blob(file_content, overwrite=True)
+            file_obj = s3_hook.get_key(key=file_key, bucket_name=aws_bucket)
+            raw_bytes = file_obj.get()["Body"].read()
 
-        s3_hook.delete_objects(bucket=aws_bucket_name, keys=[file_key])
+            detected = chardet.detect(raw_bytes)
+            encoding = detected.get("encoding", "utf-8")
 
+            try:
+                file_content = raw_bytes.decode(encoding)
+            except UnicodeDecodeError:
+                logging.warning(f"Failed to decode {file_key} with {encoding}. Uploading raw bytes.")
+                file_content = raw_bytes
+
+            for dest_path in [dest1_path, dest2_path]:
+                blob_client = blob_service_client.get_blob_client(container=DEFAULT_AZURE_CONTAINER, blob=dest_path)
+                blob_client.upload_blob(file_content, overwrite=True)
+
+            s3_hook.delete_objects(bucket=aws_bucket, keys=[file_key])
+
+        except Exception as e:
+            logging.error(f"Error processing {file_key}: {e}")
 
 with DAG(
-    dag_id='HL7v2In_to_Corepoint_full_pattern',
-    default_args=default_args,
+    dag_id='HL7v2In_to_Corepoint_full_pattern_parallel',
+    default_args={'owner': 'airflow'},
     schedule_interval='@daily',
     start_date=datetime(2025, 1, 1),
     catchup=False,
@@ -94,8 +99,9 @@ with DAG(
     }
 ) as dag:
 
-    transfer_task = PythonOperator(
-        task_id='transfer_s3_to_azure',
-        python_callable=process_s3_to_azure,
-        provide_context=True
-    )
+    aws_bucket = "{{ params.aws_bucket }}"
+    aws_folder = "{{ params.aws_folder }}"
+
+    all_keys = list_s3_keys(aws_bucket, aws_folder)
+    key_chunks = chunk_keys(all_keys)
+    process_key_batch.expand(file_keys=key_chunks, aws_bucket=aws_bucket)
