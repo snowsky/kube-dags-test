@@ -15,9 +15,9 @@ import typing
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional, List, Type
-from MySQLdb.cursors import DictCursor
 from datetime import datetime, timedelta
 import json
+from psycopg2.extras import RealDictCursor
 
 from lib.wekan.controllers.users import get_users
 from lib.wekan.controllers.cards import (
@@ -41,11 +41,12 @@ password = conn.password
 class ConnectionInfo:
     conn_id: str
     hook: Type[BaseHook]
+    cursor_args: dict[str:Any]
     database: Optional[str] = None
 
 CONNECTIONS = {
-    "OPERATIONS_LOGGER": ConnectionInfo(conn_id="prd-az1-ops3-airflowconnection", hook=PostgresHook, database="sourceoftruth"),  # operations_logger
-    "FORM_OPERATIONS": ConnectionInfo(conn_id="formoperations_prd_az1_opssql_database_windows_net", hook=MsSqlHook),  # formoperations
+    "OPERATIONS_LOGGER": ConnectionInfo(conn_id="prd-az1-ops3-airflowconnection", hook=PostgresHook, database="sourceoftruth", cursor_args={"cursor_factory": RealDictCursor}),  # operations_logger
+    "FORM_OPERATIONS": ConnectionInfo(conn_id="formoperations_prd_az1_opssql_database_windows_net", cursor_args={"as_dict": True}, hook=MsSqlHook),  # formoperations
 }
 
 
@@ -350,7 +351,7 @@ with DAG(
     def _execute_query(sql: str, conn_info: ConnectionInfo, return_dict: bool = True) -> dict:
         hook = conn_info.hook(**{conn_info.hook.conn_name_attr: conn_info.conn_id, "schema": conn_info.database})
         with hook.get_conn() as conn:
-            with conn.cursor(DictCursor) as cursor:
+            with conn.cursor(**conn_info.cursor_args) as cursor:
                 cursor.execute(sql)
                 if return_dict:
                     return cursor.fetchall()
