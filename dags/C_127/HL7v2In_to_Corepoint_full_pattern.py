@@ -38,6 +38,8 @@ def check_and_rename_filename(file_key):
         return f"root={root}_extension={extension}_{uuid}"
     return file_name if file_name else f"unnamed_{hash(file_key)}"
 
+import chardet
+
 def process_s3_to_azure(**kwargs):
     params = kwargs["params"]
     aws_bucket_name = params["aws_bucket"]
@@ -60,13 +62,24 @@ def process_s3_to_azure(**kwargs):
         dest1_path = os.path.join(DEFAULT_DEST_PATH, file_name)
         dest2_path = os.path.join(DEFAULT_DEST_PATH_ARCHIVE, current_date, file_name)
 
-        file_content = s3_hook.read_key(key=file_key, bucket_name=aws_bucket_name)
+        file_obj = s3_hook.get_key(key=file_key, bucket_name=aws_bucket_name)
+        raw_bytes = file_obj.get()["Body"].read()
+
+        detected = chardet.detect(raw_bytes)
+        encoding = detected.get("encoding", "utf-8")  # fallback to utf-8 if detection fails
+
+        try:
+            file_content = raw_bytes.decode(encoding)
+        except UnicodeDecodeError:
+            logging.warning(f"Failed to decode {file_key} with detected encoding {encoding}. Uploading raw bytes.")
+            file_content = raw_bytes  # fallback to raw bytes
 
         for dest_path in [dest1_path, dest2_path]:
             blob_client = blob_service_client.get_blob_client(container=DEFAULT_AZURE_CONTAINER, blob=dest_path)
             blob_client.upload_blob(file_content, overwrite=True)
 
         s3_hook.delete_objects(bucket=aws_bucket_name, keys=[file_key])
+
 
 with DAG(
     dag_id='HL7v2In_to_Corepoint_full_pattern',
