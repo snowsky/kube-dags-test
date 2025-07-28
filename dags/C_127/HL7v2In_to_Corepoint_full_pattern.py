@@ -71,7 +71,7 @@ def process_s3_to_azure(**kwargs):
 with DAG(
     dag_id='HL7v2In_to_Corepoint_full_pattern',
     default_args=default_args,
-    schedule_interval=None,
+    schedule_interval='@daily',
     start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=['C-127', 'C-179'],
