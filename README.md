@@ -81,6 +81,62 @@ To checkout remote branches from the `konza-dags` repository you must login to y
 - Copy the one-time code, navigate to `https://github.com/login/device` on your local machine, then follow the prompts to complete device activation.
 - After this activation, you will be able to interact with the `konza-dags` directory via the command line as a normal github repository.
 
+## Airflow Infrastructure Maintenance Checks
+
+To ensure the Airflow infrastructure remains performant and manageable, a weekly maintenance process should be followed to detect and triage long-running tasks.
+
+### Weekly Long-Running Task Review
+
+Tasks that exceed **2 hours** of runtime and are **not tagged with `wontfix`** should be flagged for investigation.
+
+#### Procedure
+
+1. **Check for long-running tasks:**
+    - Once a week, review running Airflow task pods.
+    - Look for any task running **2 hours or longer**.
+    - Exclude any DAGs tagged with `wontfix`.
+
+2. **Determine DAG details:**
+    - Record the **DAG ID**, **Task ID**, and observed **runtime**.
+    - Note the **Project ID**, which can be found in the DAG’s `tags`.
+
+3. **Verify if an issue already exists:**
+    - Before creating a new issue, query the support history:
+      ```sql
+      SELECT * FROM konza_support 
+      WHERE project_ids LIKE '%[Project ID here]%' 
+      ORDER BY id DESC;
+      ```
+
+4. **Identify the Project Owner:**
+    - If no existing issue is found, look up the project owner on [operations.konza.org](https://operations.konza.org):
+      ```sql
+      -- Check khin_konza_security schema
+      SELECT * FROM dbo.khin_konza_security WHERE ProjectId = '[Project ID]';
+ 
+      -- Or check khin_konza_product_delivery schema
+      SELECT * FROM dbo.khin_konza_product_delivery WHERE ProjectId = '[Project ID]';
+      ```
+    - Look for a field beginning with `ProjectOwner`.
+
+5. **File a GitHub issue:**
+    - Title the issue:
+      ```
+      Long-running task [task_name] in DAG [dag_name]
+      ```
+    - Include DAG ID, Task ID, runtime duration, and Project ID.
+    - Tag with `long-running-airflow-task`.
+    - Assign or @mention the Project Owner.
+
+6. **If no plans for resolution:**
+    - If the team has no current plan to refactor the task:
+        - Create a PR to tag the DAG with `wontfix`.
+        - This will exclude it from future weekly checks.
+
+7. **Respect known exceptions:**
+    - If an issue already exists and is tagged `wontfix`, no further action is required unless conditions change.
+
+This process ensures performance issues are addressed or explicitly acknowledged, and that owners are kept accountable for the health of their DAGs.
 
 ### Local airflow testing using Docker compose
 
