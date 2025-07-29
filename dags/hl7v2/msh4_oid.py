@@ -3,6 +3,8 @@ import re
 import yaml
 import pytest
 from typing import Dict, List, Union, Tuple
+import logging
+import os
 
 # todo: this needs to be reverted when landing in PROD
 #For Dev :
@@ -15,6 +17,8 @@ from typing import Dict, List, Union, Tuple
 # AA Testing V2 : 
 #MSH4_OID_CONFIG = '/konza-dags/dags/hl7v2/msh4_oid.yaml'
 MSH4_OID_CONFIG = '/source-biakonzasftp/C-179/msh4_oid.yaml'
+#MSH4_OID_CONFIG = '/data/biakonzasftp/C-179/msh4_oid.yaml'
+
 
 
 def validate_hl7v2_oid(oid: str) -> bool:
@@ -127,15 +131,24 @@ def yaml_to_list(yaml_file_path) -> List[Dict]:
         return []
 
 def load_msh4_oid_config() -> Tuple[Dict[str, str], Dict[str, str]]:
+    #assert os.path.exists(MSH4_OID_CONFIG)
     
     config_list = yaml_to_list(MSH4_OID_CONFIG)
-    facility_name_to_oid = {x['facilityName']: x['euidOid'] for x in config_list}
-    facility_mnemonic_to_oid = {x['facilityMnemonic']: x['euidOid'] for x in config_list}
+    #facility_name_to_oid = {x['facilityName']: x['euidOid'] for x in config_list}
+    #facility_mnemonic_to_oid = {x['facilityMnemonic']: x['euidOid'] for x in config_list}
+    #assert len(config_list) > 0
+    facility_name_to_oid = {x['facilityName'].strip(): x['euidOid'] for x in config_list}
+    facility_mnemonic_to_oid = {x['facilityMnemonic'].strip(): x['euidOid'] for x in config_list}
+    #for k,v in facility_mnemonic_to_oid.items():
+        #if k.index('OCE') >= 0 :
+            #logging.info(k,v)
+    #assert 'OCE' in facility_mnemonic_to_oid
+
 
     return facility_name_to_oid, facility_mnemonic_to_oid
 
 def get_msh4(file_path: str) -> hl7.Segment:
-    with open(file_path) as f:
+    with open(file_path, encoding='latin-1') as f:
         message = f.read().replace('\n', '\r')
     hl7v2_message = hl7.parse(message)
     msh_segment = hl7v2_message.segments('MSH')
@@ -147,15 +160,24 @@ def get_msh4(file_path: str) -> hl7.Segment:
     return str(msh_segment[0][4])
 
 # todo:switch to loading dicts once inside the function  
-_facility_name_to_oid, _facility_mnemonic_to_oid = load_msh4_oid_config() 
+_facility_name_to_oid, _facility_mnemonic_to_oid = load_msh4_oid_config()
+#logging.info(_facility_mnemonic_to_oid['OCE'])
+#logging.info(_facility_mnemonic_to_oid['CTC'])
+
 
 def get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(hl7v2_file_path: str) -> str:
+    #_facility_name_to_oid, _facility_mnemonic_to_oid = load_msh4_oid_config()
+    #logging.info(len(_facility_mnemonic_to_oid))
 
     msh4 = get_msh4(hl7v2_file_path) 
     msh4_is_oid = validate_hl7v2_oid(msh4)
     if msh4_is_oid:
         return msh4
-    msh4_key = msh4.split('^')[0] if '^' in msh4 else msh4
+    # Handles MSH-4 values with caret (^) delimiters 
+    # Hnadles trailiong spaces
+    #msh4_key = msh4.split('^')[0] if '^' in msh4 else msh4
+    msh4_key = msh4.split('^')[0].strip() if '^' in msh4 else msh4.strip()
+
 
     if msh4_key in _facility_name_to_oid:
         return _facility_name_to_oid[msh4_key]
