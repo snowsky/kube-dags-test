@@ -390,7 +390,7 @@ with DAG(
     
         logging.info(f"Batch uploaded items: {uploaded_items}")
 
-        @task(dag=dag)
+    @task(dag=dag)
     def list_and_chunk_files_EUID6(batch_size: Union[str, int] = 1000) -> List[List[str]]:
         #base_dir = "/data/biakonzasftp/C-179/OB To SSI EUID6_test"
         base_dir = "/source-biakonzasftp/C-179/OB To SSI EUID6"
