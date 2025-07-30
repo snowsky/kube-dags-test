@@ -195,7 +195,6 @@ with DAG(
         conditions = " OR ".join(
             [f"{col} LIKE '{code}%'" for col in proj_id_cols for code in project_codes]
         )
-        logging.info(conditions) ### DEBUG STATEMENT - DELETE
         sql = f"""
         SELECT data_extract_description,escalation_option,project_ids,L_120__authorized_identifier,L_120__authorized_identifier_type,L_120__hl7v2_client_delivery_paused,L_120__authorization_party,L_120__id,L_102__authorized_identifier,L_120__hl7v2_client_name,L_68__id,L_68__authorization_reference,L_68__authorized_identifier_oid,L_68__authorized_filter_file_beginning_pattern,L_68__authorizing_party,L_68__delivery_paused,L_68__participant_client_name,L_68__source_base_path,L_68__destination_path_override,L_68__client_folder_name,audit_type,L_69__id, L_69__source_file_zipped, L_102__authorized_identifier_type,L_102__hl7v2_client_delivery_paused,L_102__authorization_party,L_102__id,L_102__authorized_identifier,L_102__hl7v2_client_name,L_87__client_folder_name,L_87__destination_path_override,L_87__source_base_path,L_87__participant_client_name,L_87__authorization_reference,L_87__delivery_paused,L_87__authorizing_party,L_87__authorized_filter_file_beginning_pattern,L_87__authorized_identifier_oid,L_87__id,id,behalf_of_email,client_legal_name,ticket_reason,ticket_reference_other_system,requestor_info, ehx__ID ,ehx__ssi_payor_client_name ,ehx__authorized_identifier ,ehx__authorization_party ,ehx__dh_fusion_delivery_paused ,ehx__authorized_identifer_type ,ehx__konza_client_destination_delivery_paused ,ehx__dh_raw_ehx_ccd_delivery_location ,L_10__id ,L_10__hl7v2_client_name ,L_10__authorized_identifier ,L_10__authorization_party ,L_10__authorized_identifier_type ,L_10__crawler_id_last_loaded, L_10__hl7v2_client_delivery_paused ,L_69__emr_client_name ,L_69__authorized_identifier ,L_69__authorization_party ,L_69__emr_client_delivery_paused ,L_69__authorized_identifier_type ,L_69__authorization_reference ,L_69__participant_client_name ,ticket_reason_extended ,attachment,ehx__ssi_prefix,ehx__auto_submit_panel_to_corepoint 
         FROM konza_support
@@ -420,9 +419,8 @@ with DAG(
             + ",".join(ticket.project_ids).replace("'", "")
             + "', prioritization = '"
             + str(ticket.priority)
-            + "'  where id = '"
+            + "'  where id = "
             + str(ticket.id)
-            + "'"
         )
         _execute_query(form_sql, CONNECTIONS["FORM_OPERATIONS"], return_dict=False)
 
@@ -1023,7 +1021,7 @@ with DAG(
                 + "', prioritization = '"
                 + ticket.priority
                 + "'  where id = "
-                + ticket.id
+                + str(ticket.id)
             )
             _execute_query(form_sql, CONNECTIONS["FORM_OPERATIONS"], return_dict=False)
 
@@ -1038,9 +1036,11 @@ with DAG(
             average_impact = -1
             risk_str = ""
         else:
+            logging.info(f"####### {ticket.escalation_option}") ###DEBUG
             risk_str, first_in_rng, second_in_rng = _parse_priority_str(
                 ticket.escalation_option
             )
+            logging.info(f"####### {risk_str}, {first_in_rng}, {second_in_rng}") ###DEBUG
             average_impact = ceil((first_in_rng + second_in_rng) / 2)
             # average_impact = ticket.escalation_option
             ### ASK: original script impact is set to equal escalation_option, is this a mistake?
@@ -1051,6 +1051,7 @@ with DAG(
             else _get_and_cache_custom_fields_from_board(
                 ticket.wekan_info.board_id, custom_fields_cache, parsed_configuration
             )
+        logging.info(f"####### {custom_fields}") ###DEBUG
         )
         ticket.custom_priority = CustomPriority(
             id=risk_str,
@@ -1059,6 +1060,7 @@ with DAG(
             matrix_field_id=custom_fields["Priority Matrix Number"],
             color=_get_custom_priority_color(risk_str),
         )
+        logging.info(f"####### {ticket.custom_priority}") ###DEBUG
 
     def _get_custom_priority_color(priority_id: str) -> str:
         match priority_id:
@@ -1157,6 +1159,7 @@ with DAG(
             custom_field_id=cust_p.field_id,
             value=cust_p.id,
         )
+        logging.info(f"####### RESPONSE: {response}") ###DEBUG
 
         matrix_response = edit_card_custom_field(
             hostname=parsed_configuration.get("hostname"),
@@ -1167,6 +1170,8 @@ with DAG(
             custom_field_id=cust_p.matrix_field_id,
             value=cust_p.impact,
         )
+
+        logging.info(f"####### {matrix_response}") ###DEBUG
 
     def _edit_internal_audit_card(
         card_id: str,
