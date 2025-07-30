@@ -124,4 +124,4 @@ class ClientProfile(ABC):
 
     @property
     def client_name_fmt(self):
-        return self.client_name.replace(' ', '').lower()
+        return self.client_name.replace(' ', '').replace('(', '').replace(')', '').replace('-', '_').replace('#', '').lower()
