@@ -1051,8 +1051,8 @@ with DAG(
             else _get_and_cache_custom_fields_from_board(
                 ticket.wekan_info.board_id, custom_fields_cache, parsed_configuration
             )
-        logging.info(f"####### {custom_fields}") ###DEBUG
         )
+        logging.info(f"####### {custom_fields}") ###DEBUG
         ticket.custom_priority = CustomPriority(
             id=risk_str,
             impact=average_impact,
