@@ -426,19 +426,13 @@ with DAG(
         )
         _execute_query(form_sql, CONNECTIONS["FORM_OPERATIONS"], return_dict=False)
 
-        # sql = f"""
-        #    INSERT INTO public.global_ticket_crosswalk (global_id, ticketing_system_id, ticketing_system)
-        #    VALUES (nextval('global_ticket_crosswalk_seq'),
-        #            '{new_card_id}',
-        #            '{ticket.wekan_info.board_id}')
-        # """
-
-        # Removed 'nextval' for test, as not present in mariadb
         sql = f"""
-            INSERT INTO public.global_ticket_crosswalk (ticketing_system_id, ticketing_system)
-            VALUES ('{new_card_id}', 
-                    '{ticket.wekan_info.board_id}')
+           INSERT INTO public.global_ticket_crosswalk (global_id, ticketing_system_id, ticketing_system)
+           VALUES (nextval('global_ticket_crosswalk_seq'),
+                   '{new_card_id}',
+                   '{ticket.wekan_info.board_id}')
         """
+
         # check is using the right connection - not clear from script.
         _execute_query(sql, CONNECTIONS["OPERATIONS_LOGGER"], return_dict=False)
 
