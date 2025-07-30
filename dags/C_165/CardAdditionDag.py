@@ -282,7 +282,8 @@ with DAG(
             ticket_reason_text = _stringify_field(row["ticket_reason"])
             ticket_reason = _get_ticket_reason(ticket_reason_text)
             project_id_other = _stringify_field(row["ticket_reference_other_system"])
-            project_ids = [row["project_ids"], project_id_other]
+            project_id = _stringify_field(row["project_ids"])
+            project_ids = [val for val in [project_id, project_id_other] if val != ""]
             description = _get_description(
                 ticket_reason.category,
                 f"{_stringify_field(row['data_extract_description'])} Description: {_stringify_field(row['ticket_reason_extended'])}",
