@@ -40,7 +40,7 @@ with DAG(
         context = get_current_context()
         context["client_name"] = client_name
         trigger = TriggerDagRunOperator(
-            task_id=f"target_pop_{client_name.replace(' ', '_')}",
+            task_id=f"target_pop_{client_name.replace(' ', '_').replace('(', '').replace(')', '').replace('#', '').replace('-', '_')}",
             trigger_dag_id='target_population',
             #conf={'client_name': client_name, 'frequency': row[1], 'facility_ids': row[2]},
             conf={'client_name': row[0], 'folder_name': row[0], 'ending_db': row[1], 'frequency': row[2], 'facility_ids': row[3], 'airflow_client_profile': row[4]},
