@@ -13,10 +13,10 @@ from airflow.operators.python import get_current_context
 from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback
 
 import logging
- # For Prod
+
+# For Prod
 import os
 import hl7
-
 
 # DAG definition
 
@@ -56,61 +56,56 @@ with DAG(
 ) as dag:
 
     @task(dag=dag)
-    def list_and_chunk_files_EUID6(batch_size: Union[str, int] = 1000) -> List[List[str]]:
-        import re
-    
+
+    def list_dated_folders_EUID6() -> List[str]:
         base_dir = "/source-biakonzasftp/C-179/OB To SSI EUID6"
-        batch_size = int(batch_size)
-        max_mapped_tasks = 1024
-    
-        # Pattern to match dated folders like 20250729
         date_folder_pattern = re.compile(r"^\d{8}$")
     
-        all_chunks = []
-        folder_count = 0
+        dated_folders = [
+            os.path.join(base_dir, entry)
+            for entry in sorted(os.listdir(base_dir))
+            if os.path.isdir(os.path.join(base_dir, entry)) and date_folder_pattern.match(entry)
+        ]
     
-        for entry in sorted(os.listdir(base_dir)):
-            subfolder_path = os.path.join(base_dir, entry)
+        logging.info(f"[EUID6] Dated folders found: {len(dated_folders)}")
+        return dated_folders
+
+    @task(dag=dag)
+    def chunk_files_in_folder(folder_path: str) -> List[str]:
+        context = get_current_context()
+        batch_size = int(context["params"]["batch_size"])
+        max_mapped_tasks = 512
     
-            if os.path.isdir(subfolder_path) and date_folder_pattern.match(entry):
-                folder_count += 1
-                current_folder_files = []
+        # Limit to first 10 files for testing
+        files = []
+        for f in sorted(os.listdir(folder_path))[:100000]:
+            if f.endswith(".hl7") or f.endswith(".txt") or '.' not in f:
+                files.append(os.path.join(folder_path, f))
     
-                logging.info(f"[EUID6] Scanning dated folder: {subfolder_path}")
-                for f in os.listdir(subfolder_path):
-                    if f.endswith(".hl7") or f.endswith(".txt") or '.' not in f:
-                        full_path = os.path.join(subfolder_path, f)
-                        current_folder_files.append(full_path)
-    
-                if not current_folder_files:
-                    logging.warning(f"[EUID6] No eligible files in: {subfolder_path}")
-                    continue
-    
-                if len(current_folder_files) > max_mapped_tasks * batch_size:
-                    folder_batch_size = (len(current_folder_files) // max_mapped_tasks) + 1
-                else:
-                    folder_batch_size = batch_size
-    
-                folder_chunks = [
-                    current_folder_files[i:i + folder_batch_size]
-                    for i in range(0, len(current_folder_files), folder_batch_size)
-                ]
-                all_chunks.extend(folder_chunks)
-    
-                logging.info(
-                    f"[EUID6] Folder: {entry} | Files: {len(current_folder_files)} | "
-                    f"Batch size: {folder_batch_size} | Batches: {len(folder_chunks)}"
-                )
-    
-        if not all_chunks:
-            logging.warning(f"[EUID6] No valid .hl7/.txt/no-extension files found in any dated folder under {base_dir}")
+        if not files:
+            logging.warning(f"[EUID6] No eligible files in: {folder_path}")
             return []
     
-        logging.info(f"[EUID6] Finished. Dated folders scanned: {folder_count} | Total file batches: {len(all_chunks)}")
-        return all_chunks
+        folder_batch_size = (
+            (len(files) // max_mapped_tasks) + 1 if len(files) > max_mapped_tasks * batch_size else batch_size
+        )
+    
+        batches = [files[i:i + folder_batch_size] for i in range(0, len(files), folder_batch_size)]
+
+        #logging.info(
+            #f"[EUID6] Folder: {folder_path} | Files: {len(files)} | Files per batch: {folder_batch_size} | Batches: {len(batches)}"
+        #)
+        #logging.info(f"Returning file batches: {batches}")
+        #logging.info(f"Returning file batches: {batches} | Type: {type(batches)}")
         
+        #return batches
+        return batches[0] if batches else []
+
+    
+   
+                
     @task(dag=dag)
-    def extract_and_upload_EUID6(file_paths: List[str]):
+    def extract_and_upload_EUID6(file_batch: List[str]):
         bucket_name = 'com-ssigroup-insight-attribution-data'
         bucket_config = AWS_BUCKETS[bucket_name]
         aws_conn_id = bucket_config.aws_conn_id
@@ -120,14 +115,14 @@ with DAG(
     
         uploaded_items = []
     
-        for file_path in file_paths:
+
+        for file_path in file_batch:
             try:
                 logging.info(f"[EUID6] Processing file: {file_path}")
                 oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(file_path)
                 if oid:
                     s3_key = aws_key_pattern.format(OID=oid)
                     key_exists = s3_hook.check_for_key(s3_key, bucket_name=bucket_name)
-    
                     if not key_exists:
                         s3_hook.load_string(
                             string_data=oid,
@@ -136,27 +131,28 @@ with DAG(
                             **s3_hook_kwargs
                         )
                         logging.info(f"[EUID6] Uploaded OID '{oid}' for file: {file_path} to s3://{bucket_name}/{s3_key}")
-                        #logging.info(f"Uploaded OID string to s3://{bucket_name}/{s3_key}")
+
                     else:
                         logging.info(f"Key already exists: {s3_key}")
-                        #pass
-    
+
                     uploaded_items.append({"oid": oid, "file_path": file_path})
-    
-                    # Delete regardless of upload or existing key
-                    #try:
-                        #os.remove(file_path)
-                        #logging.info(f"Deleted file after processing: {file_path}")
-                    #except Exception as delete_error:
-                        #logging.warning(f"Processed but failed to delete: {file_path} | {delete_error}")
-                   
+
             except Exception as e:
                 logging.warning(f"Failed: {file_path} | {e}")
-    
+
         logging.info(f"Batch uploaded items: {uploaded_items}")
-        
 
     # DAG Chain
 
-    file_batches_EUID6 = list_and_chunk_files_EUID6(batch_size="{{ params.batch_size }}")
-    extract_and_upload_EUID6.expand(file_paths=file_batches_EUID6)
+    #dated_folders = list_dated_folders_EUID6()
+    #file_batches = chunk_files_in_folder.expand(folder_path=dated_folders)
+
+    #extract_and_upload_EUID6.expand(file_batch=file_batches)
+    #extract_and_upload_EUID6.expand(file_paths=chunk_files_in_folder.partial().expand(folder_path=dated_folders))
+
+    #extract_and_upload_EUID6.expand(file_paths=chunk_files_in_folder.expand(folder_path=dated_folders))
+
+    dated_folders = list_dated_folders_EUID6()
+    file_batches = chunk_files_in_folder.expand(folder_path=dated_folders)
+    #extract_and_upload_EUID6.expand(file_batch=file_paths)
+    extract_and_upload_EUID6.expand(file_batch=file_batches)
