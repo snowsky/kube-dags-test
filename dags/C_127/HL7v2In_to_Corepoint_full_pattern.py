@@ -45,7 +45,9 @@ def chunk_list(data, chunk_size):
 def list_s3_keys(aws_bucket: str, aws_folder: str) -> list:
     s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
     keys = s3_hook.list_keys(bucket_name=aws_bucket, prefix=aws_folder)
-    return [k for k in keys if not k.endswith('/')]
+    filtered_keys = [k for k in keys if not k.endswith('/')]
+    return filtered_keys[:100000]  # Limit to 100K files
+
 
 @task
 def chunk_keys(keys: list, aws_bucket: str) -> list:
