@@ -115,7 +115,8 @@ def process_key_batch(file_keys: list, aws_bucket: str):
 with DAG(
     dag_id='HL7v2In_to_Corepoint_full_pattern_parallel',
     default_args={'owner': 'airflow'},
-    schedule_interval='@daily',
+    schedule_interval='@hourly',
+    max_active_runs=1,
     start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=['C-127', 'C-179'],
