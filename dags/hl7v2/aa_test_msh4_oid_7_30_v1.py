@@ -56,8 +56,8 @@ with DAG(
 ) as dag:
 
     @task(dag=dag)
-
     def list_dated_folders_EUID6() -> List[str]:
+        #base_dir = "/data/biakonzasftp/C-179/OB To SSI EUID6"
         base_dir = "/source-biakonzasftp/C-179/OB To SSI EUID6"
         date_folder_pattern = re.compile(r"^\d{8}$")
     
@@ -78,7 +78,9 @@ with DAG(
     
         # Limit to first 10 files for testing
         files = []
-        for f in sorted(os.listdir(folder_path))[:100000]:
+
+        #for f in sorted(os.listdir(folder_path))[:5]:
+        for f in sorted(os.listdir(folder_path)):
             if f.endswith(".hl7") or f.endswith(".txt") or '.' not in f:
                 files.append(os.path.join(folder_path, f))
     
@@ -123,6 +125,7 @@ with DAG(
                 if oid:
                     s3_key = aws_key_pattern.format(OID=oid)
                     key_exists = s3_hook.check_for_key(s3_key, bucket_name=bucket_name)
+
                     if not key_exists:
                         s3_hook.load_string(
                             string_data=oid,
@@ -132,10 +135,22 @@ with DAG(
                         )
                         logging.info(f"[EUID6] Uploaded OID '{oid}' for file: {file_path} to s3://{bucket_name}/{s3_key}")
 
+                        uploaded_items.append({"oid": oid, "file_path": file_path})
+
+                        try:
+                            os.remove(file_path)
+                            logging.info(f"Deleted file after processing: {file_path}")
+                        except Exception as delete_error:
+                            logging.warning(f"Processed but failed to delete: {file_path} | {delete_error}")
+
                     else:
                         logging.info(f"Key already exists: {s3_key}")
+                        # Key is OID
+                        # if the same OID is extracted again from a new file, the key will be identical, hence skipping to upload.
+                else:
+                    logging.warning(f"[EUID6] No OID extracted for: {file_path}")
 
-                    uploaded_items.append({"oid": oid, "file_path": file_path})
+    
 
             except Exception as e:
                 logging.warning(f"Failed: {file_path} | {e}")
@@ -156,3 +171,4 @@ with DAG(
     file_batches = chunk_files_in_folder.expand(folder_path=dated_folders)
     #extract_and_upload_EUID6.expand(file_batch=file_paths)
     extract_and_upload_EUID6.expand(file_batch=file_batches)
+
