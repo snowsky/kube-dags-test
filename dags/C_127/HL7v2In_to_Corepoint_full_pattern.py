@@ -10,13 +10,16 @@ import os
 import re
 import logging
 import chardet
+import boto3
+from airflow.hooks.base import BaseHook
 
 # Constants
 DEFAULT_AZURE_CONTAINER = 'airflow'
 DEFAULT_DEST_PATH_ARCHIVE = 'C-127/archive'
 DEFAULT_DEST_PATH = 'C-179/HL7v2In_to_Corepoint_full'
 AZURE_CONN_ID = 'biakonzasftp-blob-core-windows-net'
-CHUNK_SIZE = 10000
+CHUNK_SIZE = 500
+MAX_KEYS = 100000
 
 class BucketDetails:
     def __init__(self, aws_conn_id, s3_hook_kwargs):
@@ -41,12 +44,33 @@ def chunk_list(data, chunk_size):
     for i in range(0, len(data), chunk_size):
         yield data[i:i + chunk_size]
 
+
+
 @task
 def list_s3_keys(aws_bucket: str, aws_folder: str) -> list:
-    s3_hook = S3Hook(aws_conn_id=AWS_BUCKETS[aws_bucket].aws_conn_id)
-    keys = s3_hook.list_keys(bucket_name=aws_bucket, prefix=aws_folder)
-    filtered_keys = [k for k in keys if not k.endswith('/')]
-    return filtered_keys[:100000]  # Limit to 100K files
+    aws_conn_id = AWS_BUCKETS[aws_bucket].aws_conn_id
+    aws_conn = BaseHook.get_connection(aws_conn_id)
+
+    session = boto3.Session(
+        aws_access_key_id=aws_conn.login,
+        aws_secret_access_key=aws_conn.password,
+        region_name=aws_conn.extra_dejson.get("region_name", "us-east-1")
+    )
+    s3_client = session.client('s3')
+
+    paginator = s3_client.get_paginator('list_objects_v2')
+    page_iterator = paginator.paginate(Bucket=aws_bucket, Prefix=aws_folder)
+
+    keys = []
+    for page in page_iterator:
+        for obj in page.get('Contents', []):
+            key = obj['Key']
+            if not key.endswith('/'):
+                keys.append(key)
+                if len(keys) >= MAX_KEYS:
+                    return keys
+    return keys
+
 
 
 @task
