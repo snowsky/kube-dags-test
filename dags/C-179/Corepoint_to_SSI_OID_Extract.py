@@ -138,11 +138,11 @@ with DAG(
                         logging.info(f"[EUID6] Uploaded OID '{oid}' for file: {file_path} to s3://{bucket_name}/{s3_key}")
                         uploaded_items.append({"oid": oid, "file_path": file_path})
 
-                        try:
-                            os.remove(file_path)
-                            logging.info(f"Deleted file after processing: {file_path}")
-                        except Exception as delete_error:
-                            logging.warning(f"Processed but failed to delete: {file_path} | {delete_error}")
+                        #try:
+                        #    os.remove(file_path)
+                        #    logging.info(f"Deleted file after processing: {file_path}")
+                        #except Exception as delete_error:
+                        #    logging.warning(f"Processed but failed to delete: {file_path} | {delete_error}")
 
                     else:
                         logging.info(f"Key already exists: {s3_key}")
