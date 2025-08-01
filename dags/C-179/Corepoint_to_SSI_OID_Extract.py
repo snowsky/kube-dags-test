@@ -57,8 +57,8 @@ with DAG(
 
     @task(dag=dag)
     def list_dated_folders_EUID6() -> List[str]:
-        base_dir = "/data/biakonzasftp/C-179/OB To SSI EUID6"
-        #base_dir = "/source-biakonzasftp/C-179/OB To SSI EUID6"
+        #base_dir = "/data/biakonzasftp/C-179/OB To SSI EUID6"
+        base_dir = "/source-biakonzasftp/C-179/OB To SSI EUID6"
         date_folder_pattern = re.compile(r"^\d{8}$")
     
         # Get all valid dated folders and sort newest to oldest
