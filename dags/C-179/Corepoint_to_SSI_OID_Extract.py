@@ -83,34 +83,29 @@ with DAG(
     @task(dag=dag)
     def chunk_files_in_folder(folder_path: str) -> List[List[str]]:
         context = get_current_context()
-        batch_size = int(context["params"]["batch_size"])
-        max_mapped_tasks = 512
+        batch_size = int(context["params"]["batch_size"])  # Should be 500
+        max_batches = 512
+        max_files = batch_size * max_batches  # 256,000
     
-        # Limit to first 10 files for testing
-        files = []
-        #for f in sorted(os.listdir(folder_path))[:5]:
-        for f in sorted(os.listdir(folder_path)):
-            if f.endswith(".hl7") or f.endswith(".txt") or '.' not in f:
-                files.append(os.path.join(folder_path, f))
+        # Collect eligible files
+        files = [
+            os.path.join(folder_path, f)
+            for f in sorted(os.listdir(folder_path))
+            if f.endswith(".hl7") or f.endswith(".txt") or '.' not in f
+        ]
     
         if not files:
             logging.warning(f"[EUID6] No eligible files in: {folder_path}")
             return []
     
-        folder_batch_size = (
-            (len(files) // max_mapped_tasks) + 1 if len(files) > max_mapped_tasks * batch_size else batch_size
-        )
+        # Limit to max_files
+        files = files[:max_files]
     
-        batches = [files[i:i + folder_batch_size] for i in range(0, len(files), folder_batch_size)]
-
-        #logging.info(
-            #f"[EUID6] Folder: {folder_path} | Files: {len(files)} | Files per batch: {folder_batch_size} | Batches: {len(batches)}"
-        #)
-        #logging.info(f"Returning file batches: {batches}")
-        #logging.info(f"Returning file batches: {batches} | Type: {type(batches)}")
-        
+        # Create batches
+        batches = [files[i:i + batch_size] for i in range(0, len(files), batch_size)]
+    
         return batches
-        #return batches[0] if batches else []
+
 
 
                 
