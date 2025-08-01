@@ -116,7 +116,7 @@ with DAG(
         s3_hook = S3Hook(aws_conn_id=aws_conn_id)
     
         uploaded_items = []
-    
+        file_batch = file_batch[0]
         for file_path in file_batch:
             try:
                 logging.info(f"[EUID6] Processing file: {file_path}")
