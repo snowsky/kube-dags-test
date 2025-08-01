@@ -66,7 +66,7 @@ with DAG(
             for entry in sorted(os.listdir(base_dir))
             if os.path.isdir(os.path.join(base_dir, entry)) and date_folder_pattern.match(entry)
         ]
-    
+        #dated_folders # Order this list in greatest date to smallest, then only process the smallest one
         logging.info(f"[EUID6] Dated folders found: {len(dated_folders)}")
         return dated_folders
 
@@ -78,8 +78,8 @@ with DAG(
     
         # Limit to first 10 files for testing
         files = []
-        for f in sorted(os.listdir(folder_path))[:5]:
-        #for f in sorted(os.listdir(folder_path)):
+        #for f in sorted(os.listdir(folder_path))[:5]:
+        for f in sorted(os.listdir(folder_path)):
             if f.endswith(".hl7") or f.endswith(".txt") or '.' not in f:
                 files.append(os.path.join(folder_path, f))
     
@@ -138,11 +138,11 @@ with DAG(
                         logging.info(f"[EUID6] Uploaded OID '{oid}' for file: {file_path} to s3://{bucket_name}/{s3_key}")
                         uploaded_items.append({"oid": oid, "file_path": file_path})
 
-                        #try:
-                        #    os.remove(file_path)
-                        #    logging.info(f"Deleted file after processing: {file_path}")
-                        #except Exception as delete_error:
-                        #    logging.warning(f"Processed but failed to delete: {file_path} | {delete_error}")
+                        try:
+                            os.remove(file_path)
+                            logging.info(f"Deleted file after processing: {file_path}")
+                        except Exception as delete_error:
+                            logging.warning(f"Processed but failed to delete: {file_path} | {delete_error}")
 
                     else:
                         logging.info(f"Key already exists: {s3_key}")
