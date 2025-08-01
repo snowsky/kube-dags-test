@@ -67,7 +67,9 @@ with DAG(
             if os.path.isdir(os.path.join(base_dir, entry)) and date_folder_pattern.match(entry)
         ]
         #dated_folders # Order this list in greatest date to smallest, then only process the smallest one
+        sorted_folders = sorted(dated_folders, key=lambda x: datetime.strptime(x.split('/')[-1], '%Y%m%d'), reverse=True)
         logging.info(f"[EUID6] Dated folders found: {len(dated_folders)}")
+        logging.info(f"[EUID6] Earliest Folder: {sorted_folders}")
         return dated_folders
 
     @task(dag=dag)
