@@ -117,8 +117,9 @@ with DAG(
     
         uploaded_items = []
     
-
+        logging.info(f"Batch List: {file_batch}")
         for file_path in file_batch:
+            logging.info(f"Batch List Item: {file_path}")
             try:
                 logging.info(f"[EUID6] Processing file: {file_path}")
                 oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(file_path)
