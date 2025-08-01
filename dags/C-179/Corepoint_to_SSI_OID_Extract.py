@@ -57,20 +57,28 @@ with DAG(
 
     @task(dag=dag)
     def list_dated_folders_EUID6() -> List[str]:
-        #base_dir = "/data/biakonzasftp/C-179/OB To SSI EUID6"
-        base_dir = "/source-biakonzasftp/C-179/OB To SSI EUID6"
+        base_dir = "/data/biakonzasftp/C-179/OB To SSI EUID6"
+        #base_dir = "/source-biakonzasftp/C-179/OB To SSI EUID6"
         date_folder_pattern = re.compile(r"^\d{8}$")
     
-        dated_folders = [
-            os.path.join(base_dir, entry)
-            for entry in sorted(os.listdir(base_dir))
-            if os.path.isdir(os.path.join(base_dir, entry)) and date_folder_pattern.match(entry)
-        ]
-        #dated_folders # Order this list in greatest date to smallest, then only process the smallest one
-        sorted_folders = sorted(dated_folders, key=lambda x: datetime.strptime(x.split('/')[-1], '%Y%m%d'), reverse=True)
-        logging.info(f"[EUID6] Dated folders found: {len(dated_folders)}")
-        logging.info(f"[EUID6] Earliest Folder: {sorted_folders}")
-        return dated_folders
+        # Get all valid dated folders and sort newest to oldest
+        all_dated_folders = sorted(
+            [
+                os.path.join(base_dir, entry)
+                for entry in os.listdir(base_dir)
+                if os.path.isdir(os.path.join(base_dir, entry)) and date_folder_pattern.match(entry)
+            ],
+            reverse=True
+        )
+    
+        logging.info(f"[EUID6] All dated folders (newest to oldest): {all_dated_folders}")
+    
+        if not all_dated_folders:
+            raise FileNotFoundError("[EUID6] No valid dated folders found in directory.")
+    
+        selected_folder = all_dated_folders[-1]
+        logging.info(f"[EUID6] Selected smallest (oldest) folder to process: {selected_folder}")
+        return [selected_folder]
 
     @task(dag=dag)
     def chunk_files_in_folder(folder_path: str) -> List[List[str]]:
