@@ -58,7 +58,7 @@ with DAG(
     @task
     def list_relevant_blobs() -> List[str]:
         container_name = AZURE_CONNECTION_CONTAINER
-        prefix = "C-179/"
+        prefix = "C-179/OB To SSI EUID"
         pattern = re.compile(r"C-179/OB To SSI EUID\d+/")
     
         blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
