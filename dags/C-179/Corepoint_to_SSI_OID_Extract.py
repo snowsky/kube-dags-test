@@ -12,12 +12,9 @@ from airflow.operators.python import get_current_context
 
 from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback
 
-# DAG config
 default_args = {
     'owner': 'airflow',
 }
-
-MSH4_OID_CONFIG = 'hl7v2/msh4_oid.yaml'
 
 class BucketDetails:
     def __init__(self, aws_conn_id, aws_key_pattern, s3_hook_kwargs):
@@ -49,7 +46,7 @@ with DAG(
 ) as dag:
 
     @task
-    def list_dated_folders_EUID6() -> List[str]:
+    def list_dated_folders_EUID6() -> str:
         base_dir = "/source-biakonzasftp/C-179/OB To SSI EUID6"
         date_folder_pattern = re.compile(r"^\d{8}$")
 
@@ -62,14 +59,12 @@ with DAG(
             reverse=True
         )
 
-        logging.info(f"[EUID6] All dated folders (newest to oldest): {all_dated_folders}")
-
         if not all_dated_folders:
             raise FileNotFoundError("[EUID6] No valid dated folders found in directory.")
 
         selected_folder = all_dated_folders[-1]
-        logging.info(f"[EUID6] Selected smallest (oldest) folder to process: {selected_folder}")
-        return [selected_folder]
+        logging.info(f"[EUID6] Selected folder: {selected_folder}")
+        return selected_folder
 
     @task
     def generate_batches(folder_path: str) -> List[List[str]]:
@@ -91,9 +86,7 @@ with DAG(
         return batches
 
     @task
-    def process_batch(batch: List[str]):
-        logging.info(f"[EUID6] Processing batch with {len(batch)} files")
-
+    def process_all_batches(batches: List[List[str]]):
         bucket_name = 'com-ssigroup-insight-attribution-data'
         bucket_config = AWS_BUCKETS[bucket_name]
         aws_conn_id = bucket_config.aws_conn_id
@@ -101,43 +94,42 @@ with DAG(
         s3_hook_kwargs = bucket_config.s3_hook_kwargs
         s3_hook = S3Hook(aws_conn_id=aws_conn_id)
 
-        uploaded_items = []
+        total_uploaded = 0
 
-        for file_path in batch:
-            try:
-                logging.info(f"[EUID6] Processing file: {file_path}")
-                oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(file_path)
-                if oid:
-                    filename = os.path.basename(file_path)
-                    s3_key = aws_key_pattern.format(OID=oid) + f"/{filename}"
+        for batch_index, batch in enumerate(batches):
+            logging.info(f"[EUID6] Processing batch {batch_index + 1}/{len(batches)} with {len(batch)} files")
+            for file_path in batch:
+                try:
+                    oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(file_path)
+                    if oid:
+                        filename = os.path.basename(file_path)
+                        s3_key = aws_key_pattern.format(OID=oid) + f"/{filename}"
 
-                    key_exists = s3_hook.check_for_key(s3_key, bucket_name=bucket_name)
+                        if not s3_hook.check_for_key(s3_key, bucket_name=bucket_name):
+                            s3_hook.load_string(
+                                string_data=oid,
+                                key=s3_key,
+                                bucket_name=bucket_name,
+                                **s3_hook_kwargs
+                            )
+                            logging.info(f"[EUID6] Uploaded OID '{oid}' for file: {file_path}")
+                            total_uploaded += 1
 
-                    if not key_exists:
-                        s3_hook.load_string(
-                            string_data=oid,
-                            key=s3_key,
-                            bucket_name=bucket_name,
-                            **s3_hook_kwargs
-                        )
-                        logging.info(f"[EUID6] Uploaded OID '{oid}' for file: {file_path} to s3://{bucket_name}/{s3_key}")
-                        uploaded_items.append({"oid": oid, "file_path": file_path})
-
-                        try:
-                            os.remove(file_path)
-                            logging.info(f"Deleted file after processing: {file_path}")
-                        except Exception as delete_error:
-                            logging.warning(f"Processed but failed to delete: {file_path} | {delete_error}")
+                            try:
+                                os.remove(file_path)
+                                logging.info(f"Deleted file after processing: {file_path}")
+                            except Exception as delete_error:
+                                logging.warning(f"Failed to delete: {file_path} | {delete_error}")
+                        else:
+                            logging.info(f"Key already exists: {s3_key}")
                     else:
-                        logging.info(f"Key already exists: {s3_key}")
-                else:
-                    logging.warning(f"[EUID6] No OID extracted for: {file_path}")
-            except Exception as e:
-                logging.warning(f"Failed: {file_path} | {e}")
+                        logging.warning(f"No OID extracted for: {file_path}")
+                except Exception as e:
+                    logging.warning(f"Failed: {file_path} | {e}")
 
-        logging.info(f"Batch uploaded items: {uploaded_items}")
+        logging.info(f"[EUID6] Total uploaded items: {total_uploaded}")
 
     # DAG Chain
-    dated_folders = list_dated_folders_EUID6()
-    batches = generate_batches.expand(folder_path=dated_folders)
-    process_batch.expand(batch=batches)
+    folder = list_dated_folders_EUID6()
+    batches = generate_batches(folder)
+    process_all_batches(batches)
