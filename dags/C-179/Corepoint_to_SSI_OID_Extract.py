@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 from typing import List
 from itertools import islice
+from io import BytesIO
 
 from airflow import DAG
 from airflow.decorators import task
@@ -11,7 +12,7 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.operators.python import get_current_context
 
 from azure.storage.blob import BlobServiceClient
-from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback
+from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback_bytes  # Assumes byte-based version
 from lib.operators.azure_connection_string import get_azure_connection_string
 
 # Constants
@@ -40,9 +41,9 @@ AWS_BUCKETS = {
 }
 
 with DAG(
-    dag_id='Corepoint_to_SSI_OID_Extract_MountFree',
+    dag_id='Corepoint_to_SSI_OID_Extract_MountFree_InMemory',
     default_args=default_args,
-    description='Parses HL7 files from Azure Blob and resolves domain OID (MSH-4)',
+    description='Parses HL7 files from Azure Blob in-memory and resolves domain OID (MSH-4)',
     catchup=False,
     max_active_runs=1,
     concurrency=100,
@@ -103,21 +104,17 @@ with DAG(
 
         uploaded_items = []
 
+        blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
+        container_client = blob_service_client.get_container_client(AZURE_CONNECTION_CONTAINER)
+
         for blob_path in batch:
             try:
                 logging.info(f"Processing blob: {blob_path}")
-                # Download blob content
-                blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
-                container_client = blob_service_client.get_container_client(AZURE_CONNECTION_CONTAINER)
                 blob_client = container_client.get_blob_client(blob_path)
                 blob_data = blob_client.download_blob().readall()
 
-                # Save to temp file
-                temp_file_path = f"/tmp/{blob_path.replace('/', '_')}"
-                with open(temp_file_path, "wb") as f:
-                    f.write(blob_data)
-
-                oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(temp_file_path)
+                # Process HL7 content from memory
+                oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback_bytes(blob_data)
                 if oid:
                     filename = blob_path.split("/")[-1]
                     s3_key = aws_key_pattern.format(OID=oid) + f"/{filename}"
@@ -135,13 +132,6 @@ with DAG(
                         logging.info(f"Key already exists: {s3_key}")
                 else:
                     logging.warning(f"No OID extracted for: {blob_path}")
-
-                # Clean up
-                try:
-                    import os
-                    os.remove(temp_file_path)
-                except Exception as e:
-                    logging.warning(f"Failed to delete temp file: {temp_file_path} | {e}")
 
             except Exception as e:
                 logging.warning(f"Failed to process blob: {blob_path} | {e}")
