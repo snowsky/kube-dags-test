@@ -173,5 +173,6 @@ with DAG(
     #extract_and_upload_EUID6.expand(file_paths=chunk_files_in_folder.expand(folder_path=dated_folders))
 
     dated_folders = list_dated_folders_EUID6()
-    all_batches = chunk_files_in_folder.expand(folder_path=dated_folders)
-    extract_and_upload_EUID6.expand(file_batch=all_batches)
+    file_batches = chunk_files_in_folder.expand(folder_path=dated_folders)
+    extract_and_upload_EUID6.partial().expand(file_batch=file_batches)
+
