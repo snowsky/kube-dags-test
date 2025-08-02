@@ -47,6 +47,7 @@ with DAG(
     description='Parses HL7 files from Azure Blob in-memory and resolves domain OID (MSH-4)',
     catchup=False,
     max_active_runs=1,
+    schedule_interval='@hourly',
     concurrency=100,
     tags=['C-179', 'hl7v2', 'Canary', 'Staging_in_Prod'],
     params={
