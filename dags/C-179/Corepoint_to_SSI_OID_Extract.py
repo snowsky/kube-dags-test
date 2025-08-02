@@ -20,7 +20,7 @@ from lib.operators.azure_connection_string import get_azure_connection_string
 AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
 AZURE_CONNECTION_CONTAINER = 'airflow'
 AZURE_CONNECTION_STRING = get_azure_connection_string(AZURE_CONNECTION_NAME)
-MAX_FILES = 1_000_000
+MAX_FILES = 10_000
 
 default_args = {
     'owner': 'airflow',
@@ -60,21 +60,24 @@ with DAG(
         container_name = AZURE_CONNECTION_CONTAINER
         prefix = "C-179/"
         pattern = re.compile(r"C-179/OB To SSI EUID\d+/")
-
+    
         blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
         container_client = blob_service_client.get_container_client(container_name)
-
+    
         blob_list = container_client.list_blobs(name_starts_with=prefix)
         matched_blobs = []
-
-        for blob in islice(blob_list, MAX_FILES * 2):  # Overfetch to allow filtering
+    
+        for i, blob in enumerate(islice(blob_list, MAX_FILES * 2)):
             if pattern.match(blob.name):
                 matched_blobs.append(blob.name)
+                if len(matched_blobs) % 1000 == 0:
+                    logging.info(f"Matched {len(matched_blobs)} blobs so far (scanned {i + 1} blobs)...")
                 if len(matched_blobs) >= MAX_FILES:
                     break
-
+    
         logging.info(f"Found {len(matched_blobs)} matching blobs.")
         return matched_blobs
+
 
     @task
     def generate_batches(blob_paths: List[str]) -> List[List[str]]:
