@@ -12,7 +12,7 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.operators.python import get_current_context
 
 from azure.storage.blob import BlobServiceClient
-from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback_bytes  # Assumes byte-based version
+from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback
 from lib.operators.azure_connection_string import get_azure_connection_string
 
 # Constants
@@ -114,7 +114,7 @@ with DAG(
                 blob_data = blob_client.download_blob().readall()
 
                 # Process HL7 content from memory
-                oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback_bytes(blob_data)
+                oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(blob_data)
                 if oid:
                     filename = blob_path.split("/")[-1]
                     s3_key = aws_key_pattern.format(OID=oid) + f"/{filename}"
