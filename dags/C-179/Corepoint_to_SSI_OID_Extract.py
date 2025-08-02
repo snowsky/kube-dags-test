@@ -1,8 +1,8 @@
+import os
 import re
-import yaml
-from typing import Dict, List, Union
+import logging
 from datetime import datetime
-from pathlib import Path
+from typing import List
 
 from airflow import DAG
 from airflow.decorators import task
@@ -12,18 +12,12 @@ from airflow.operators.python import get_current_context
 
 from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback
 
-import logging
-# For Prod
-import os
-import hl7
-
-# DAG definition
-
-MSH4_OID_CONFIG = 'hl7v2/msh4_oid.yaml'
-
+# DAG config
 default_args = {
     'owner': 'airflow',
 }
+
+MSH4_OID_CONFIG = 'hl7v2/msh4_oid.yaml'
 
 class BucketDetails:
     def __init__(self, aws_conn_id, aws_key_pattern, s3_hook_kwargs):
@@ -47,21 +41,18 @@ with DAG(
     catchup=False,
     max_active_runs=1,
     concurrency=100,
-    #schedule_interval='@hourly',
-    tags=['C-179','hl7v2', 'Canary', 'Staging_in_Prod'],
+    tags=['C-179', 'hl7v2', 'Canary', 'Staging_in_Prod'],
     params={
         "max_workers": Param(50, type="integer", minimum=1),
         "batch_size": Param(500, type="integer", minimum=1)
     }
 ) as dag:
 
-    @task(dag=dag)
+    @task
     def list_dated_folders_EUID6() -> List[str]:
-        #base_dir = "/data/biakonzasftp/C-179/OB To SSI EUID6"
         base_dir = "/source-biakonzasftp/C-179/OB To SSI EUID6"
         date_folder_pattern = re.compile(r"^\d{8}$")
-    
-        # Get all valid dated folders and sort newest to oldest
+
         all_dated_folders = sorted(
             [
                 os.path.join(base_dir, entry)
@@ -70,52 +61,38 @@ with DAG(
             ],
             reverse=True
         )
-    
+
         logging.info(f"[EUID6] All dated folders (newest to oldest): {all_dated_folders}")
-    
+
         if not all_dated_folders:
             raise FileNotFoundError("[EUID6] No valid dated folders found in directory.")
-    
+
         selected_folder = all_dated_folders[-1]
         logging.info(f"[EUID6] Selected smallest (oldest) folder to process: {selected_folder}")
         return [selected_folder]
 
-    @task(dag=dag)
-    def chunk_files_in_folder(folder_path: str) -> List[List[str]]:
+    @task
+    def generate_batches(folder_path: str) -> List[List[str]]:
         context = get_current_context()
-        batch_size = int(context["params"]["batch_size"])  # Should be 500
+        batch_size = int(context["params"]["batch_size"])
         max_batches = 512
-        max_files = batch_size * max_batches  # 256,000
-    
-        # Collect eligible files
+        max_files = batch_size * max_batches
+
         files = [
             os.path.join(folder_path, f)
             for f in sorted(os.listdir(folder_path))
             if f.endswith(".hl7") or f.endswith(".txt") or '.' not in f
         ]
-    
-        if not files:
-            logging.warning(f"[EUID6] No eligible files in: {folder_path}")
-            return []
-    
-        # Limit to max_files
+
         files = files[:max_files]
-    
-        # Create batches
         batches = [files[i:i + batch_size] for i in range(0, len(files), batch_size)]
-    
+
+        logging.info(f"[EUID6] Created {len(batches)} batches with batch size {batch_size}")
         return batches
 
-
-
-    @task(dag=dag)
-    def flatten_batches(batches: List[List[str]]) -> List[List[str]]:
-        return batches  # This is a passthrough, but forces Airflow to treat each batch as a separate item
-
-                
-    @task(dag=dag)
-    def extract_and_upload_EUID6(file_batch: List[str]):
-        logging.info(f"[EUID6] Received file_batch: {file_batch}")  # ← Add this here ✅
+    @task
+    def process_batch(batch: List[str]):
+        logging.info(f"[EUID6] Processing batch with {len(batch)} files")
 
         bucket_name = 'com-ssigroup-insight-attribution-data'
         bucket_config = AWS_BUCKETS[bucket_name]
@@ -123,15 +100,14 @@ with DAG(
         aws_key_pattern = bucket_config.aws_key_pattern
         s3_hook_kwargs = bucket_config.s3_hook_kwargs
         s3_hook = S3Hook(aws_conn_id=aws_conn_id)
-    
+
         uploaded_items = []
-        #file_batch = file_batch[0]
-        for file_path in file_batch:
+
+        for file_path in batch:
             try:
                 logging.info(f"[EUID6] Processing file: {file_path}")
                 oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(file_path)
                 if oid:
-                    #s3_key = aws_key_pattern.format(OID=oid)
                     filename = os.path.basename(file_path)
                     s3_key = aws_key_pattern.format(OID=oid) + f"/{filename}"
 
@@ -152,33 +128,16 @@ with DAG(
                             logging.info(f"Deleted file after processing: {file_path}")
                         except Exception as delete_error:
                             logging.warning(f"Processed but failed to delete: {file_path} | {delete_error}")
-
                     else:
                         logging.info(f"Key already exists: {s3_key}")
-                        # Key is OID
-                        # if the same OID is extracted again from a new file, the key will be identical, hence skipping to upload.
                 else:
                     logging.warning(f"[EUID6] No OID extracted for: {file_path}")
-
-    
             except Exception as e:
                 logging.warning(f"Failed: {file_path} | {e}")
 
         logging.info(f"Batch uploaded items: {uploaded_items}")
 
     # DAG Chain
-
-    #dated_folders = list_dated_folders_EUID6()
-    #file_batches = chunk_files_in_folder.expand(folder_path=dated_folders)
-
-    #extract_and_upload_EUID6.expand(file_batch=file_batches)
-    #extract_and_upload_EUID6.expand(file_paths=chunk_files_in_folder.partial().expand(folder_path=dated_folders))
-
-    #extract_and_upload_EUID6.expand(file_paths=chunk_files_in_folder.expand(folder_path=dated_folders))
-
     dated_folders = list_dated_folders_EUID6()
-    raw_batches = chunk_files_in_folder.expand(folder_path=dated_folders)
-    flattened_batches = flatten_batches(raw_batches)
-    extract_and_upload_EUID6.partial().expand(file_batch=flattened_batches)
-
-
+    batches = generate_batches.expand(folder_path=dated_folders)
+    process_batch.expand(batch=batches)
