@@ -108,6 +108,10 @@ with DAG(
 
 
 
+    @task(dag=dag)
+    def flatten_batches(batches: List[List[str]]) -> List[List[str]]:
+        return batches  # This is a passthrough, but forces Airflow to treat each batch as a separate item
+
                 
     @task(dag=dag)
     def extract_and_upload_EUID6(file_batch: List[str]):
@@ -173,6 +177,8 @@ with DAG(
     #extract_and_upload_EUID6.expand(file_paths=chunk_files_in_folder.expand(folder_path=dated_folders))
 
     dated_folders = list_dated_folders_EUID6()
-    file_batches = chunk_files_in_folder.expand(folder_path=dated_folders)
-    extract_and_upload_EUID6.partial().expand(file_batch=file_batches)
+    raw_batches = chunk_files_in_folder.expand(folder_path=dated_folders)
+    flattened_batches = flatten_batches(raw_batches)
+    extract_and_upload_EUID6.partial().expand(file_batch=flattened_batches)
+
 
