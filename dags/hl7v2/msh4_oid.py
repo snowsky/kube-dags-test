@@ -193,3 +193,28 @@ def get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(hl7v2_file_path: str)
         #return _facility_mnemonic_to_oid[msh4]
     #else:
         #raise ValueError(f'Cannot find euidOid for facility "{msh4}"')
+
+def get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback_from_bytes(hl7v2_bytes: bytes) -> str:
+    # Load crosswalk mappings
+    # _facility_name_to_oid, _facility_mnemonic_to_oid = load_msh4_oid_config()
+
+    # Decode bytes to string
+    hl7v2_message = hl7v2_bytes.decode('utf-8')
+
+    # Extract MSH-4 value
+    msh4 = get_msh4_from_string(hl7v2_message)
+    msh4_is_oid = validate_hl7v2_oid(msh4)
+    if msh4_is_oid:
+        return msh4
+
+    # Normalize MSH-4 value
+    msh4_key = msh4.split('^')[0].strip() if '^' in msh4 else msh4.strip()
+
+    # Lookup in crosswalk
+    if msh4_key in _facility_name_to_oid:
+        return _facility_name_to_oid[msh4_key]
+    elif msh4_key in _facility_mnemonic_to_oid:
+        return _facility_mnemonic_to_oid[msh4_key]
+    else:
+        raise ValueError(f'Cannot find euidOid for facility "{msh4}" (parsed key: "{msh4_key}")')
+
