@@ -64,19 +64,26 @@ with DAG(
         blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
         container_client = blob_service_client.get_container_client(container_name)
         blob_list = container_client.list_blobs(name_starts_with=prefix)
-        logging.info(f"Blobs {blob_list}")
+    
         matched_blobs = []
     
         for i, blob in enumerate(islice(blob_list, MAX_FILES * 2)):
+            # Log the first few blobs being scanned
+            if i < 10:
+                logging.info(f"Scanning blob: {blob.name}")
+    
             if pattern.match(blob.name):
                 matched_blobs.append(blob.name)
-                if len(matched_blobs) % 1000 == 0:
-                    logging.info(f"Matched {len(matched_blobs)} blobs so far (scanned {i + 1} blobs)...")
+                logging.info(f"[{len(matched_blobs)}] Matched blob: {blob.name}")
                 if len(matched_blobs) >= MAX_FILES:
                     break
     
-        logging.info(f"Found {len(matched_blobs)} matching blobs.")
+            if len(matched_blobs) % 1000 == 0 and len(matched_blobs) > 0:
+                logging.info(f"Matched {len(matched_blobs)} blobs so far (scanned {i + 1} blobs)...")
+    
+        logging.info(f"Finished listing. Total matched blobs: {len(matched_blobs)}")
         return matched_blobs
+    
 
 
     @task
