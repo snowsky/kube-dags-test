@@ -11,8 +11,9 @@ from airflow.models.param import Param
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.operators.python import get_current_context
 
+
 from azure.storage.blob import BlobServiceClient
-from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback
+from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback_bytes
 from lib.operators.azure_connection_string import get_azure_connection_string
 
 # Constants
@@ -94,31 +95,31 @@ with DAG(
     @task
     def process_batch(batch: List[str]):
         logging.info(f"Processing batch with {len(batch)} blobs")
-
+    
         bucket_name = 'com-ssigroup-insight-attribution-data'
         bucket_config = AWS_BUCKETS[bucket_name]
         aws_conn_id = bucket_config.aws_conn_id
         aws_key_pattern = bucket_config.aws_key_pattern
         s3_hook_kwargs = bucket_config.s3_hook_kwargs
         s3_hook = S3Hook(aws_conn_id=aws_conn_id)
-
+    
         uploaded_items = []
-
+    
         blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
         container_client = blob_service_client.get_container_client(AZURE_CONNECTION_CONTAINER)
-
+    
         for blob_path in batch:
             try:
                 logging.info(f"Processing blob: {blob_path}")
                 blob_client = container_client.get_blob_client(blob_path)
                 blob_data = blob_client.download_blob().readall()
-
+    
                 # Process HL7 content from memory
-                oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(blob_data)
+                oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback_bytes(blob_data)
                 if oid:
                     filename = blob_path.split("/")[-1]
                     s3_key = aws_key_pattern.format(OID=oid) + f"/{filename}"
-
+    
                     if not s3_hook.check_for_key(s3_key, bucket_name=bucket_name):
                         s3_hook.load_string(
                             string_data=oid,
@@ -128,15 +129,23 @@ with DAG(
                         )
                         logging.info(f"Uploaded OID '{oid}' for blob: {blob_path} to s3://{bucket_name}/{s3_key}")
                         uploaded_items.append({"oid": oid, "blob_path": blob_path})
+    
+                        # Delete blob from Azure after successful upload
+                        try:
+                            blob_client.delete_blob()
+                            logging.info(f"Deleted blob from Azure: {blob_path}")
+                        except Exception as delete_error:
+                            logging.warning(f"Failed to delete blob: {blob_path} | {delete_error}")
                     else:
                         logging.info(f"Key already exists: {s3_key}")
                 else:
                     logging.warning(f"No OID extracted for: {blob_path}")
-
+    
             except Exception as e:
                 logging.warning(f"Failed to process blob: {blob_path} | {e}")
-
+    
         logging.info(f"Batch uploaded items: {uploaded_items}")
+
 
     # DAG Chain
     all_blobs = list_relevant_blobs()
