@@ -67,18 +67,18 @@ with DAG(
         return matched_files
 
     @task
-    def generate_batches(xml_files: List[str]) -> List[List[str]]:
+    def generate_batches(file_list: List[str]) -> List[List[str]]:
         context = get_current_context()
         batch_size = int(context["params"]["batch_size"])
 
-        def divide_files_into_batches(xml_files: List[str], batch_size: str) -> List[List[str]]:
+        def divide_files_into_batches(file_list: List[str], batch_size: str) -> List[List[str]]:
             batch_size = int(batch_size)
             return [
-                xml_files[i: i + batch_size] 
-                for i in range(0, len(xml_files), batch_size)
+                file_list[i: i + batch_size] 
+                for i in range(0, len(file_list), batch_size)
             ]
 
-        batches = divide_files_into_batches(xml_files, batch_size)
+        batches = divide_files_into_batches(file_list, batch_size)
         logging.info(f"Created {len(batches)} batches with batch size {batch_size}")
         return batches
 
