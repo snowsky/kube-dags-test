@@ -1,8 +1,8 @@
-import os
-import re
 import logging
+import re
 from datetime import datetime
 from typing import List
+from itertools import islice
 
 from airflow import DAG
 from airflow.decorators import task
@@ -10,14 +10,20 @@ from airflow.models.param import Param
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.operators.python import get_current_context
 
+from azure.storage.blob import BlobServiceClient
 from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback
+from lib.operators.azure_connection_string import get_azure_connection_string
 
-# DAG config
+# Constants
+AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
+AZURE_CONNECTION_CONTAINER = 'airflow'
+AZURE_CONNECTION_STRING = get_azure_connection_string(AZURE_CONNECTION_NAME)
+MAX_FILES = 1_000_000
+
 default_args = {
     'owner': 'airflow',
+    'start_date': datetime(2025, 7, 10),
 }
-
-MSH4_OID_CONFIG = 'hl7v2/msh4_oid.yaml'
 
 class BucketDetails:
     def __init__(self, aws_conn_id, aws_key_pattern, s3_hook_kwargs):
@@ -34,57 +40,59 @@ AWS_BUCKETS = {
 }
 
 with DAG(
-    dag_id='Corepoint_to_SSI_OID_Extract',
+    dag_id='Corepoint_to_SSI_OID_Extract_MountFree',
     default_args=default_args,
-    description='Parses HL7 files and resolves domain OID (MSH-4)',
-    start_date=datetime(2025, 7, 10),
+    description='Parses HL7 files from Azure Blob and resolves domain OID (MSH-4)',
     catchup=False,
     max_active_runs=1,
     concurrency=100,
     tags=['C-179', 'hl7v2', 'Canary', 'Staging_in_Prod'],
     params={
-        "max_workers": Param(50, type="integer", minimum=1),
-        "batch_size": Param(500, type="integer", minimum=1)
+        "batch_size": Param(500, type="integer", minimum=1),
+        "container_name": Param(AZURE_CONNECTION_CONTAINER, type="string"),
     }
 ) as dag:
 
     @task
-    def list_relevant_files() -> List[str]:
-        base_dir = "/source-biakonzasftp/C-179/"
-        target_pattern = "OB To SSI EUID"
-        max_files = 2000000
-        matched_files = []
+    def list_relevant_blobs() -> List[str]:
+        container_name = AZURE_CONNECTION_CONTAINER
+        prefix = "C-179/"
+        pattern = re.compile(r"C-179/OB To SSI EUID\d+/")
 
-        for root, dirs, files in os.walk(base_dir):
-            if target_pattern in root:
-                for file in files:
-                    if file.endswith(".hl7") or file.endswith(".txt") or '.' not in file:
-                        matched_files.append(os.path.join(root, file))
-                        if len(matched_files) >= max_files:
-                            logging.info(f"Reached file limit of {max_files}")
-                            return matched_files
-        logging.info(f"Total matched files: {len(matched_files)}")
-        return matched_files
+        blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
+        container_client = blob_service_client.get_container_client(container_name)
+
+        blob_list = container_client.list_blobs(name_starts_with=prefix)
+        matched_blobs = []
+
+        for blob in islice(blob_list, MAX_FILES * 2):  # Overfetch to allow filtering
+            if pattern.match(blob.name):
+                matched_blobs.append(blob.name)
+                if len(matched_blobs) >= MAX_FILES:
+                    break
+
+        logging.info(f"Found {len(matched_blobs)} matching blobs.")
+        return matched_blobs
 
     @task
-    def generate_batches(file_list: List[str]) -> List[List[str]]:
+    def generate_batches(blob_paths: List[str]) -> List[List[str]]:
         context = get_current_context()
         batch_size = int(context["params"]["batch_size"])
 
-        def divide_files_into_batches(file_list: List[str], batch_size: str) -> List[List[str]]:
+        def divide_files_into_batches(xml_files: List[str], batch_size: str) -> List[List[str]]:
             batch_size = int(batch_size)
             return [
-                file_list[i: i + batch_size] 
-                for i in range(0, len(file_list), batch_size)
+                xml_files[i: i + batch_size] 
+                for i in range(0, len(xml_files), batch_size)
             ]
 
-        batches = divide_files_into_batches(file_list, batch_size)
+        batches = divide_files_into_batches(blob_paths, batch_size)
         logging.info(f"Created {len(batches)} batches with batch size {batch_size}")
         return batches
 
     @task
     def process_batch(batch: List[str]):
-        logging.info(f"Processing batch with {len(batch)} files")
+        logging.info(f"Processing batch with {len(batch)} blobs")
 
         bucket_name = 'com-ssigroup-insight-attribution-data'
         bucket_config = AWS_BUCKETS[bucket_name]
@@ -95,41 +103,52 @@ with DAG(
 
         uploaded_items = []
 
-        for file_path in batch:
+        for blob_path in batch:
             try:
-                logging.info(f"Processing file: {file_path}")
-                oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(file_path)
+                logging.info(f"Processing blob: {blob_path}")
+                # Download blob content
+                blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
+                container_client = blob_service_client.get_container_client(AZURE_CONNECTION_CONTAINER)
+                blob_client = container_client.get_blob_client(blob_path)
+                blob_data = blob_client.download_blob().readall()
+
+                # Save to temp file
+                temp_file_path = f"/tmp/{blob_path.replace('/', '_')}"
+                with open(temp_file_path, "wb") as f:
+                    f.write(blob_data)
+
+                oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(temp_file_path)
                 if oid:
-                    filename = os.path.basename(file_path)
+                    filename = blob_path.split("/")[-1]
                     s3_key = aws_key_pattern.format(OID=oid) + f"/{filename}"
 
-                    key_exists = s3_hook.check_for_key(s3_key, bucket_name=bucket_name)
-
-                    if not key_exists:
+                    if not s3_hook.check_for_key(s3_key, bucket_name=bucket_name):
                         s3_hook.load_string(
                             string_data=oid,
                             key=s3_key,
                             bucket_name=bucket_name,
                             **s3_hook_kwargs
                         )
-                        logging.info(f"Uploaded OID '{oid}' for file: {file_path} to s3://{bucket_name}/{s3_key}")
-                        uploaded_items.append({"oid": oid, "file_path": file_path})
-
-                        try:
-                            os.remove(file_path)
-                            logging.info(f"Deleted file after processing: {file_path}")
-                        except Exception as delete_error:
-                            logging.warning(f"Processed but failed to delete: {file_path} | {delete_error}")
+                        logging.info(f"Uploaded OID '{oid}' for blob: {blob_path} to s3://{bucket_name}/{s3_key}")
+                        uploaded_items.append({"oid": oid, "blob_path": blob_path})
                     else:
                         logging.info(f"Key already exists: {s3_key}")
                 else:
-                    logging.warning(f"No OID extracted for: {file_path}")
+                    logging.warning(f"No OID extracted for: {blob_path}")
+
+                # Clean up
+                try:
+                    import os
+                    os.remove(temp_file_path)
+                except Exception as e:
+                    logging.warning(f"Failed to delete temp file: {temp_file_path} | {e}")
+
             except Exception as e:
-                logging.warning(f"Failed: {file_path} | {e}")
+                logging.warning(f"Failed to process blob: {blob_path} | {e}")
 
         logging.info(f"Batch uploaded items: {uploaded_items}")
 
     # DAG Chain
-    all_files = list_relevant_files()
-    batches = generate_batches(xml_files=all_files)
+    all_blobs = list_relevant_blobs()
+    batches = generate_batches(blob_paths=all_blobs)
     process_batch.expand(batch=batches)
