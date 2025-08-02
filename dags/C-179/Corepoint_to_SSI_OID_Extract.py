@@ -63,8 +63,8 @@ with DAG(
     
         blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
         container_client = blob_service_client.get_container_client(container_name)
-    
         blob_list = container_client.list_blobs(name_starts_with=prefix)
+        logging.info(f"Blobs {blob_list}")
         matched_blobs = []
     
         for i, blob in enumerate(islice(blob_list, MAX_FILES * 2)):
