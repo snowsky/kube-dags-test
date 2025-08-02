@@ -159,6 +159,21 @@ def get_msh4(file_path: str) -> hl7.Segment:
     # Note: the MSH segment is 1-indexed
     return str(msh_segment[0][4])
 
+def get_msh4_from_string(hl7_string: str) -> str:
+    # Normalize line endings for HL7 parsing
+    message = hl7_string.replace('\n', '\r')
+    hl7v2_message = hl7.parse(message)
+
+    msh_segment = hl7v2_message.segments('MSH')
+    if msh_segment is None or len(msh_segment) == 0:
+        return None
+    if len(msh_segment[0]) < 5:
+        return None
+
+    # MSH segment is 1-indexed; MSH-4 is at index 4
+    return str(msh_segment[0][4])
+
+
 # todo:switch to loading dicts once inside the function  
 _facility_name_to_oid, _facility_mnemonic_to_oid = load_msh4_oid_config()
 #logging.info(_facility_mnemonic_to_oid['OCE'])
