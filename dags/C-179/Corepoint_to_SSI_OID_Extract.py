@@ -49,50 +49,42 @@ with DAG(
 ) as dag:
 
     @task
-    def list_dated_folders_EUID6() -> List[str]:
-        base_dir = "/source-biakonzasftp/C-179/OB To SSI EUID6"
-        date_folder_pattern = re.compile(r"^\d{8}$")
+    def list_relevant_files() -> List[str]:
+        base_dir = "/source-biakonzasftp/C-179/"
+        target_pattern = "OB To SSI EUID"
+        max_files = 2000000
+        matched_files = []
 
-        all_dated_folders = sorted(
-            [
-                os.path.join(base_dir, entry)
-                for entry in os.listdir(base_dir)
-                if os.path.isdir(os.path.join(base_dir, entry)) and date_folder_pattern.match(entry)
-            ],
-            reverse=True
-        )
-
-        logging.info(f"[EUID6] All dated folders (newest to oldest): {all_dated_folders}")
-
-        if not all_dated_folders:
-            raise FileNotFoundError("[EUID6] No valid dated folders found in directory.")
-
-        selected_folder = all_dated_folders[-1]
-        logging.info(f"[EUID6] Selected smallest (oldest) folder to process: {selected_folder}")
-        return [selected_folder]
+        for root, dirs, files in os.walk(base_dir):
+            if target_pattern in root:
+                for file in files:
+                    if file.endswith(".hl7") or file.endswith(".txt") or '.' not in file:
+                        matched_files.append(os.path.join(root, file))
+                        if len(matched_files) >= max_files:
+                            logging.info(f"Reached file limit of {max_files}")
+                            return matched_files
+        logging.info(f"Total matched files: {len(matched_files)}")
+        return matched_files
 
     @task
-    def generate_batches(folder_path: str) -> List[List[str]]:
+    def generate_batches(xml_files: List[str]) -> List[List[str]]:
         context = get_current_context()
         batch_size = int(context["params"]["batch_size"])
-        max_batches = 512
-        max_files = batch_size * max_batches
 
-        files = [
-            os.path.join(folder_path, f)
-            for f in sorted(os.listdir(folder_path))
-            if f.endswith(".hl7") or f.endswith(".txt") or '.' not in f
-        ]
+        def divide_files_into_batches(xml_files: List[str], batch_size: str) -> List[List[str]]:
+            batch_size = int(batch_size)
+            return [
+                xml_files[i: i + batch_size] 
+                for i in range(0, len(xml_files), batch_size)
+            ]
 
-        files = files[:max_files]
-        batches = [files[i:i + batch_size] for i in range(0, len(files), batch_size)]
-
-        logging.info(f"[EUID6] Created {len(batches)} batches with batch size {batch_size}")
+        batches = divide_files_into_batches(xml_files, batch_size)
+        logging.info(f"Created {len(batches)} batches with batch size {batch_size}")
         return batches
 
     @task
     def process_batch(batch: List[str]):
-        logging.info(f"[EUID6] Processing batch with {len(batch)} files")
+        logging.info(f"Processing batch with {len(batch)} files")
 
         bucket_name = 'com-ssigroup-insight-attribution-data'
         bucket_config = AWS_BUCKETS[bucket_name]
@@ -105,7 +97,7 @@ with DAG(
 
         for file_path in batch:
             try:
-                logging.info(f"[EUID6] Processing file: {file_path}")
+                logging.info(f"Processing file: {file_path}")
                 oid = get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(file_path)
                 if oid:
                     filename = os.path.basename(file_path)
@@ -120,7 +112,7 @@ with DAG(
                             bucket_name=bucket_name,
                             **s3_hook_kwargs
                         )
-                        logging.info(f"[EUID6] Uploaded OID '{oid}' for file: {file_path} to s3://{bucket_name}/{s3_key}")
+                        logging.info(f"Uploaded OID '{oid}' for file: {file_path} to s3://{bucket_name}/{s3_key}")
                         uploaded_items.append({"oid": oid, "file_path": file_path})
 
                         try:
@@ -131,13 +123,13 @@ with DAG(
                     else:
                         logging.info(f"Key already exists: {s3_key}")
                 else:
-                    logging.warning(f"[EUID6] No OID extracted for: {file_path}")
+                    logging.warning(f"No OID extracted for: {file_path}")
             except Exception as e:
                 logging.warning(f"Failed: {file_path} | {e}")
 
         logging.info(f"Batch uploaded items: {uploaded_items}")
 
     # DAG Chain
-    dated_folders = list_dated_folders_EUID6()
-    batches = generate_batches.expand(folder_path=dated_folders)
+    all_files = list_relevant_files()
+    batches = generate_batches(xml_files=all_files)
     process_batch.expand(batch=batches)
