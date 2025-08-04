@@ -54,7 +54,7 @@ with DAG(
     schedule_interval='@daily',
     catchup=False,
     max_active_runs=1,
-    tags=['C-174', 'Batch_Zip', 'SFTP'],
+    tags=['C-174', 'C-194', 'Batch_Zip', 'SFTP'],
 ) as dag:
 
     zip_task = PythonOperator(
