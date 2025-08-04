@@ -100,12 +100,12 @@ with DAG(
             ]
 
         batches = divide_files_into_batches(blob_paths, batch_size)
-        logging.info(f"Created {len(batches)} batches with batch size {batch_size}")
+        #logging.info(f"Created {len(batches)} batches with batch size {batch_size}")
         return batches
 
     @task
     def process_batch(batch: List[str]):
-        logging.info(f"Processing batch with {len(batch)} blobs")
+        #logging.info(f"Processing batch with {len(batch)} blobs")
     
         bucket_name = 'com-ssigroup-insight-attribution-data'
         bucket_config = AWS_BUCKETS[bucket_name]
@@ -121,7 +121,7 @@ with DAG(
     
         for blob_path in batch:
             try:
-                logging.info(f"Processing blob: {blob_path}")
+                #logging.info(f"Processing blob: {blob_path}")
                 blob_client = container_client.get_blob_client(blob_path)
                 blob_data = blob_client.download_blob().readall()
     
@@ -138,13 +138,13 @@ with DAG(
                             bucket_name=bucket_name,
                             **s3_hook_kwargs
                         )
-                        logging.info(f"Uploaded OID '{oid}' for blob: {blob_path} to s3://{bucket_name}/{s3_key}")
+                        #logging.info(f"Uploaded OID '{oid}' for blob: {blob_path} to s3://{bucket_name}/{s3_key}")
                         uploaded_items.append({"oid": oid, "blob_path": blob_path})
     
                         # Delete blob from Azure after successful upload
                         try:
                             blob_client.delete_blob()
-                            logging.info(f"Deleted blob from Azure: {blob_path}")
+                            #logging.info(f"Deleted blob from Azure: {blob_path}")
                         except Exception as delete_error:
                             logging.warning(f"Failed to delete blob: {blob_path} | {delete_error}")
                     else:
@@ -155,7 +155,7 @@ with DAG(
             except Exception as e:
                 logging.warning(f"Failed to process blob: {blob_path} | {e}")
     
-        logging.info(f"Batch uploaded items: {uploaded_items}")
+        #logging.info(f"Batch uploaded items: {len(uploaded_items)}")
 
 
     # DAG Chain
