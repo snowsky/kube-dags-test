@@ -5,6 +5,9 @@ import pytest
 from typing import Dict, List, Union, Tuple
 import logging
 import os
+import chardet
+
+
 
 # todo: this needs to be reverted when landing in PROD
 #For Dev :
@@ -210,11 +213,15 @@ def get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback(hl7v2_file_path: str)
         #raise ValueError(f'Cannot find euidOid for facility "{msh4}"')
 
 def get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback_from_bytes(hl7v2_bytes: bytes) -> str:
-    # Load crosswalk mappings
-    # _facility_name_to_oid, _facility_mnemonic_to_oid = load_msh4_oid_config()
+    # Detect encoding
+    detected = chardet.detect(hl7v2_bytes)
+    encoding = detected.get('encoding', 'utf-8')  # fallback to utf-8 if detection fails
 
-    # Decode bytes to string
-    hl7v2_message = hl7v2_bytes.decode('utf-8')
+    # Decode bytes to string with fallback error handling
+    try:
+        hl7v2_message = hl7v2_bytes.decode(encoding, errors='replace')
+    except Exception as decode_error:
+        raise ValueError(f"Failed to decode HL7 message using encoding '{encoding}': {decode_error}")
 
     # Extract MSH-4 value
     msh4 = get_msh4_from_string(hl7v2_message)
@@ -232,4 +239,3 @@ def get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback_from_bytes(hl7v2_byte
         return _facility_mnemonic_to_oid[msh4_key]
     else:
         raise ValueError(f'Cannot find euidOid for facility "{msh4}" (parsed key: "{msh4_key}")')
-
