@@ -48,10 +48,10 @@ with DAG(
     catchup=False,
     max_active_runs=1,
     schedule_interval='@hourly',
-    concurrency=100,
+    concurrency=50,
     tags=['C-179', 'hl7v2', 'Canary', 'Staging_in_Prod'],
     params={
-        "batch_size": Param(1000, type="integer", minimum=1),
+        "batch_size": Param(10000, type="integer", minimum=1),
         "container_name": Param(AZURE_CONNECTION_CONTAINER, type="string"),
     }
 ) as dag:
