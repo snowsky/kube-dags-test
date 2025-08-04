@@ -20,7 +20,7 @@ from lib.operators.azure_connection_string import get_azure_connection_string
 AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
 AZURE_CONNECTION_CONTAINER = 'airflow'
 AZURE_CONNECTION_STRING = get_azure_connection_string(AZURE_CONNECTION_NAME)
-MAX_FILES = 200_000
+MAX_FILES = 500_000
 
 default_args = {
     'owner': 'airflow',
