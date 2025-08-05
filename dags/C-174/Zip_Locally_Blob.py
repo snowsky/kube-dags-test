@@ -28,6 +28,7 @@ def batch_zip_by_date_folder():
     blobs_by_date = defaultdict(list)
     all_blobs = container_client.list_blobs(name_starts_with=SOURCE_PREFIX)
 
+    total_blob_count = 0
     for blob in all_blobs:
         if blob.name.lower().endswith('.zip') or blob.name.endswith('/'):
             continue
@@ -36,10 +37,13 @@ def batch_zip_by_date_folder():
         if len(parts) == 2:
             date_folder, file_path = parts
             blobs_by_date[date_folder].append(blob.name)
+            total_blob_count += 1
 
-    logger.info("Found %d date folders", len(blobs_by_date))
+    logger.info("Total blobs to process: %d", total_blob_count)
+    logger.info("Found %d date folders: %s", len(blobs_by_date), list(blobs_by_date.keys()))
 
     def zip_date_folder(date_folder, blob_names):
+        logger.info("Processing folder: %s with %d blobs", date_folder, len(blob_names))
         zip_buffer = BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for blob_name in blob_names:
@@ -47,14 +51,14 @@ def batch_zip_by_date_folder():
                     blob_data = container_client.download_blob(blob_name).readall()
                     relative_path = blob_name[len(SOURCE_PREFIX):]
                     zipf.writestr(relative_path, blob_data)
-                    logger.info("Added %s to %s.zip", relative_path, date_folder)
+                    logger.debug("Added %s to %s.zip", relative_path, date_folder)
                 except Exception as e:
                     logger.error("Failed to add %s: %s", blob_name, str(e), exc_info=True)
 
         zip_buffer.seek(0)
         zip_blob_name = f"{DESTINATION_PREFIX}{date_folder}.zip"
         container_client.upload_blob(name=zip_blob_name, data=zip_buffer, overwrite=True)
-        logger.info("Uploaded %s", zip_blob_name)
+        logger.info("Uploaded ZIP for folder %s: %s", date_folder, zip_blob_name)
 
     with ThreadPoolExecutor(max_workers=4) as executor:
         for date_folder, blob_names in blobs_by_date.items():
