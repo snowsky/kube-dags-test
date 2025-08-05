@@ -36,7 +36,7 @@ class BucketDetails:
 AWS_BUCKETS = {
     'com-ssigroup-insight-attribution-data': BucketDetails(
         aws_conn_id='konzaandssigrouppipelines',
-        aws_key_pattern='subscriberName=KONZA/subscriptionName=HL7V2/source=HL7v2/status=pending/domainOid={OID}/{OID}',
+        aws_key_pattern='subscriberName=KONZA/subscriptionName=HL7V2/source=HL7v2/status=pending/domainOid={OID}',
         s3_hook_kwargs={'encrypt': True, 'acl_policy': 'bucket-owner-full-control'}
     )
 }
