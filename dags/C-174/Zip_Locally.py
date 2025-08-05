@@ -49,7 +49,7 @@ default_args = {
 }
 
 with DAG(
-    dag_id='batch_zip_sftp_files_C174',
+    dag_id='Zip_Locally_batch_zip_sftp_files_C174',
     default_args=default_args,
     schedule_interval='@daily',
     catchup=False,
