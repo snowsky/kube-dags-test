@@ -51,7 +51,7 @@ with DAG(
     concurrency=50,
     tags=['C-179', 'hl7v2', 'Canary', 'Staging_in_Prod'],
     params={
-        "batch_size": Param(100000, type="integer", minimum=1),
+        "batch_size": Param(10000, type="integer", minimum=1),
         "container_name": Param(AZURE_CONNECTION_CONTAINER, type="string"),
     }
 ) as dag:
