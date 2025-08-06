@@ -48,7 +48,7 @@ with DAG(
     catchup=False,
     max_active_runs=1,
     schedule_interval='@hourly',
-    concurrency=50,
+    concurrency=25,
     tags=['C-179', 'hl7v2', 'Canary', 'Staging_in_Prod'],
     params={
         "batch_size": Param(10000, type="integer", minimum=1),
