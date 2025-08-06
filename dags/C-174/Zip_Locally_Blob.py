@@ -3,12 +3,14 @@ from datetime import datetime
 from io import BytesIO
 import zipfile
 from collections import defaultdict
+import time
 
 from airflow import DAG
 from airflow.decorators import task
 from airflow.models.xcom_arg import XComArg
 
 from azure.storage.blob import BlobServiceClient
+from azure.core.exceptions import ServiceRequestError
 from lib.operators.azure_connection_string import get_azure_connection_string
 
 # Constants
@@ -16,13 +18,23 @@ AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
 AZURE_CONTAINER_NAME = 'airflow'
 SOURCE_PREFIX = 'C-194/archive_C-174/'
 DESTINATION_PREFIX = 'C-194/restore_C-174/'
+MAX_BLOBS = 100  # Limit for debugging
 
-# DAG definition
 default_args = {
     'owner': 'airflow',
     'start_date': datetime(2025, 6, 1),
     'retries': 1,
 }
+
+def safe_list_blobs(container_client, prefix, retries=3, delay=5):
+    for attempt in range(retries):
+        try:
+            return container_client.list_blobs(name_starts_with=prefix, results_per_page=500)
+        except ServiceRequestError as e:
+            if attempt < retries - 1:
+                time.sleep(delay)
+            else:
+                raise e
 
 with DAG(
     dag_id='Zip_Azure_Blob_By_DateFolder_Expanded',
@@ -43,8 +55,10 @@ with DAG(
         blobs_by_date = defaultdict(list)
         total_blob_count = 0
 
-        all_blobs = container_client.list_blobs(name_starts_with=SOURCE_PREFIX)
-        for blob in all_blobs:
+        all_blobs = safe_list_blobs(container_client, SOURCE_PREFIX)
+        for i, blob in enumerate(all_blobs):
+            if i >= MAX_BLOBS:
+                break
             if blob.name.lower().endswith('.zip') or blob.name.endswith('/'):
                 continue
             relative_path = blob.name[len(SOURCE_PREFIX):]
@@ -54,10 +68,9 @@ with DAG(
                 blobs_by_date[date_folder].append(blob.name)
                 total_blob_count += 1
 
-        logger.info("Total blobs to process: %d", total_blob_count)
-        logger.info("Found %d date folders: %s", len(blobs_by_date), list(blobs_by_date.keys()))
+        logger.info("Total blobs to process (limited): %d", total_blob_count)
+        logger.debug("Found date folders: %s", list(blobs_by_date.keys()))
 
-        # Return list of dicts for dynamic task mapping
         return [{'date_folder': k, 'blob_names': v} for k, v in blobs_by_date.items()]
 
     @task
@@ -81,13 +94,12 @@ with DAG(
                     zipf.writestr(relative_path, blob_data)
                     logger.debug("Added %s to %s.zip", relative_path, date_folder)
                 except Exception as e:
-                    logger.error("Failed to add %s: %s", blob_name, str(e), exc_info=True)
+                    logger.warning("Failed to add %s: %s", blob_name, str(e))
 
         zip_buffer.seek(0)
         zip_blob_name = f"{DESTINATION_PREFIX}{date_folder}.zip"
         container_client.upload_blob(name=zip_blob_name, data=zip_buffer, overwrite=True)
         logger.info("Uploaded ZIP for folder %s: %s", date_folder, zip_blob_name)
 
-    # DAG flow
     date_blob_groups = list_blobs_by_date_folder()
     zip_blobs_for_date_folder.expand(input=date_blob_groups)
