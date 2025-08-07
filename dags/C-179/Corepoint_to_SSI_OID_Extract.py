@@ -184,11 +184,11 @@ with DAG(
     
             except Exception as e:
                 logging.warning(f"Failed to process blob: {blob_path} | {e}")
-                try:
-                    blob_client = container_client.get_blob_client(blob_path)
-                    archive_blob(blob_client, blob_path)
-                except Exception as archive_fallback:
-                    logging.warning(f"Failed to move errored blob to archive: {blob_path} | {archive_fallback}")
+                #try:
+                #    blob_client = container_client.get_blob_client(blob_path)
+                #    archive_blob(blob_client, blob_path)
+                #except Exception as archive_fallback:
+                #    logging.warning(f"Failed to move errored blob to archive: {blob_path} | {archive_fallback}")
     
         #logging.info(f"Batch uploaded items: {len(uploaded_items)}")
 
