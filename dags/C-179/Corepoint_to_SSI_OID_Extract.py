@@ -118,6 +118,32 @@ with DAG(
     
         blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
         container_client = blob_service_client.get_container_client(AZURE_CONNECTION_CONTAINER)
+
+        def archive_blob(blob_client, blob_path):
+            try:
+                archive_path = blob_path.replace("OB To SSI EUID", "Detected Failed Files Archived/OB To SSI EUID")
+                #archive_path = blob_path.replace("OB To SSI EUID_test", "archive_ob_to_ssi_files/OB To SSI EUID_test")
+
+                archive_blob_client = container_client.get_blob_client(archive_path)
+        
+                # Start copy
+                archive_blob_client.start_copy_from_url(blob_client.url)
+                # Confirm copy completion (safe)
+                copy_status = archive_blob_client.get_blob_properties().copy.status
+                while copy_status == 'pending':
+                    import time
+                    time.sleep(1)
+                    copy_status = archive_blob_client.get_blob_properties().copy.status
+        
+                if copy_status == 'success':
+                    blob_client.delete_blob()
+
+                    logging.info(f"Moved failed blob to archive: {archive_path}")
+                else:
+                    logging.warning(f"Copy did not succeed for {blob_path} | Status: {copy_status}")
+        
+            except Exception as archive_error:
+                logging.warning(f"Failed to archive blob: {blob_path} | {archive_error}")
     
         for blob_path in batch:
             try:
@@ -149,11 +175,20 @@ with DAG(
                             logging.warning(f"Failed to delete blob: {blob_path} | {delete_error}")
                     else:
                         logging.info(f"Key already exists: {s3_key}")
+                        archive_blob(blob_client, blob_path)
+
                 else:
                     logging.warning(f"No OID extracted for: {blob_path}")
+                    archive_blob(blob_client, blob_path)
+
     
             except Exception as e:
                 logging.warning(f"Failed to process blob: {blob_path} | {e}")
+                try:
+                    blob_client = container_client.get_blob_client(blob_path)
+                    archive_blob(blob_client, blob_path)
+                except Exception as archive_fallback:
+                    logging.warning(f"Failed to move errored blob to archive: {blob_path} | {archive_fallback}")
     
         #logging.info(f"Batch uploaded items: {len(uploaded_items)}")
 
