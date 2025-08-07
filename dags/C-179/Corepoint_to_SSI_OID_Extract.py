@@ -132,8 +132,8 @@ with DAG(
                     s3_key = aws_key_pattern.format(OID=oid) + f"/{filename}"
     
                     if not s3_hook.check_for_key(s3_key, bucket_name=bucket_name):
-                        s3_hook.load_string(
-                            string_data=oid,
+                        s3_hook.load_bytes(
+                            bytes_data=blob_data,
                             key=s3_key,
                             bucket_name=bucket_name,
                             **s3_hook_kwargs
