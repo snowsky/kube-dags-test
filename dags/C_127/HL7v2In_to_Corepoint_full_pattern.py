@@ -33,7 +33,9 @@ AWS_BUCKETS = {
 def check_and_rename_filename(file_key):
     decoded_key = unquote(file_key)
     file_name = decoded_key.split('/')[-1]
-    pattern = r"HL7v2In/domainOid=[^/]+/root=([^/]+)/extension=([^/]+)/([0-9A-F\-]+)"
+    #pattern = r"HL7v2In/domainOid=[^/]+/root=([^/]+)/extension=([^/]+)/([0-9A-F\-]+)"
+    pattern = r"HL7v2In/domainOid=[^/]+/root=([^/]+)/extension=([^/]+)/([^/]+)"
+
     match = re.search(pattern, decoded_key, re.IGNORECASE)
     if match:
         root, extension, uuid = match.groups()
