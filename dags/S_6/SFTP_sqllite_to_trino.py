@@ -1,3 +1,30 @@
+
+"""
+DAG Name: SFTP_sqllite_to_trino
+
+Summary:
+This DAG performs the following steps:
+
+1. Scans the source directory: /source-biakonzasftp/S-6/SFTP/
+   - Looks for dated subfolders in the format YYYYMMDD
+   - Identifies SQLite database files (files with no extension)
+
+2. For each SQLite file found:
+   - Extracts all tables
+   - Converts each table to a Parquet file
+   - Saves Parquet files to: /source-biakonzasftp/S-6/SFTP/parquet/YYYY-MM/
+
+3. Uploads the Parquet files to Azure Blob Storage:
+   - Destination: https://reportwriterstorage.blob.core.windows.net/content/SFTP/YYYY-MM/
+   - Internal Data Dictionary (Table Reference: WingSFTP) - Rows should be visible in operations.konza.org -> Database Trino -> Schema SFTP -> select * from hive.sftp.wftp_dblogs;
+
+4. Archives the original SQLite files:
+   - Moves them to: /source-biakonzasftp/S-6/SFTP/archive/YYYYMMDD/
+
+5. Sends an email alert if any task fails.
+"""
+
+
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime
