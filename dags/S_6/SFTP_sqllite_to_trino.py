@@ -1,9 +1,8 @@
-
 """
 DAG Name: SFTP_sqllite_to_trino
 
 Summary:
-This DAG performs the following steps:
+This DAG performs the following steps daily:
 
 1. Scans the source directory: /source-biakonzasftp/S-6/SFTP/
    - Looks for dated subfolders in the format YYYYMMDD
@@ -16,7 +15,7 @@ This DAG performs the following steps:
 
 3. Uploads the Parquet files to Azure Blob Storage:
    - Destination: https://reportwriterstorage.blob.core.windows.net/content/SFTP/YYYY-MM/
-   - Internal Data Dictionary (Table Reference: WingSFTP) - Rows should be visible in operations.konza.org -> Database Trino -> Schema SFTP -> select * from hive.sftp.wftp_dblogs;
+   - Uses Airflow connection ID: reportwriterstorage-blob-core-windows-net
 
 4. Archives the original SQLite files:
    - Moves them to: /source-biakonzasftp/S-6/SFTP/archive/YYYYMMDD/
@@ -24,11 +23,11 @@ This DAG performs the following steps:
 5. Sends an email alert if any task fails.
 """
 
-
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime
 from airflow.utils.email import send_email
+from airflow.hooks.base import BaseHook
 import os
 import pandas as pd
 import sqlite3
@@ -56,11 +55,13 @@ def failure_callback(context):
         html_content=f"Task {context['task_instance_key_str']} failed in DAG: {dag_name}. DAG source file: {dag_file_path}. Check the logs for more details."
     )
 
-# Upload Parquet files to Azure Blob Storage
+# Upload Parquet files to Azure Blob Storage using Airflow connection
 def upload_to_blob_storage(local_folder, partition_name):
-    connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
+    conn = BaseHook.get_connection('reportwriterstorage-blob-core-windows-net')
+    connection_string = conn.extra_dejson.get('connection_string')
+
     if not connection_string:
-        raise ValueError("AZURE_STORAGE_CONNECTION_STRING environment variable not set")
+        raise ValueError("Azure Blob connection string not found in Airflow connection extras.")
 
     container_name = 'content'
     blob_path_prefix = f'SFTP/{partition_name}/'
