@@ -130,7 +130,7 @@ def process_sqlite_to_parquet():
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2024, 10, 15),
+    'start_date': datetime(2025, 8, 12),
     'on_failure_callback': failure_callback,
 }
 
