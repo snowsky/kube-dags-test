@@ -108,7 +108,8 @@ def process_sqlite_to_parquet():
                             table_name = table_name_tuple[0]
                             logger.info(f"Reading table: {table_name}")
                             df = pd.read_sql_query(f"SELECT * FROM {table_name}", conn)
-                            parquet_file_path = os.path.join(output_dir, f"{table_name}.parquet")
+                            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+                            parquet_file_path = os.path.join(output_dir, f"{table_name}_{timestamp}.parquet")
                             df.to_parquet(parquet_file_path)
                             logger.info(f"Saved table {table_name} to {parquet_file_path}")
 
