@@ -26,11 +26,10 @@ default_args = {
 with DAG(
     "download_neiss_codes",
     default_args=default_args,
+    description="Download NEISS product codes",
+    schedule_interval="@yearly",
     catchup=False,
     tags=['L-250'],
-    description="Download NEISS product codes",
-    schedule_interval="@monthly",
-    catchup=False,
 ) as dag:
 
     download_task = PythonOperator(
