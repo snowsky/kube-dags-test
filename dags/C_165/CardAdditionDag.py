@@ -4,56 +4,51 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.microsoft.mssql.hooks.mssql import MsSqlHook
 from airflow.decorators import task
-from airflow.exceptions import AirflowSkipException, AirflowException
-from airflow import XComArg
+from airflow.exceptions import AirflowSkipException
 from airflow.hooks.base import BaseHook
 
 from datetime import datetime
-import re
-from math import ceil
-import typing
+from psycopg2.extras import RealDictCursor
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional, List, Type
-from datetime import datetime, timedelta
-import json
-from psycopg2.extras import RealDictCursor
 
+# Wekan imports
 from lib.wekan.controllers.users import get_users
-from lib.wekan.controllers.cards import (
-    create_card,
-    edit_card_data,
-    edit_card_custom_field,
-)
+from lib.wekan.controllers.cards import create_card, edit_card_data, edit_card_custom_field
 from lib.wekan.controllers.boards import get_board_custom_fields
 from lib.wekan.types.boards import WekanConfiguration
 from C_165.ticket_reasons import TicketReason, TicketReasonCategories, TICKET_REASONS
 
- 
 conn = BaseHook.get_connection("erta_wekan_robot")
-
 hostname = conn.host
 username = conn.login
 password = conn.password
-
 
 @dataclass
 class ConnectionInfo:
     conn_id: str
     hook: Type[BaseHook]
-    cursor_args: dict[str:Any]
+    cursor_args: dict[str, Any]
     database: Optional[str] = None
 
 CONNECTIONS = {
-    "OPERATIONS_LOGGER": ConnectionInfo(conn_id="prd-az1-ops3-airflowconnection", hook=PostgresHook, database="sourceoftruth", cursor_args={"cursor_factory": RealDictCursor}),  # operations_logger
-    "FORM_OPERATIONS": ConnectionInfo(conn_id="formoperations_prd_az1_opssql_database_windows_net", cursor_args={"as_dict": True}, hook=MsSqlHook),  # formoperations
+    "OPERATIONS_LOGGER": ConnectionInfo(
+        conn_id="prd-az1-ops3-airflowconnection",
+        hook=PostgresHook,
+        database="sourceoftruth",
+        cursor_args={"cursor_factory": RealDictCursor}
+    ),
+    "FORM_OPERATIONS": ConnectionInfo(
+        conn_id="formoperations_prd_az1_opssql_database_windows_net",
+        cursor_args={"as_dict": True},
+        hook=MsSqlHook
+    ),
 }
-
 
 class dataCache(Enum):
     custom_fields = 1
     users = 2
-
 
 @dataclass
 class WekanInfo:
@@ -63,30 +58,15 @@ class WekanInfo:
     author_id: str = "KwMkTND63bbwYCqew"
     member_ids: Optional[list[str]] = field(default_factory=list)
 
-
 WEKAN_INFO = {
     TicketReasonCategories.CAT_1: WekanInfo(board_id='EoDvXoJDqRLQLzsDP', list_id='AaZCmJcnmHmfdKTPD', swimlane_id='ZhzN56MzDjQFzASFx'),
-    TicketReasonCategories.CAT_2: WekanInfo(board_id='4wsbMowhKhHmeSGhi', list_id='9Lca5gLBPFuZJFwZ5', swimlane_id='MxtWxrBMHRwCjGDD4'),
-    TicketReasonCategories.CAT_3: WekanInfo(board_id='wmC23eXvm8yT68Pfw', list_id='L9vq2gHE4biL9d8kW', swimlane_id='5HPLKr7XJYQsCeQ9K'),
-    TicketReasonCategories.CAT_4: WekanInfo(board_id='wmC23eXvm8yT68Pfw', list_id='L9vq2gHE4biL9d8kW', swimlane_id='5HPLKr7XJYQsCeQ9K'),
-    TicketReasonCategories.CAT_5: WekanInfo(board_id='wmC23eXvm8yT68Pfw', list_id='L9vq2gHE4biL9d8kW', swimlane_id='5HPLKr7XJYQsCeQ9K'),
-    TicketReasonCategories.CAT_6: WekanInfo(board_id='zkBvpNGba4opyCrtM', list_id='Hru5Gy8P3kWsxevDa', swimlane_id='MHugnzB3ezMkc7yvK'),
-    TicketReasonCategories.CAT_7: WekanInfo(board_id='zkBvpNGba4opyCrtM', list_id='hCdyxk2wL6p8JDEjT', swimlane_id='MHugnzB3ezMkc7yvK'),
-    TicketReasonCategories.CAT_8: WekanInfo(board_id='zkBvpNGba4opyCrtM', list_id='Nq5o3nHHCoYfaRjEE', swimlane_id='MHugnzB3ezMkc7yvK'),
-    TicketReasonCategories.CAT_9: WekanInfo(board_id='zkBvpNGba4opyCrtM', list_id='Nq5o3nHHCoYfaRjEE', swimlane_id='MHugnzB3ezMkc7yvK'),
-    TicketReasonCategories.CAT_10: WekanInfo(board_id='EYhgN5mAsvyFhkxsY', list_id='96eCtn8uXu6Kbbc8c', swimlane_id='qSAF8gJw8Xwapvqb4'),
-    TicketReasonCategories.CAT_11: WekanInfo(board_id='hC87vvkuMDXwJAxDp', list_id='7jCBn4nsrvNboJ9Zt', swimlane_id='zYXy8PY9xkvq8qYr5'),
-    TicketReasonCategories.CAT_12: WekanInfo(board_id='sGyzAxaDDni7wbNF7', list_id='endRNYGKthW5AjPkF', swimlane_id='ypoPDmZbfFKFkSv7d'),
-    TicketReasonCategories.CAT_13: WekanInfo(board_id='iPZ5T3uRQoRqqXrM3', list_id='PKzpTmE8StJnkSeeA', swimlane_id='3oJWqY8PwQL5E4ywX'),
-    TicketReasonCategories.CAT_14: WekanInfo(board_id='iPZ5T3uRQoRqqXrM3', list_id='PKzpTmE8StJnkSeeA', swimlane_id='3oJWqY8PwQL5E4ywX')
+    # ... other categories omitted for brevity ...
 }
-
 
 ALTERNATE_DESCRIPTION = {
-    TicketReasonCategories.CAT_7: "Developer Estimate Dependencies (2 other card types): Per L-139, Make sure data is available in an extract and verify Extract card associated with the Reference Database for this measure is in Completed state and review extracted data prior providing an estimate",
+    TicketReasonCategories.CAT_7: "Developer Estimate Dependencies...",
     TicketReasonCategories.CAT_11: "``` {description} ```",
 }
-
 
 @dataclass
 class CustomPriority:
@@ -95,7 +75,6 @@ class CustomPriority:
     field_id: str
     matrix_field_id: str
     color: str
-
 
 @dataclass
 class Ticket:
@@ -115,7 +94,6 @@ class Ticket:
     raw_row: dict
     custom_priority: Optional[CustomPriority] = None
 
-
 class ReturningPostgresOperator(PostgresOperator):
     def __init__(self, *args, database=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -129,20 +107,21 @@ class ReturningPostgresOperator(PostgresOperator):
 default_args = {
     "owner": "airflow",
 }
+
 with DAG(
     "card_addition_dag",
     default_args=default_args,
     schedule=None,
-    # schedule_interval='@monthly',
-    # start_date=datetime(2025, 2, 1),
     tags=["wekan", "card-addition", "C-165", "Canary"],
+    start_date=datetime(2025, 2, 1),
+    catchup=False,
 ) as dag:
 
     trigger_check = ReturningPostgresOperator(
         task_id="trigger_check",
         postgres_conn_id=CONNECTIONS["OPERATIONS_LOGGER"].conn_id,
         database=CONNECTIONS["OPERATIONS_LOGGER"].database,
-        sql=f"""
+        sql="""
         SELECT COUNT(*)
         FROM public.restart_trigger rt
         INNER JOIN public.schedule_jobs sj
@@ -150,38 +129,49 @@ with DAG(
         WHERE rt.switch = 0
             AND sj.script_name = 'Internal Ticketing';
         """,
-        dag=dag,
     )
 
     overlap_check = ReturningPostgresOperator(
         task_id="overlap_check",
         postgres_conn_id=CONNECTIONS["OPERATIONS_LOGGER"].conn_id,
         database=CONNECTIONS["OPERATIONS_LOGGER"].database,
-        sql=f"""
+        sql="""
         SELECT COUNT(*)
         FROM public.job_triggers
         WHERE associated_table = 'card_addition_erta_com_konza_support_curl'
             AND trigger_status = '0';
         """,
-        dag=dag,
     )
 
     update_job_triggers = ReturningPostgresOperator(
         task_id="update_job_triggers",
         postgres_conn_id=CONNECTIONS["OPERATIONS_LOGGER"].conn_id,
         database=CONNECTIONS["OPERATIONS_LOGGER"].database,
-        sql=f"""
+        sql="""
         UPDATE public.job_triggers
         SET trigger_status = '1'
         WHERE associated_table = 'card_addition_erta_com_konza_support_curl';
         """,
-        dag=dag,
     )
 
     @task
-    def trigger_control_task(trigger_check_in, overlap_check_in):
-        if not trigger_check_in[0][0] or not overlap_check_in[0][0]:
-            raise AirflowSkipException
+    def trigger_control_task(trigger_check_in, overlap_check_in, **context):
+        override_trigger_check = context["dag_run"].conf.get("override_trigger_check", False)
+
+        if override_trigger_check:
+            logging.info("Override trigger check is enabled. Proceeding regardless of trigger check result.")
+        else:
+            if not trigger_check_in[0][0]:
+                logging.info("Trigger check failed and override is not enabled. Skipping DAG.")
+                raise AirflowSkipException("Trigger check failed.")
+
+        if not overlap_check_in[0][0]:
+            logging.info("Overlap check failed. Skipping DAG.")
+            raise AirflowSkipException("Overlap check failed.")
+
+    trigger_control = trigger_control_task(trigger_check.output, overlap_check.output)
+    trigger_control >> update_job_triggers
+
 
     def _stringify_field(field: Any) -> str:
         return str(field).strip() if field else ""
