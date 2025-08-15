@@ -16,7 +16,7 @@ from lib.operators.azure_connection_string import get_azure_connection_string
 # Constants
 AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
 AZURE_CONTAINER_NAME = 'airflow'
-SOURCE_PREFIX = 'C-194/archive_C-174/'
+SOURCE_PREFIX = 'C-194/archive_rebuild_C-174/'
 DESTINATION_PREFIX = 'C-194/restore_C-174/'
 MAX_BLOBS = 100  # Limit for debugging
 
@@ -39,7 +39,6 @@ def safe_list_blobs(container_client, prefix, retries=3, delay=5):
 with DAG(
     dag_id='Zip_Azure_Blob_By_DateFolder_Expanded',
     default_args=default_args,
-    schedule_interval='@daily',
     catchup=False,
     max_active_runs=1,
     tags=['C-174', 'C-194', 'AzureBlob', 'DateFolders', 'Expand'],
