@@ -22,7 +22,7 @@ MAX_BLOBS = 100  # Limit for debugging
 
 default_args = {
     'owner': 'airflow',
-    'start_date': datetime(2025, 6, 1),
+    'start_date': datetime(2025, 8, 16),
     'retries': 1,
 }
 
