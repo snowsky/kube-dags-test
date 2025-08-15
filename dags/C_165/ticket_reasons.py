@@ -96,7 +96,7 @@ TICKET_REASONS = [
     ),
     TicketReason(
         id=12,
-        category=TicketReasonCategories.CAT_3,
+        category=TicketReasonCategories.CAT_13,
         text="Data Extract - Predefined data formatting file generation and delivery",
     ),
     TicketReason(
