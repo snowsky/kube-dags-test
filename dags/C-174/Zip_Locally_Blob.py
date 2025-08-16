@@ -18,7 +18,7 @@ AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
 AZURE_CONTAINER_NAME = 'airflow'
 SOURCE_PREFIX = 'C-194/archive_rebuild_C-174/'
 DESTINATION_PREFIX = 'C-194/restore_C-174/'
-MAX_BLOBS = 100  # Limit for debugging
+MAX_BLOBS = 20_000_000  # Limit for debugging
 
 default_args = {
     'owner': 'airflow',
