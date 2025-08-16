@@ -16,7 +16,7 @@ from lib.operators.azure_connection_string import get_azure_connection_string
 # Constants
 AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
 AZURE_CONTAINER_NAME = 'airflow'
-SOURCE_PREFIX = 'C-194/archive_rebuild_C-174/'
+SOURCE_PREFIX = 'C-194/archive_C-174/'#'C-194/archive_rebuild_C-174/'
 DESTINATION_PREFIX = 'C-194/restore_C-174/'
 MAX_BLOBS = 20_000_000  # Limit for debugging
 
