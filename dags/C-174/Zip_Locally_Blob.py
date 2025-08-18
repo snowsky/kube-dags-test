@@ -32,7 +32,7 @@ AZURE_CONTAINER_NAME = 'airflow'
 SOURCE_PREFIX = 'C-194/archive_C-174/'
 DESTINATION_PREFIX = 'C-194/restore_C-174/'
 CHECKPOINT_BLOB = f"{DESTINATION_PREFIX}checkpoints/checkpoints.json"
-MAX_BLOBS = 2_500_000
+MAX_BLOBS = 2_500_000 #this gets up to 3.8 million on 8/18 before crashing, 2.5 M should be safe to not crash
 
 default_args = {
     'owner': 'airflow',
