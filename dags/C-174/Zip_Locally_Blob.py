@@ -32,7 +32,7 @@ AZURE_CONTAINER_NAME = 'airflow'
 SOURCE_PREFIX = 'C-194/archive_C-174/'
 DESTINATION_PREFIX = 'C-194/restore_C-174/'
 CHECKPOINT_BLOB = f"{DESTINATION_PREFIX}checkpoints/checkpoints.json"
-MAX_BLOBS = 2_500_000 #this gets up to 3.8 million on 8/18 before crashing, 2.5 M should be safe to not crash
+MAX_BLOBS = 2_500_000
 
 default_args = {
     'owner': 'airflow',
@@ -54,20 +54,20 @@ def read_checkpoint(container_client):
     try:
         blob_client = container_client.get_blob_client(CHECKPOINT_BLOB)
         data = blob_client.download_blob().readall()
-        return set(json.loads(data))
+        return set(json.loads(data))  # Now stores blob names
     except Exception:
         return set()
 
-def write_checkpoint(container_client, processed_folders):
+def write_checkpoint(container_client, processed_blobs):
     blob_client = container_client.get_blob_client(CHECKPOINT_BLOB)
-    blob_client.upload_blob(json.dumps(list(processed_folders)), overwrite=True)
+    blob_client.upload_blob(json.dumps(list(processed_blobs)), overwrite=True)
 
 with DAG(
     dag_id='Zip_Azure_Blob_By_DateFolder_Expanded',
     default_args=default_args,
     catchup=False,
     max_active_runs=1,
-    schedule_interval=None,  # Manual trigger only
+    schedule_interval=None,
     tags=['C-174', 'C-194', 'AzureBlob', 'DateFolders', 'Expand'],
 ) as dag:
 
@@ -78,7 +78,7 @@ with DAG(
         blob_service_client = BlobServiceClient.from_connection_string(connection_string)
         container_client = blob_service_client.get_container_client(AZURE_CONTAINER_NAME)
 
-        processed_folders = read_checkpoint(container_client)
+        processed_blobs = read_checkpoint(container_client)
         blobs_by_date = defaultdict(list)
         total_blob_count = 0
 
@@ -91,15 +91,16 @@ with DAG(
                     break
                 if blob.name.lower().endswith('.zip') or blob.name.endswith('/'):
                     continue
+                if blob.name in processed_blobs:
+                    continue
                 relative_path = blob.name[len(SOURCE_PREFIX):]
                 parts = relative_path.split('/', 1)
                 if len(parts) == 2:
-                    date_folder, file_path = parts
-                    if date_folder not in processed_folders:
-                        blobs_by_date[date_folder].append(blob.name)
-                        total_blob_count += 1
-                        if total_blob_count % 10000 == 0:
-                            logger.info("Processed %d blobs so far...", total_blob_count)
+                    date_folder, _ = parts
+                    blobs_by_date[date_folder].append(blob.name)
+                    total_blob_count += 1
+                    if total_blob_count % 10000 == 0:
+                        logger.info("Processed %d blobs so far...", total_blob_count)
             if total_blob_count >= MAX_BLOBS:
                 break
 
@@ -143,10 +144,14 @@ with DAG(
         logger.info("Metrics - Blobs: %d, Size: %.2f MB, Duration: %.2f sec",
                     blob_count, zip_size / (1024 * 1024), duration)
 
-        # Update checkpoint
-        processed_folders = read_checkpoint(container_client)
-        processed_folders.add(date_folder)
-        write_checkpoint(container_client, processed_folders)
+        # Update checkpoint with individual blob names
+        processed_blobs = read_checkpoint(container_client)
+        processed_blobs.update(blob_names)
+        write_checkpoint(container_client, processed_blobs)
+
+    date_blob_groups = list_blobs_by_date_folder()
+    zip_blobs_for_date_folder.expand(input=date_blob_groups)
+
 
     date_blob_groups = list_blobs_by_date_folder()
     zip_blobs_for_date_folder.expand(input=date_blob_groups)
