@@ -16,7 +16,7 @@ from lib.operators.azure_connection_string import get_azure_connection_string
 # Constants
 AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
 AZURE_CONTAINER_NAME = 'airflow'
-SOURCE_PREFIX = 'C-194/archive_C-174/'#'C-194/archive_rebuild_C-174/'
+SOURCE_PREFIX = 'C-194/archive_C-174/'
 DESTINATION_PREFIX = 'C-194/restore_C-174/'
 MAX_BLOBS = 20_000_000  # Limit for debugging
 
@@ -55,21 +55,26 @@ with DAG(
         total_blob_count = 0
 
         all_blobs = safe_list_blobs(container_client, SOURCE_PREFIX)
-        for i, blob in enumerate(all_blobs):
-            if i >= MAX_BLOBS:
+        paged_blobs = all_blobs.by_page()
+
+        for page in paged_blobs:
+            for blob in page:
+                if total_blob_count >= MAX_BLOBS:
+                    break
+                if blob.name.lower().endswith('.zip') or blob.name.endswith('/'):
+                    continue
+                relative_path = blob.name[len(SOURCE_PREFIX):]
+                parts = relative_path.split('/', 1)
+                if len(parts) == 2:
+                    date_folder, file_path = parts
+                    blobs_by_date[date_folder].append(blob.name)
+                    total_blob_count += 1
+                    if total_blob_count % 10000 == 0:
+                        logger.info("Processed %d blobs so far...", total_blob_count)
+            if total_blob_count >= MAX_BLOBS:
                 break
-            if blob.name.lower().endswith('.zip') or blob.name.endswith('/'):
-                continue
-            relative_path = blob.name[len(SOURCE_PREFIX):]
-            parts = relative_path.split('/', 1)
-            if len(parts) == 2:
-                date_folder, file_path = parts
-                blobs_by_date[date_folder].append(blob.name)
-                total_blob_count += 1
 
-        logger.info("Total blobs to process (limited): %d", total_blob_count)
-        logger.debug("Found date folders: %s", list(blobs_by_date.keys()))
-
+        logger.info("Total blobs processed: %d", total_blob_count)
         return [{'date_folder': k, 'blob_names': v} for k, v in blobs_by_date.items()]
 
     @task
@@ -91,7 +96,6 @@ with DAG(
                     blob_data = container_client.download_blob(blob_name).readall()
                     relative_path = blob_name[len(SOURCE_PREFIX):]
                     zipf.writestr(relative_path, blob_data)
-                    logger.debug("Added %s to %s.zip", relative_path, date_folder)
                 except Exception as e:
                     logger.warning("Failed to add %s: %s", blob_name, str(e))
 
