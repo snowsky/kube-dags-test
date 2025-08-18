@@ -14,6 +14,18 @@ from azure.storage.blob import BlobServiceClient
 from azure.core.exceptions import ServiceRequestError
 from lib.operators.azure_connection_string import get_azure_connection_string
 
+# Suppress Azure SDK verbose logging
+for noisy_logger in [
+    'azure.core.pipeline.policies.http_logging_policy',
+    'azure.storage.blob._shared.base_client',
+    'azure.storage.blob._container_client',
+    'azure.storage.blob._blob_client',
+    'azure.storage.common.storageclient',
+    'azure.core.pipeline.transport._base',
+    'azure.core.pipeline.policies._universal',
+]:
+    logging.getLogger(noisy_logger).setLevel(logging.WARNING)
+
 # Constants
 AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
 AZURE_CONTAINER_NAME = 'airflow'
