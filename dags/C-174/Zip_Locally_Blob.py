@@ -4,6 +4,7 @@ from io import BytesIO
 import zipfile
 from collections import defaultdict
 import time
+import json
 
 from airflow import DAG
 from airflow.decorators import task
@@ -18,7 +19,8 @@ AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
 AZURE_CONTAINER_NAME = 'airflow'
 SOURCE_PREFIX = 'C-194/archive_C-174/'
 DESTINATION_PREFIX = 'C-194/restore_C-174/'
-MAX_BLOBS = 20_000_000  # Limit for debugging
+CHECKPOINT_BLOB = f"{DESTINATION_PREFIX}checkpoints/checkpoints.json"
+MAX_BLOBS = 20_000_000
 
 default_args = {
     'owner': 'airflow',
@@ -36,12 +38,24 @@ def safe_list_blobs(container_client, prefix, retries=3, delay=5):
             else:
                 raise e
 
+def read_checkpoint(container_client):
+    try:
+        blob_client = container_client.get_blob_client(CHECKPOINT_BLOB)
+        data = blob_client.download_blob().readall()
+        return set(json.loads(data))
+    except Exception:
+        return set()
+
+def write_checkpoint(container_client, processed_folders):
+    blob_client = container_client.get_blob_client(CHECKPOINT_BLOB)
+    blob_client.upload_blob(json.dumps(list(processed_folders)), overwrite=True)
+
 with DAG(
     dag_id='Zip_Azure_Blob_By_DateFolder_Expanded',
     default_args=default_args,
     catchup=False,
-    schedule_interval=None,
     max_active_runs=1,
+    schedule_interval=None,  # Manual trigger only
     tags=['C-174', 'C-194', 'AzureBlob', 'DateFolders', 'Expand'],
 ) as dag:
 
@@ -52,6 +66,7 @@ with DAG(
         blob_service_client = BlobServiceClient.from_connection_string(connection_string)
         container_client = blob_service_client.get_container_client(AZURE_CONTAINER_NAME)
 
+        processed_folders = read_checkpoint(container_client)
         blobs_by_date = defaultdict(list)
         total_blob_count = 0
 
@@ -68,14 +83,15 @@ with DAG(
                 parts = relative_path.split('/', 1)
                 if len(parts) == 2:
                     date_folder, file_path = parts
-                    blobs_by_date[date_folder].append(blob.name)
-                    total_blob_count += 1
-                    if total_blob_count % 10000 == 0:
-                        logger.info("Processed %d blobs so far...", total_blob_count)
+                    if date_folder not in processed_folders:
+                        blobs_by_date[date_folder].append(blob.name)
+                        total_blob_count += 1
+                        if total_blob_count % 10000 == 0:
+                            logger.info("Processed %d blobs so far...", total_blob_count)
             if total_blob_count >= MAX_BLOBS:
                 break
 
-        logger.info("Total blobs processed: %d", total_blob_count)
+        logger.info("Total blobs to process: %d", total_blob_count)
         return [{'date_folder': k, 'blob_names': v} for k, v in blobs_by_date.items()]
 
     @task
@@ -90,20 +106,35 @@ with DAG(
         blob_service_client = BlobServiceClient.from_connection_string(connection_string)
         container_client = blob_service_client.get_container_client(AZURE_CONTAINER_NAME)
 
+        start_time = time.time()
         zip_buffer = BytesIO()
+        blob_count = 0
+
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for blob_name in blob_names:
                 try:
                     blob_data = container_client.download_blob(blob_name).readall()
                     relative_path = blob_name[len(SOURCE_PREFIX):]
                     zipf.writestr(relative_path, blob_data)
+                    blob_count += 1
                 except Exception as e:
                     logger.warning("Failed to add %s: %s", blob_name, str(e))
 
         zip_buffer.seek(0)
         zip_blob_name = f"{DESTINATION_PREFIX}{date_folder}.zip"
         container_client.upload_blob(name=zip_blob_name, data=zip_buffer, overwrite=True)
+
+        duration = time.time() - start_time
+        zip_size = zip_buffer.getbuffer().nbytes
+
         logger.info("Uploaded ZIP for folder %s: %s", date_folder, zip_blob_name)
+        logger.info("Metrics - Blobs: %d, Size: %.2f MB, Duration: %.2f sec",
+                    blob_count, zip_size / (1024 * 1024), duration)
+
+        # Update checkpoint
+        processed_folders = read_checkpoint(container_client)
+        processed_folders.add(date_folder)
+        write_checkpoint(container_client, processed_folders)
 
     date_blob_groups = list_blobs_by_date_folder()
     zip_blobs_for_date_folder.expand(input=date_blob_groups)
