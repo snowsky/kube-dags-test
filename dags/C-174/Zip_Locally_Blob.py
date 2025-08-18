@@ -40,6 +40,7 @@ with DAG(
     dag_id='Zip_Azure_Blob_By_DateFolder_Expanded',
     default_args=default_args,
     catchup=False,
+    schedule_interval=None,
     max_active_runs=1,
     tags=['C-174', 'C-194', 'AzureBlob', 'DateFolders', 'Expand'],
 ) as dag:
