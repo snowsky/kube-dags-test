@@ -32,7 +32,7 @@ AZURE_CONTAINER_NAME = 'airflow'
 SOURCE_PREFIX = 'C-194/archive_C-174/'
 DESTINATION_PREFIX = 'C-194/restore_C-174/'
 CHECKPOINT_BLOB = f"{DESTINATION_PREFIX}checkpoints/checkpoints.json"
-MAX_BLOBS = 5_000_000
+MAX_BLOBS = 2_500_000
 
 default_args = {
     'owner': 'airflow',
