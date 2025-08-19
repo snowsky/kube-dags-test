@@ -151,7 +151,3 @@ with DAG(
 
     date_blob_groups = list_blobs_by_date_folder()
     zip_blobs_for_date_folder.expand(input=date_blob_groups)
-
-
-    date_blob_groups = list_blobs_by_date_folder()
-    zip_blobs_for_date_folder.expand(input=date_blob_groups)
