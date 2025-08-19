@@ -9,6 +9,7 @@ import json
 from airflow import DAG
 from airflow.decorators import task
 from airflow.models.xcom_arg import XComArg
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 from azure.storage.blob import BlobServiceClient
 from azure.core.exceptions import ServiceRequestError
@@ -149,5 +150,21 @@ with DAG(
         processed_blobs.update(blob_names)
         write_checkpoint(container_client, processed_blobs)
 
+    @task
+    def check_completion(blob_groups):
+        total_blobs = sum(len(group['blob_names']) for group in blob_groups)
+        logging.getLogger("airflow.task").info("Remaining blobs to process: %d", total_blobs)
+        return total_blobs > 0
+
     date_blob_groups = list_blobs_by_date_folder()
     zip_blobs_for_date_folder.expand(input=date_blob_groups)
+    should_continue = check_completion(date_blob_groups)
+
+    trigger_next = TriggerDagRunOperator(
+        task_id='trigger_next_run',
+        trigger_dag_id='Zip_Azure_Blob_By_DateFolder_Expanded',
+        wait_for_completion=False,
+        reset_dag_run=True,
+    )
+
+    should_continue >> trigger_next
