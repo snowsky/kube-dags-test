@@ -113,17 +113,17 @@ with DAG(
         logger = logging.getLogger("airflow.task")
         date_folder = input['date_folder']
         blob_names = input['blob_names']
-
+    
         logger.info("Processing folder: %s with %d blobs", date_folder, len(blob_names))
-
+    
         connection_string = get_azure_connection_string(AZURE_CONNECTION_NAME)
         blob_service_client = BlobServiceClient.from_connection_string(connection_string)
         container_client = blob_service_client.get_container_client(AZURE_CONTAINER_NAME)
-
+    
         start_time = time.time()
         zip_buffer = BytesIO()
         blob_count = 0
-
+    
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for blob_name in blob_names:
                 try:
@@ -133,22 +133,33 @@ with DAG(
                     blob_count += 1
                 except Exception as e:
                     logger.warning("Failed to add %s: %s", blob_name, str(e))
-
+    
         zip_buffer.seek(0)
-        zip_blob_name = f"{DESTINATION_PREFIX}{date_folder}.zip"
-        container_client.upload_blob(name=zip_blob_name, data=zip_buffer, overwrite=True)
-
+    
+        # Check if blob already exists
+        base_zip_name = f"{DESTINATION_PREFIX}{date_folder}.zip"
+        blob_client = container_client.get_blob_client(base_zip_name)
+        if blob_client.exists():
+            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            zip_blob_name = f"{DESTINATION_PREFIX}{date_folder}_{timestamp}.zip"
+            logger.info("File exists. Using timestamped name: %s", zip_blob_name)
+        else:
+            zip_blob_name = base_zip_name
+    
+        container_client.upload_blob(name=zip_blob_name, data=zip_buffer, overwrite=False)
+    
         duration = time.time() - start_time
         zip_size = zip_buffer.getbuffer().nbytes
-
+    
         logger.info("Uploaded ZIP for folder %s: %s", date_folder, zip_blob_name)
         logger.info("Metrics - Blobs: %d, Size: %.2f MB, Duration: %.2f sec",
                     blob_count, zip_size / (1024 * 1024), duration)
-
+    
         # Update checkpoint with individual blob names
         processed_blobs = read_checkpoint(container_client)
         processed_blobs.update(blob_names)
         write_checkpoint(container_client, processed_blobs)
+
 
     @task
     def check_completion(blob_groups):
