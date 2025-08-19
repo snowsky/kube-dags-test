@@ -121,7 +121,9 @@ with DAG(
 
         def archive_blob(blob_client, blob_path):
             try:
-                archive_path = blob_path.replace("OB To SSI EUID", "Detected Failed Files Archived/OB To SSI EUID")
+                #archive_path = blob_path.replace("OB To SSI EUID", "Detected Failed Files Archived/OB To SSI EUID")
+                archive_path = blob_path.replace("OB To SSI EUID", "Missing EUID OID/OB To SSI EUID")
+
                 #archive_path = blob_path.replace("OB To SSI EUID_test", "archive_ob_to_ssi_files/OB To SSI EUID_test")
 
                 archive_blob_client = container_client.get_blob_client(archive_path)
