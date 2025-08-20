@@ -13,7 +13,7 @@ from airflow.models.param import Param
 from psycopg2.extras import RealDictCursor
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional, List, Type
+from typing import Any, Optional, List, Type, cast
 import re
 from math import ceil
 import json
@@ -375,7 +375,7 @@ with DAG(
         )
 
         data_cache = {dataCache.custom_fields: {}, dataCache.users: {}}
-        parsed_configuration = typing.cast(WekanConfiguration, configuration)
+        parsed_configuration = cast(WekanConfiguration, configuration)
         for support_ticket in support_tickets:
             _process_ticket(support_ticket, data_cache, parsed_configuration)
 
