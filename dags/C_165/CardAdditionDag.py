@@ -7,12 +7,17 @@ from airflow.providers.microsoft.mssql.hooks.mssql import MsSqlHook
 from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
 from airflow.hooks.base import BaseHook
+from airflow.exceptions import AirflowSkipException, AirflowException
 
-from datetime import datetime
 from psycopg2.extras import RealDictCursor
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional, List, Type
+import re
+from math import ceil
+import json
+from datetime import datetime, timedelta
+from psycopg2.extras import RealDictCursor
 
 # Wekan imports
 from lib.wekan.controllers.users import get_users
