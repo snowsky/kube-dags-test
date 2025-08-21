@@ -13,7 +13,7 @@ from airflow.models.param import Param
 from psycopg2.extras import RealDictCursor
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional, List, Type, cast
+from typing import Any, Optional, List, Type, cast, Set
 import re
 from math import ceil
 import json
@@ -178,13 +178,12 @@ with DAG(
 
     @task
     def trigger_control_task(trigger_check_in, overlap_check_in, params):
-        logging.info(f"trigger check: {trigger_check_in[0][0]}")
-        logging.info(f"overlap check: {overlap_check_in[0][0]}")
         override_trigger_check = params["override_trigger_check"]
-        if not override_trigger_check and not trigger_check_in[0][0] or not overlap_check_in[0][0]:
+        logging.info(f"trigger check: {trigger_check_in[0][0]} - overlap check: {overlap_check_in[0][0]}")
+        if not override_trigger_check and (not trigger_check_in[0][0] or not overlap_check_in[0][0]):
             raise AirflowSkipException
 
-    trigger_control = trigger_control_task(trigger_check.output, overlap_check.output)
+    trigger_control = trigger_control_task(trigger_check_in=trigger_check.output, overlap_check_in=overlap_check.output)
     trigger_control >> update_job_triggers
 
 
@@ -217,7 +216,7 @@ with DAG(
             f'The supplied support ticket reason "{ticket_reason_text}" is not found within the defined critera.'
         )
 
-    def _get_project_priority(project_ids: List[str], all_projects: dict) -> int:
+    def _get_project_priority(project_ids: Set[str], all_projects: dict) -> int:
         for project in all_projects:
             if project["ProjectId"] in project_ids:
                 return project["Priority"]
@@ -287,7 +286,7 @@ with DAG(
             ticket_reason = _get_ticket_reason(ticket_reason_text)
             project_id_other = _stringify_field(row["ticket_reference_other_system"])
             project_id = _stringify_field(row["project_ids"])
-            project_ids = [val for val in [project_id, project_id_other] if val != ""]
+            project_ids = set([val for val in [project_id, project_id_other] if val != ""])
             description = _get_description(
                 ticket_reason.category,
                 f"{_stringify_field(row['data_extract_description'])} Description: {_stringify_field(row['ticket_reason_extended'])}",
@@ -358,8 +357,9 @@ with DAG(
         with hook.get_conn() as conn:
             with conn.cursor(**conn_info.cursor_args) as cursor:
                 cursor.execute(sql)
-                if return_dict:
-                    return cursor.fetchall()
+                return_val = cursor.fetchall() if return_dict else None
+                conn.commit()
+                return return_val
 
     @task
     def process_support_tickets_task(configuration: XComArg):
@@ -1041,11 +1041,9 @@ with DAG(
             average_impact = -1
             risk_str = ""
         else:
-            logging.info(f"####### {ticket.escalation_option}") ###DEBUG
             risk_str, first_in_rng, second_in_rng = _parse_priority_str(
                 ticket.escalation_option
             )
-            logging.info(f"####### {risk_str}, {first_in_rng}, {second_in_rng}") ###DEBUG
             average_impact = ceil((first_in_rng + second_in_rng) / 2)
             # average_impact = ticket.escalation_option
             ### ASK: original script impact is set to equal escalation_option, is this a mistake?
@@ -1057,7 +1055,6 @@ with DAG(
                 ticket.wekan_info.board_id, custom_fields_cache, parsed_configuration
             )
         )
-        logging.info(f"####### {custom_fields}") ###DEBUG
         ticket.custom_priority = CustomPriority(
             id=risk_str,
             impact=average_impact,
@@ -1065,7 +1062,6 @@ with DAG(
             matrix_field_id=custom_fields["Priority Matrix Number"],
             color=_get_custom_priority_color(risk_str),
         )
-        logging.info(f"####### {ticket.custom_priority}") ###DEBUG
 
     def _get_custom_priority_color(priority_id: str) -> str:
         match priority_id:
@@ -1164,7 +1160,6 @@ with DAG(
             custom_field_id=cust_p.field_id,
             value=cust_p.id,
         )
-        logging.info(f"####### RESPONSE: {response}") ###DEBUG
 
         matrix_response = edit_card_custom_field(
             hostname=parsed_configuration.get("hostname"),
@@ -1175,8 +1170,6 @@ with DAG(
             custom_field_id=cust_p.matrix_field_id,
             value=cust_p.impact,
         )
-
-        logging.info(f"####### {matrix_response}") ###DEBUG
 
     def _edit_internal_audit_card(
         card_id: str,
@@ -1253,7 +1246,7 @@ with DAG(
     process_support_tickets = process_support_tickets_task(configuration)
 
     (
-        trigger_control_task(trigger_check.output, overlap_check.output)
+        trigger_control_task(trigger_check_in=trigger_check.output, overlap_check_in=overlap_check.output)
         >> configuration
         >> (
             update_job_triggers,
