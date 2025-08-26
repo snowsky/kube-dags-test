@@ -109,6 +109,12 @@ def optout_load():
                 """)
         hook.run(sql="""START TRANSACTION;
             UPDATE clientresults.opt_out_list_airflow_load
+                    SET dob = replace(dob, 'T00:00:00', '')
+                    ;
+            COMMIT;
+                """)
+        hook.run(sql="""START TRANSACTION;
+            UPDATE clientresults.opt_out_list_airflow_load
                     SET ssn = replace(ssn, '-', '')
                     ;
             COMMIT;
