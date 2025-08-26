@@ -89,6 +89,7 @@ TICKET_REASONS = [
         text="CDA Retrieval from KONZA Hosted SFTP - L-69",
         subscribers=[
             "swarnock@konza.org",
+            "asteffes@konza.org",
             "tlamond@konza.org",
             "jwerner@konza.org",
             "mlittlejohn@konza.org",
