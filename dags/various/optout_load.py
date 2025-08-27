@@ -52,6 +52,10 @@ def optout_load():
             truncate clientresults.opt_out_list_airflow_load;
             COMMIT;
                 """)
+        hookOOL.run(sql="""START TRANSACTION; 
+            truncate clientresults.opt_out_list_airflow_load_step2;
+            COMMIT;
+                """)
         logging.info(print('/source-biakonzasftp/'))
         sourceDir = '/source-biakonzasftp/C-9/optout_load/'
         optOutFiles = os.listdir(sourceDir)
@@ -101,32 +105,61 @@ def optout_load():
     @task
     def adjustLoad():
         hook = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
+        hook.run(sql="""START TRANSACTION;
+            insert into clientresults.opt_out_list_airflow_load_step2 (
+                fname
+                ,lname
+                ,dob
+                ,sex
+                ,SSN
+                ,respective_mrn
+                ,respective_vault
+                ,opt_choice
+                ,`status`
+                ,last_update_php
+                ) (
+                select 
+                fname
+                ,lname
+                ,dob
+                ,sex
+                ,SSN
+                ,respective_mrn
+                ,respective_vault
+                ,opt_choice
+                ,`status`
+                ,last_update_php
+                from clientresults.opt_out_list_airflow_load
+                where fname <> 'nan' and lname <> 'nan' and dob <> 'nan' and sex <> 'nan'
+                );
+            COMMIT;
+                """)
         hook.run(sql="""START TRANSACTION; 
-            update clientresults.opt_out_list_airflow_load
+            update clientresults.opt_out_list_airflow_load_step2
             set dob = date_format(str_to_date(dob, '%m/%d/%Y'),'%Y-%m-%d')
             where dob <> 'Unknown' and dob not like '%-%';
             COMMIT;
                 """)
         hook.run(sql="""START TRANSACTION;
-            UPDATE clientresults.opt_out_list_airflow_load
+            UPDATE clientresults.opt_out_list_airflow_load_step2
                     SET dob = replace(dob, 'T00:00:00', '')
                     ;
             COMMIT;
                 """)
         hook.run(sql="""START TRANSACTION;
-            UPDATE clientresults.opt_out_list_airflow_load
+            UPDATE clientresults.opt_out_list_airflow_load_step2
                     SET ssn = replace(ssn, '-', '')
                     ;
             COMMIT;
                 """)
         hook.run(sql="""START TRANSACTION;
-            UPDATE clientresults.opt_out_list_airflow_load
+            UPDATE clientresults.opt_out_list_airflow_load_step2
                 SET ssn = LPAD(ssn, 9, '0')
                 ;
             COMMIT;
                 """)
         hook.run(sql="""START TRANSACTION;
-            insert into clientresults.opt_out_list_airflow_load (
+            insert into clientresults.opt_out_list_airflow_load_step2 (
                 fname
                 ,lname
                 ,dob
@@ -201,7 +234,7 @@ def optout_load():
                 ,MPID.longitudinal_anomoly
                 ,MPID.first_name_anomoly
                 ,MPID.mrn_anomoly
-                 FROM clientresults.opt_out_list_airflow_load Full_OOLU
+                 FROM clientresults.opt_out_list_airflow_load_step2 Full_OOLU
                 left join person_master._mpi_id_master MPID on (
                 Full_OOLU.fname = MPID.firstname
                 and Full_OOLU.lname = MPID.lastname
@@ -244,7 +277,7 @@ def optout_load():
                 ,MPID.longitudinal_anomoly
                 ,MPID.first_name_anomoly
                 ,MPID.mrn_anomoly
-                FROM clientresults.opt_out_list_airflow_load Full_OOLU
+                FROM clientresults.opt_out_list_airflow_load_step2 Full_OOLU
                 left join person_master._mpi_id_master MPID on (
                 Full_OOLU.fname = MPID.firstname
                 and left(Full_OOLU.lname,3) = left(MPID.lastname,3)
