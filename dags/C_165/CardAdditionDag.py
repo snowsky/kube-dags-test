@@ -353,6 +353,8 @@ with DAG(
         return support_tickets
 
     def _execute_query(sql: str, conn_info: ConnectionInfo, return_dict: bool = True) -> dict:
+        logging.info(f"Executing query on conn: {conn_info.conn_id}")
+        logging.info(f"Query string: {sql}")
         hook = conn_info.hook(**{conn_info.hook.conn_name_attr: conn_info.conn_id, "schema": conn_info.database})
         with hook.get_conn() as conn:
             with conn.cursor(**conn_info.cursor_args) as cursor:
@@ -366,6 +368,7 @@ with DAG(
         support_results = _execute_query(
             _generate_support_ticket_query_str(), CONNECTIONS["FORM_OPERATIONS"]
         )
+        logging.info(f"Support Results: {support_results}")
         all_projects_results = _execute_query(
             "SELECT ProjectId, Priority from all_projects;",
             CONNECTIONS["FORM_OPERATIONS"],
@@ -405,7 +408,7 @@ with DAG(
         data_cache: dict[dataCache, dict],
         parsed_configuration: WekanConfiguration,
     ):
-        print(f"Creating wekan card: {ticket.card_title}")
+        logging.info(f"Creating wekan card: {ticket.card_title}")
         wekan_users = _get_and_cache_users_from_board(
             data_cache[dataCache.users], parsed_configuration
         )
@@ -1121,6 +1124,7 @@ with DAG(
             "swimlaneId": info.swimlane_id,
             "members": info.member_ids,
         }
+        logging.info(f"Wekan API payload {data}")
         response = create_card(
             hostname=parsed_configuration.get("hostname"),
             token=parsed_configuration.get("token"),
@@ -1128,6 +1132,7 @@ with DAG(
             list_id=info.list_id,
             card_payload=data,
         )
+        logging.info(f"Wekan API response {response}")
         return response
 
     def _edit_card_color(
