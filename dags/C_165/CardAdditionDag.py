@@ -194,16 +194,10 @@ with DAG(
         return input if len(input) >= min_chars else ""
 
     def _generate_support_ticket_query_str() -> str:
-        proj_id_cols = ["project_ids", "ticket_reference_other_system"]
-        project_codes = ["L-", "S-", "C-"]
-        conditions = " OR ".join(
-            [f"{col} LIKE '{code}%'" for col in proj_id_cols for code in project_codes]
-        )
-        sql = f"""
+        sql = """
         SELECT data_extract_description,escalation_option,project_ids,L_120__authorized_identifier,L_120__authorized_identifier_type,L_120__hl7v2_client_delivery_paused,L_120__authorization_party,L_120__id,L_102__authorized_identifier,L_120__hl7v2_client_name,L_68__id,L_68__authorization_reference,L_68__authorized_identifier_oid,L_68__authorized_filter_file_beginning_pattern,L_68__authorizing_party,L_68__delivery_paused,L_68__participant_client_name,L_68__source_base_path,L_68__destination_path_override,L_68__client_folder_name,audit_type,L_69__id, L_69__source_file_zipped, L_102__authorized_identifier_type,L_102__hl7v2_client_delivery_paused,L_102__authorization_party,L_102__id,L_102__authorized_identifier,L_102__hl7v2_client_name,L_87__client_folder_name,L_87__destination_path_override,L_87__source_base_path,L_87__participant_client_name,L_87__authorization_reference,L_87__delivery_paused,L_87__authorizing_party,L_87__authorized_filter_file_beginning_pattern,L_87__authorized_identifier_oid,L_87__id,id,behalf_of_email,client_legal_name,ticket_reason,ticket_reference_other_system,requestor_info, ehx__ID ,ehx__ssi_payor_client_name ,ehx__authorized_identifier ,ehx__authorization_party ,ehx__dh_fusion_delivery_paused ,ehx__authorized_identifer_type ,ehx__konza_client_destination_delivery_paused ,ehx__dh_raw_ehx_ccd_delivery_location ,L_10__id ,L_10__hl7v2_client_name ,L_10__authorized_identifier ,L_10__authorization_party ,L_10__authorized_identifier_type ,L_10__crawler_id_last_loaded, L_10__hl7v2_client_delivery_paused ,L_69__emr_client_name ,L_69__authorized_identifier ,L_69__authorization_party ,L_69__emr_client_delivery_paused ,L_69__authorized_identifier_type ,L_69__authorization_reference ,L_69__participant_client_name ,ticket_reason_extended ,attachment,ehx__ssi_prefix,ehx__auto_submit_panel_to_corepoint 
         FROM konza_support
         WHERE added_card_reference is null
-        AND ({conditions})
         ORDER by id desc;
         """
         return sql
@@ -286,7 +280,7 @@ with DAG(
             ticket_reason = _get_ticket_reason(ticket_reason_text)
             project_id_other = _stringify_field(row["ticket_reference_other_system"])
             project_id = _stringify_field(row["project_ids"])
-            project_ids = set([val for val in [project_id, project_id_other] if val != ""])
+            project_ids = set([val for val in [project_id, project_id_other] if (val.startswith('L-') or val.startswith('S-') or val.startswith('C-'))])
             description = _get_description(
                 ticket_reason.category,
                 f"{_stringify_field(row['data_extract_description'])} Description: {_stringify_field(row['ticket_reason_extended'])}",
