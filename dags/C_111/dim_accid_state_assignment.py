@@ -58,7 +58,8 @@ with DAG(
         airflow pipeline. Note that this code may / will change over time. "ds" in this context
         indicates the date the pipeline ran. Each ds should be treated independently of other ds-s.
 
-        The table processes all index updates available at the time the pipeline runs.
+        The table processes all index updates available at the time the pipeline runs. Each `ds` of this
+        table contains data from all prior index updates, so only one `ds` should be processed at a time.
         '''
         WITH (
             partitioned_by = ARRAY['ds'], 
@@ -267,6 +268,28 @@ with DAG(
         ) s
         """,
     )
+    
+    drop_tmp_dim_accid_state_assignment_latest_if_exists = KonzaTrinoOperator(
+        task_id='drop_tmp_dim_accid_state_assignment_latest',
+        query="""
+        DROP TABLE IF EXISTS hive.parquet_master_data.tmp_dim_accid_state_assignment_latest_<DATEID>
+        """,
+    )
+
+    create_tmp_dim_accid_state_assignment_latest = KonzaTrinoOperator(
+        task_id='create_tmp_dim_accid_state_assignment_latest',
+        query="""
+        CREATE TABLE IF NOT EXISTS hive.parquet_master_data.tmp_dim_accid_state_assignment_latest_<DATEID>
+        AS SELECT 
+          patient_id,
+          MAX(index_update_dt_tm) AS latest_index_update_dt_tm,
+          MAX(IF(state != 'UNKNOWN', index_update_dt_tm, NULL)) AS used_index_update_dt_tm,
+          MAX_BY(state, IF(state != 'UNKNOWN', index_update_dt_tm, NULL)) AS imputed_state
+        FROM hive.parquet_master_data.dim_accid_state_assignment
+        WHERE ds = '<DATEID>'
+        GROUP BY patient_id
+        """,
+    )
 
     create_dim_accid_state_assignment_latest = KonzaTrinoOperator(
         task_id='create_dim_accid_state_assignment_latest',
@@ -292,7 +315,7 @@ with DAG(
             partitioned_by = ARRAY['ds'], 
             bucketed_by = ARRAY['patient_id'], 
             sorted_by = ARRAY['patient_id'],
-            bucket_count = 64
+            bucket_count = 256
         )
         """,
     )
@@ -308,20 +331,20 @@ with DAG(
           imputed_state,
           IF(latest_index_update_dt_tm = used_index_update_dt_tm, 'latest_update', 'latest_update_not_unknown') AS algorithm_used,
           '<DATEID>' AS ds
-        FROM (
-            SELECT 
-              patient_id,
-              MAX(index_update_dt_tm) AS latest_index_update_dt_tm,
-              MAX(IF(state != 'UNKNOWN', index_update_dt_tm, NULL)) AS used_index_update_dt_tm,
-              MAX_BY(state, IF(state != 'UNKNOWN', index_update_dt_tm, NULL)) AS imputed_state
-            FROM hive.parquet_master_data.dim_accid_state_assignment
-            WHERE ds <= '<DATEID>'
-            GROUP BY patient_id
-        )
+        FROM hive.parquet_master_data.tmp_dim_accid_state_assignment_latest_<DATEID>
         """
+    )
+
+    cleanup_tmp_dim_accid_state_assignment_latest = KonzaTrinoOperator(
+        task_id='cleanup_tmp_dim_accid_state_assignment_latest',
+        query="""
+        DROP TABLE IF EXISTS hive.parquet_master_data.tmp_dim_accid_state_assignment_latest_<DATEID>
+        """,
     )
     downscale = downscale_workers()
 
-    create_dim_accid_state_assignment >> populate_dim_accid_state_assignment
+    create_dim_accid_state_assignment >> populate_dim_accid_state_assignment >> create_tmp_dim_accid_state_assignment_latest
     create_dim_accid_state_assignment_latest >> populate_dim_accid_state_assignment_latest
+    create_tmp_dim_accid_state_assignment_latest >> populate_dim_accid_state_assignment_latest >> cleanup_tmp_dim_accid_state_assignment_latest
+    drop_tmp_dim_accid_state_assignment_latest_if_exists >> create_tmp_dim_accid_state_assignment_latest
     upscale >> populate_dim_accid_state_assignment >> populate_dim_accid_state_assignment_latest >> downscale    
