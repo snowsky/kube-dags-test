@@ -1,0 +1,1030 @@
+
+DATABASE:
+
+CREATE DATABASE `hl7_processing_center` /*!40100 DEFAULT CHARACTER SET latin1 */;
+
+
+TABLES:
+
+-- hl7_processing_center._accession definition
+
+CREATE TABLE `_accession` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `MPI` varchar(200) DEFAULT NULL,
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `vault_based_id` varchar(100) DEFAULT NULL,
+  `battery_id` varchar(200) DEFAULT NULL,
+  `document_version_id` varchar(200) DEFAULT NULL,
+  `verified_time` datetime DEFAULT NULL,
+  `accession` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._battery definition
+
+CREATE TABLE `_battery` (
+  `index_update_dt_tm` varchar(100) DEFAULT NULL,
+  `source` varchar(100) DEFAULT NULL,
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `vault_based_id` varchar(100) DEFAULT NULL,
+  `hl7` varchar(255) DEFAULT NULL,
+  `shortname` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._document definition
+
+CREATE TABLE `_document` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `MPI` varchar(200) DEFAULT NULL,
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `vault_based_id` varchar(100) DEFAULT NULL,
+  `patient_id` varchar(100) DEFAULT NULL,
+  `control_number` varchar(191) DEFAULT NULL,
+  `patient_account_id` varchar(100) DEFAULT NULL,
+  `deleted` int(1) DEFAULT '0',
+  `service_datetime` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._document_subtype definition
+
+CREATE TABLE `_document_subtype` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `vault_based_id` varchar(100) DEFAULT NULL,
+  `code` varchar(191) DEFAULT NULL,
+  `display` varchar(255) DEFAULT NULL,
+  `is_report` tinyint(1) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._document_type definition
+
+CREATE TABLE `_document_type` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `MPI` varchar(45) DEFAULT NULL,
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `vault_based_id` varchar(100) DEFAULT NULL,
+  `code` varchar(191) DEFAULT NULL,
+  `display` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._document_version definition
+
+CREATE TABLE `_document_version` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `MPI` varchar(200) DEFAULT NULL,
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `vault_based_id` varchar(200) DEFAULT NULL,
+  `document_id` varchar(200) DEFAULT NULL,
+  `type_id` varchar(200) DEFAULT NULL,
+  `subtype_id` varchar(200) DEFAULT NULL,
+  `status_id` varchar(200) DEFAULT NULL,
+  `document_flag_id` varchar(200) DEFAULT NULL,
+  `signing_doctor` varchar(100) DEFAULT NULL,
+  `event_timestamp` datetime DEFAULT NULL,
+  `provider_id` varchar(200) DEFAULT NULL,
+  `user_id` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._facility definition
+
+CREATE TABLE `_facility` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `index_update_dt_tm` varchar(100) DEFAULT NULL,
+  `source` varchar(100) DEFAULT NULL,
+  `source_type` varchar(100) DEFAULT NULL,
+  `vault_based_id` varchar(200) DEFAULT NULL,
+  `code` varchar(100) DEFAULT NULL,
+  `name` varchar(100) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._immunization definition
+
+CREATE TABLE `_immunization` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `MPI` varchar(200) DEFAULT NULL,
+  `vault_based_id` varchar(45) DEFAULT NULL,
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `patient_id` varchar(100) DEFAULT NULL,
+  `patient_account_id` varchar(200) DEFAULT NULL,
+  `performing_provider_id` varchar(100) DEFAULT NULL,
+  `series_number` varchar(100) DEFAULT NULL,
+  `administered_date` varchar(100) DEFAULT NULL,
+  `administered_code_id` varchar(100) DEFAULT NULL,
+  `event_timestamp` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=32059630 DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._lab_result definition
+
+CREATE TABLE `_lab_result` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `source_type` varchar(45) DEFAULT NULL,
+  `MPI` varchar(200) DEFAULT NULL,
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `lab_id` varchar(200) DEFAULT NULL,
+  `accession_id` varchar(600) DEFAULT NULL,
+  `laboratory_id` varchar(200) DEFAULT NULL,
+  `unit` varchar(200) DEFAULT NULL,
+  `range` varchar(200) DEFAULT NULL,
+  `value` varchar(2000) DEFAULT NULL,
+  `abnormal` varchar(20) DEFAULT NULL,
+  `status` varchar(20) DEFAULT NULL,
+  `time` datetime DEFAULT NULL,
+  `comment` text,
+  `accid` varchar(100) DEFAULT NULL,
+  `OBX_2_1` varchar(200) DEFAULT NULL,
+  `OBX_3_2` varchar(200) DEFAULT NULL,
+  `OBX_3_3` varchar(200) DEFAULT NULL,
+  `OBX_3_4` varchar(200) DEFAULT NULL,
+  `OBX_3_5` varchar(200) DEFAULT NULL,
+  `OBX_3_6` varchar(200) DEFAULT NULL,
+  `OBX_23_1` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=35767544185 DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._lab_test definition
+
+CREATE TABLE `_lab_test` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `source_type` varchar(45) DEFAULT NULL,
+  `vault_based_id` varchar(300) DEFAULT NULL,
+  `hl7_code` varchar(255) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `category_id` varchar(255) DEFAULT NULL,
+  `sequence` varchar(50) DEFAULT '0',
+  `accid` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=486469576 DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._lookup_original_document definition
+
+CREATE TABLE `_lookup_original_document` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `filename` varchar(200) DEFAULT NULL COMMENT 'Filelist1 filename',
+  `firstname` varchar(200) DEFAULT NULL COMMENT 'mpi table',
+  `lastname` varchar(200) DEFAULT NULL COMMENT 'mpi table',
+  `dob` varchar(200) DEFAULT NULL COMMENT 'mpi table',
+  `gender` varchar(200) DEFAULT NULL COMMENT 'mpi table',
+  `accid` varchar(200) DEFAULT NULL COMMENT 'mpi accid_ref',
+  `date_received` varchar(200) DEFAULT NULL COMMENT 'from sp_parser ''dirName'' from ''dirName'' from process_parallel.ps1',
+  `date_processed` varchar(200) DEFAULT NULL COMMENT 'filelist1 processDT',
+  `date_msg_created` varchar(200) DEFAULT NULL COMMENT 'filelist1 f_datestr',
+  `service_date` varchar(200) DEFAULT NULL COMMENT 'patient_account admitted',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `indexlookupunique` (`filename`,`accid`,`date_processed`)
+) ENGINE=InnoDB AUTO_INCREMENT=10682206 DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._medication definition
+
+CREATE TABLE `_medication` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `index_update_dt_tm` varchar(45) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `source_type` varchar(45) DEFAULT NULL,
+  `MPI` varchar(45) DEFAULT NULL,
+  `vault_based_id` varchar(45) DEFAULT NULL,
+  `patient_id` varchar(100) DEFAULT NULL,
+  `patient_account_id` varchar(100) DEFAULT NULL,
+  `start_date` datetime DEFAULT NULL,
+  `stop_date` datetime DEFAULT NULL,
+  `code` varchar(14) DEFAULT NULL,
+  `code_system` varchar(45) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `provider_id` varchar(100) DEFAULT NULL,
+  `route` varchar(255) DEFAULT NULL,
+  `sig` varchar(255) DEFAULT NULL,
+  `strength` varchar(255) DEFAULT NULL,
+  `packaging` varchar(255) DEFAULT NULL,
+  `dosage` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=136892574 DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._mpi definition
+
+CREATE TABLE `_mpi` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `source_type` varchar(50) DEFAULT NULL,
+  `MPI` bigint(20) DEFAULT NULL,
+  `mpi_update` int(1) DEFAULT '0',
+  `vault_pid` varchar(100) DEFAULT NULL,
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `mrn` varchar(100) DEFAULT NULL,
+  `prefix` varchar(100) DEFAULT NULL,
+  `firstname` varchar(100) DEFAULT NULL,
+  `middlename` varchar(100) DEFAULT NULL,
+  `lastname` varchar(100) DEFAULT NULL,
+  `suffix` varchar(100) DEFAULT NULL,
+  `dob` date DEFAULT NULL,
+  `sex` varchar(100) DEFAULT 'U',
+  `race` varchar(100) DEFAULT NULL,
+  `ethnicity` varchar(100) DEFAULT NULL,
+  `citizenship` varchar(100) DEFAULT NULL,
+  `nationality` varchar(100) DEFAULT NULL,
+  `language` varchar(100) DEFAULT NULL,
+  `religion` varchar(100) DEFAULT NULL,
+  `marital_status` varchar(100) DEFAULT NULL,
+  `mil_status` varchar(100) DEFAULT NULL,
+  `student_status` varchar(100) DEFAULT NULL,
+  `hipaa` varchar(100) DEFAULT NULL,
+  `deceased` varchar(100) DEFAULT 'N',
+  `mother_maiden_name` varchar(100) DEFAULT NULL,
+  `event_timestamp` datetime DEFAULT NULL,
+  `created` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `collect_registered` timestamp NULL DEFAULT '1970-12-31 18:00:00',
+  `collect_cmp` varchar(100) DEFAULT '-1',
+  `stable_document_id` varchar(128) DEFAULT NULL,
+  `ssn` varchar(100) DEFAULT NULL,
+  `dlnum` varchar(100) DEFAULT NULL,
+  `dlstate` varchar(100) DEFAULT NULL,
+  `alt_id_name` varchar(100) DEFAULT NULL,
+  `alt_id_num` varchar(100) DEFAULT NULL,
+  `policy_id` varchar(100) DEFAULT NULL,
+  `discharge_status_code` varchar(100) DEFAULT NULL,
+  `discharge_status_description` varchar(100) DEFAULT NULL,
+  `assigning_authority` varchar(45) DEFAULT NULL,
+  `accid_ref` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2710236641 DEFAULT CHARSET=latin1 COMMENT='Patient information';
+
+
+-- hl7_processing_center._mpi_id_master definition
+
+CREATE TABLE `_mpi_id_master` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `firstname` varchar(100) DEFAULT NULL,
+  `lastname` varchar(100) DEFAULT NULL,
+  `dob` varchar(100) DEFAULT NULL,
+  `sex` varchar(100) DEFAULT NULL,
+  `ssn` varchar(100) DEFAULT NULL,
+  `longitudinal_anomoly` varchar(100) DEFAULT NULL,
+  `first_name_anomoly` varchar(100) DEFAULT NULL,
+  `mrn_anomoly` varchar(100) DEFAULT NULL,
+  `event_timestamp` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `dob_master` (`dob`),
+  KEY `sex_master` (`sex`),
+  KEY `mpi_combo` (`firstname`,`lastname`,`dob`,`sex`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._patient_account definition
+
+CREATE TABLE `_patient_account` (
+  `index_update_dt_tm` datetime DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `source_type` varchar(45) DEFAULT NULL,
+  `MPI` varchar(45) DEFAULT NULL,
+  `vault_acc_id` varchar(45) DEFAULT NULL,
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `accid` varchar(100) DEFAULT NULL,
+  `patient_id` varchar(200) DEFAULT NULL,
+  `patient_type_id` varchar(200) DEFAULT NULL,
+  `service_area_id` varchar(200) DEFAULT NULL,
+  `admitted` datetime DEFAULT NULL,
+  `adm_type` varchar(200) DEFAULT NULL,
+  `complaint` text,
+  `unit_id` varchar(200) DEFAULT NULL,
+  `bed_id` varchar(200) DEFAULT NULL,
+  `discharged` datetime DEFAULT NULL,
+  `discharged_to` varchar(200) DEFAULT NULL,
+  `fin_class` varchar(200) DEFAULT NULL,
+  `acc_status` varchar(200) DEFAULT NULL,
+  `vip_flag` varchar(200) DEFAULT NULL,
+  `nka` varchar(200) DEFAULT NULL,
+  `pregnant` varchar(200) DEFAULT NULL,
+  `event_timestamp` datetime DEFAULT NULL,
+  `adm_provider_id` varchar(200) DEFAULT NULL,
+  `att_provider_id` varchar(200) DEFAULT NULL,
+  `ref_provider_id` varchar(200) DEFAULT NULL,
+  `related_provider_id` varchar(200) DEFAULT NULL,
+  `discharge_disposition` varchar(200) DEFAULT NULL,
+  `admit_source` varchar(200) DEFAULT NULL,
+  `visit_number` varchar(200) DEFAULT NULL,
+  `pat_type` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2327643589 DEFAULT CHARSET=utf8;
+
+
+-- hl7_processing_center._patient_allergy definition
+
+CREATE TABLE `_patient_allergy` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(100) DEFAULT NULL,
+  `source_type` varchar(100) DEFAULT NULL,
+  `MPI` varchar(100) DEFAULT NULL,
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `vault_based_id` varchar(100) DEFAULT NULL,
+  `patient_id` varchar(100) NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `code` varchar(255) DEFAULT NULL,
+  `code_type` varchar(100) DEFAULT NULL,
+  `description_type` varchar(100) DEFAULT NULL,
+  `code_sev` varchar(100) DEFAULT NULL,
+  `description_sev` varchar(100) DEFAULT NULL,
+  `reaction` varchar(255) DEFAULT NULL,
+  `reported_date` datetime DEFAULT NULL,
+  `onset_date` date DEFAULT NULL,
+  `onset_date_text` varchar(100) DEFAULT NULL,
+  `code_relationship` varchar(100) DEFAULT NULL,
+  `description_relationship` varchar(100) DEFAULT NULL,
+  `code_status` varchar(100) DEFAULT NULL,
+  `description_status` varchar(100) DEFAULT NULL,
+  `status_reporter` varchar(100) DEFAULT NULL,
+  `reporter_organization` varchar(100) DEFAULT NULL,
+  `status_date` datetime DEFAULT NULL,
+  `allergen_group` varchar(100) DEFAULT NULL,
+  `patient_account_id` varchar(100) DEFAULT NULL,
+  `deleted` tinyint(1) NOT NULL DEFAULT '0',
+  `event_timestamp` datetime NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2070252829 DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._patient_contact definition
+
+CREATE TABLE `_patient_contact` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `source_type` varchar(45) DEFAULT NULL,
+  `MPI` varchar(200) DEFAULT NULL,
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `patient_id` varchar(200) DEFAULT NULL,
+  `street1` varchar(100) DEFAULT NULL,
+  `street2` varchar(100) DEFAULT NULL,
+  `city` varchar(100) DEFAULT NULL,
+  `state` varchar(100) DEFAULT NULL,
+  `zip` varchar(100) DEFAULT NULL,
+  `country` varchar(100) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `co_name` varchar(100) DEFAULT NULL,
+  `co_addr1` varchar(100) DEFAULT NULL,
+  `co_addr2` varchar(100) DEFAULT NULL,
+  `co_city` varchar(100) DEFAULT NULL,
+  `co_state` varchar(100) DEFAULT NULL,
+  `co_zip` varchar(100) DEFAULT NULL,
+  `co_country` varchar(100) DEFAULT NULL,
+  `event_timestamp` datetime DEFAULT NULL,
+  `home_phone_number_id` varchar(100) DEFAULT NULL,
+  `business_phone_number_id` varchar(100) DEFAULT NULL,
+  `cell_phone_number_id` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2708934568 DEFAULT CHARSET=latin1 COMMENT='Patient contact information';
+
+
+-- hl7_processing_center._patient_diagnosis definition
+
+CREATE TABLE `_patient_diagnosis` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `source_type` varchar(45) DEFAULT NULL,
+  `MPI` varchar(200) DEFAULT NULL,
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `type_id` varchar(100) DEFAULT NULL,
+  `patient_account_id` varchar(100) DEFAULT NULL,
+  `code` varchar(255) DEFAULT NULL,
+  `provider_id` varchar(100) DEFAULT NULL,
+  `description` varchar(1000) DEFAULT NULL,
+  `coding_method` varchar(255) DEFAULT NULL,
+  `diagnosis_priority` varchar(255) DEFAULT NULL,
+  `diagnosis_timestamp` datetime DEFAULT NULL,
+  `event_timestamp` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2167807391 DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._patient_insurance definition
+
+CREATE TABLE `_patient_insurance` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `source_type` varchar(45) DEFAULT NULL,
+  `MPI` varchar(200) DEFAULT NULL,
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `accid` varchar(100) DEFAULT NULL,
+  `seqnum` tinyint(4) NOT NULL DEFAULT '1',
+  `planid` varchar(100) DEFAULT NULL,
+  `plan_name` varchar(100) DEFAULT NULL,
+  `insurer` varchar(100) DEFAULT NULL,
+  `co_addr1` varchar(100) DEFAULT NULL,
+  `co_addr2` varchar(100) DEFAULT NULL,
+  `co_city` varchar(100) DEFAULT NULL,
+  `co_state` varchar(100) DEFAULT NULL,
+  `co_zip` varchar(100) DEFAULT NULL,
+  `co_country` varchar(100) DEFAULT NULL,
+  `contact_name` varchar(100) DEFAULT NULL,
+  `co_phone` varchar(100) DEFAULT NULL,
+  `grpid` varchar(100) DEFAULT NULL,
+  `grpname` varchar(100) DEFAULT NULL,
+  `emplid` varchar(100) DEFAULT NULL,
+  `emplname` varchar(100) DEFAULT NULL,
+  `eff_date` date DEFAULT NULL,
+  `exp_date` date DEFAULT NULL,
+  `auth_info` varchar(100) DEFAULT NULL,
+  `plan_type` varchar(100) DEFAULT NULL,
+  `policy_id` varchar(200) DEFAULT NULL,
+  `ins_prefix` varchar(100) DEFAULT NULL,
+  `ins_fname` varchar(100) DEFAULT NULL,
+  `ins_mname` varchar(100) DEFAULT NULL,
+  `ins_lname` varchar(100) DEFAULT NULL,
+  `ins_suffix` varchar(100) DEFAULT NULL,
+  `ins_dob` date DEFAULT NULL,
+  `ins_ssn` varchar(100) DEFAULT NULL,
+  `relationship` varchar(100) DEFAULT NULL,
+  `ins_addr1` varchar(100) DEFAULT NULL,
+  `ins_addr2` varchar(100) DEFAULT NULL,
+  `ins_city` varchar(100) DEFAULT NULL,
+  `ins_state` varchar(100) DEFAULT NULL,
+  `ins_zip` varchar(100) DEFAULT NULL,
+  `ins_country` varchar(100) DEFAULT NULL,
+  `ins_email` varchar(100) DEFAULT NULL,
+  `event_timestamp` datetime DEFAULT NULL,
+  `home_phone_number_id` varchar(100) DEFAULT NULL,
+  `business_phone_number_id` varchar(100) DEFAULT NULL,
+  `mpi_ssn` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2024898412 DEFAULT CHARSET=latin1 COMMENT='Patient insurance information';
+
+
+-- hl7_processing_center._patient_pcp definition
+
+CREATE TABLE `_patient_pcp` (
+  `index_update_dt_tm` datetime DEFAULT NULL,
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `source` varchar(200) DEFAULT NULL,
+  `source_type` varchar(45) DEFAULT NULL,
+  `vault_based_id` varchar(200) DEFAULT NULL,
+  `patient_id` varchar(200) DEFAULT NULL,
+  `provider_id` varchar(200) DEFAULT NULL,
+  `event_timestamp` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1208883949 DEFAULT CHARSET=latin1 COMMENT='Patient''s PCP';
+
+
+-- hl7_processing_center._patient_procedure definition
+
+CREATE TABLE `_patient_procedure` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `source_type` varchar(45) DEFAULT NULL,
+  `MPI` varchar(200) DEFAULT NULL,
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `patient_account_id` varchar(150) DEFAULT NULL,
+  `code` varchar(255) DEFAULT NULL,
+  `provider_id` varchar(100) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `coding_method` varchar(255) DEFAULT NULL,
+  `procedure_type` varchar(255) DEFAULT NULL,
+  `procedure_priority` varchar(255) DEFAULT NULL,
+  `procedure_timestamp` datetime DEFAULT NULL,
+  `event_timestamp` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1971047107 DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._patient_type definition
+
+CREATE TABLE `_patient_type` (
+  `index_update_dt_tm` varchar(100) DEFAULT NULL,
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `source` varchar(100) DEFAULT NULL,
+  `source_type` varchar(100) DEFAULT NULL,
+  `vault_based_id` varchar(100) DEFAULT NULL,
+  `code` varchar(100) DEFAULT NULL,
+  `display` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._phone_number definition
+
+CREATE TABLE `_phone_number` (
+  `index_update_dt_tm` varchar(100) DEFAULT NULL,
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `source` varchar(100) DEFAULT NULL,
+  `MPI` varchar(100) DEFAULT NULL,
+  `vault_based_id` varchar(100) NOT NULL DEFAULT '',
+  `country_code` varchar(100) DEFAULT '',
+  `area_code` varchar(100) DEFAULT '',
+  `prefix` varchar(100) DEFAULT '',
+  `line_number` varchar(100) DEFAULT '',
+  `extension` varchar(100) DEFAULT '',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._provider definition
+
+CREATE TABLE `_provider` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `source` varchar(200) DEFAULT NULL,
+  `source_type` varchar(45) DEFAULT NULL,
+  `vault_based_id` varchar(200) DEFAULT NULL,
+  `attributed_npi` varchar(200) DEFAULT NULL,
+  `provcode` varchar(200) DEFAULT NULL,
+  `lname` varchar(100) DEFAULT NULL,
+  `fname` varchar(100) DEFAULT NULL,
+  `mname` varchar(100) DEFAULT NULL,
+  `unitname` varchar(100) DEFAULT NULL,
+  `service` varchar(100) DEFAULT NULL,
+  `prov_type` varchar(100) DEFAULT NULL,
+  `zip` varchar(100) DEFAULT NULL,
+  `city` varchar(100) DEFAULT NULL,
+  `state` varchar(100) DEFAULT NULL,
+  `status` varchar(100) DEFAULT NULL,
+  `suffix` varchar(100) DEFAULT NULL,
+  `patient_id` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._provider_i definition
+
+CREATE TABLE `_provider_i` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `index_update_dt_tm` datetime DEFAULT NULL COMMENT 'Index of when the record was updated from a data load',
+  `source` varchar(200) DEFAULT NULL COMMENT 'An identifier that indicates the original source of the record',
+  `source_type` varchar(45) DEFAULT NULL COMMENT 'An identifier that indicates the original source type of the record',
+  `vault_based_id` varchar(200) DEFAULT NULL COMMENT 'An identifier based off of the original source identifier',
+  `attributed_npi` varchar(200) DEFAULT NULL COMMENT 'National Provider Index based on source data or attributed based on provcode and assigned NPI',
+  `provcode` varchar(200) DEFAULT NULL COMMENT 'Source based provider code',
+  `lname` varchar(100) DEFAULT NULL COMMENT 'Source based provider last name from the message',
+  `fname` varchar(100) DEFAULT NULL COMMENT 'Source based provider first name from the message',
+  `mname` varchar(100) DEFAULT NULL COMMENT 'Source based provider middle name from the message',
+  `unitname` varchar(100) DEFAULT NULL COMMENT 'not used',
+  `service` varchar(100) DEFAULT NULL COMMENT 'Not used',
+  `prov_type` varchar(100) DEFAULT NULL COMMENT 'Source based type of provider from the message eg. PCP, PHARMACY',
+  `zip` varchar(100) DEFAULT NULL COMMENT 'Source based zip code attributed to the provider from the message',
+  `city` varchar(100) DEFAULT NULL COMMENT 'Source based city attributed to the provider from the message',
+  `state` varchar(100) DEFAULT NULL COMMENT 'Source based state attributed to the provider from the message',
+  `status` varchar(100) DEFAULT NULL COMMENT 'Source based status of the provider from the message, eg. inactive',
+  `suffix` varchar(100) DEFAULT NULL COMMENT 'Source based suffix of the provider from the message MD, ARNP',
+  PRIMARY KEY (`id`),
+  KEY `provcode_idx` (`provcode`),
+  KEY `provider_payer` (`provcode`,`lname`,`fname`,`mname`,`suffix`,`source`,`vault_based_id`),
+  KEY `primaryid` (`vault_based_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1553679 DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._provider_withdups_20190920 definition
+
+CREATE TABLE `_provider_withdups_20190920` (
+  `id` bigint(20) NOT NULL DEFAULT '0',
+  `index_update_dt_tm` datetime DEFAULT NULL COMMENT 'Index of when the record was updated from a data load',
+  `source` varchar(200) CHARACTER SET latin1 DEFAULT NULL COMMENT 'An identifier that indicates the original source of the record',
+  `source_type` varchar(45) CHARACTER SET latin1 DEFAULT NULL COMMENT 'An identifier that indicates the original source type of the record',
+  `vault_based_id` varchar(200) CHARACTER SET latin1 DEFAULT NULL COMMENT 'An identifier based off of the original source identifier',
+  `attributed_npi` varchar(200) CHARACTER SET latin1 DEFAULT NULL COMMENT 'National Provider Index based on source data or attributed based on provcode and assigned NPI',
+  `provcode` varchar(200) CHARACTER SET latin1 DEFAULT NULL COMMENT 'Source based provider code',
+  `lname` varchar(100) CHARACTER SET latin1 DEFAULT NULL COMMENT 'Source based provider last name from the message',
+  `fname` varchar(100) CHARACTER SET latin1 DEFAULT NULL COMMENT 'Source based provider first name from the message',
+  `mname` varchar(100) CHARACTER SET latin1 DEFAULT NULL COMMENT 'Source based provider middle name from the message',
+  `unitname` varchar(100) CHARACTER SET latin1 DEFAULT NULL COMMENT 'not used',
+  `service` varchar(100) CHARACTER SET latin1 DEFAULT NULL COMMENT 'Not used',
+  `prov_type` varchar(100) CHARACTER SET latin1 DEFAULT NULL COMMENT 'Source based type of provider from the message eg. PCP, PHARMACY',
+  `zip` varchar(100) CHARACTER SET latin1 DEFAULT NULL COMMENT 'Source based zip code attributed to the provider from the message',
+  `city` varchar(100) CHARACTER SET latin1 DEFAULT NULL COMMENT 'Source based city attributed to the provider from the message',
+  `state` varchar(100) CHARACTER SET latin1 DEFAULT NULL COMMENT 'Source based state attributed to the provider from the message',
+  `status` varchar(100) CHARACTER SET latin1 DEFAULT NULL COMMENT 'Source based status of the provider from the message, eg. inactive',
+  `suffix` varchar(100) CHARACTER SET latin1 DEFAULT NULL COMMENT 'Source based suffix of the provider from the message MD, ARNP'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+
+-- hl7_processing_center._service_area definition
+
+CREATE TABLE `_service_area` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `index_update_dt_tm` varchar(45) DEFAULT NULL,
+  `source` varchar(100) DEFAULT NULL,
+  `patient_account_id` varchar(100) DEFAULT NULL,
+  `vault_based_id` varchar(100) DEFAULT NULL,
+  `code` varchar(100) DEFAULT NULL,
+  `name` varchar(100) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `point_of_care` varchar(45) DEFAULT NULL,
+  `room` varchar(45) DEFAULT NULL,
+  `bed` varchar(45) DEFAULT NULL,
+  `facility` varchar(45) DEFAULT NULL,
+  `location_status` varchar(45) DEFAULT NULL,
+  `person_location_type` varchar(45) DEFAULT NULL,
+  `building` varchar(45) DEFAULT NULL,
+  `floor` varchar(45) DEFAULT NULL,
+  `location_description` varchar(45) DEFAULT NULL,
+  `comprehensive_location_identifier` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2555619312 DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._unit definition
+
+CREATE TABLE `_unit` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `index_update_dt_tm` varchar(45) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `source_type` varchar(45) DEFAULT NULL,
+  `vault_based_id` varchar(200) DEFAULT NULL,
+  `unitcode` varchar(200) DEFAULT NULL,
+  `facilid` varchar(200) DEFAULT NULL,
+  `type` varchar(45) DEFAULT 'M',
+  `name` varchar(100) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2630346905 DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._vaccination definition
+
+CREATE TABLE `_vaccination` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `source` varchar(200) DEFAULT NULL,
+  `MPI` varchar(200) DEFAULT NULL,
+  `vault_based_id` varchar(200) DEFAULT NULL,
+  `immunization_id` varchar(200) DEFAULT NULL,
+  `vaccine_id` varchar(200) DEFAULT NULL,
+  `vaccine_manufacturer_id` varchar(200) DEFAULT NULL,
+  `lot_number` varchar(255) DEFAULT NULL,
+  `vaccination_status_id` varchar(200) DEFAULT NULL,
+  `dosage` float DEFAULT NULL,
+  `measure_unit_id` varchar(100) DEFAULT NULL,
+  `manufacturer_text` varchar(100) DEFAULT NULL,
+  `accid` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=91882747 DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._vaccination_status definition
+
+CREATE TABLE `_vaccination_status` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `source` varchar(200) DEFAULT NULL,
+  `MPI` varchar(200) DEFAULT NULL,
+  `vault_based_id` varchar(200) DEFAULT NULL,
+  `code` varchar(100) DEFAULT NULL,
+  `display` varchar(255) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._vaccine definition
+
+CREATE TABLE `_vaccine` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `source` varchar(200) DEFAULT NULL,
+  `MPI` varchar(200) DEFAULT NULL,
+  `vault_based_id` varchar(45) DEFAULT NULL,
+  `code` varchar(200) DEFAULT NULL,
+  `short_name` varchar(255) DEFAULT NULL,
+  `long_name` text,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center._vitalsigns definition
+
+CREATE TABLE `_vitalsigns` (
+  `index_update_dt_tm` varchar(200) DEFAULT NULL,
+  `source` varchar(200) DEFAULT NULL,
+  `source_type` varchar(45) DEFAULT NULL,
+  `MPI` varchar(200) DEFAULT NULL,
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `patient_account_id` varchar(100) DEFAULT NULL,
+  `code` varchar(200) DEFAULT NULL,
+  `codesystem` varchar(200) DEFAULT NULL,
+  `name` varchar(200) DEFAULT NULL,
+  `description` varchar(2000) DEFAULT NULL,
+  `value` varchar(200) DEFAULT NULL,
+  `vital_timestamp` datetime DEFAULT NULL,
+  `event_timestamp` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center.et_debug definition
+
+CREATE TABLE `et_debug` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `line` varchar(45) DEFAULT NULL,
+  `code` varchar(500) DEFAULT NULL,
+  `timestamp` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center.et_latency definition
+
+CREATE TABLE `et_latency` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `line` varchar(45) DEFAULT NULL,
+  `code` varchar(500) DEFAULT NULL,
+  `timestamp` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=339226689 DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center.et_ready_list definition
+
+CREATE TABLE `et_ready_list` (
+  `filename` varchar(200) CHARACTER SET utf8 DEFAULT NULL,
+  `fileType` varchar(200) CHARACTER SET utf8 DEFAULT '0',
+  `id` int(10) unsigned NOT NULL DEFAULT '0',
+  `filelist1ID` int(10) unsigned DEFAULT NULL,
+  `_accessionID` int(10) unsigned DEFAULT NULL,
+  `_batteryID` int(10) unsigned DEFAULT NULL,
+  `_documentID` int(10) unsigned DEFAULT NULL,
+  `_document_subtypeID` int(10) unsigned DEFAULT NULL,
+  `_document_typeID` int(10) unsigned DEFAULT NULL,
+  `_document_versionID` int(10) unsigned DEFAULT NULL,
+  `_facilityID` int(10) unsigned DEFAULT NULL,
+  `_immunizationID` int(10) unsigned DEFAULT NULL,
+  `_lab_resultID` int(10) unsigned DEFAULT NULL,
+  `_lab_testID` int(10) unsigned DEFAULT NULL,
+  `_medicationID` int(10) unsigned DEFAULT NULL,
+  `_mpiID` bigint(20) unsigned DEFAULT NULL,
+  `_mpi_id_masterID` bigint(20) unsigned DEFAULT NULL,
+  `_patient_accountID` int(10) unsigned DEFAULT NULL,
+  `_patient_allergyID` int(10) unsigned DEFAULT NULL,
+  `_patient_contactID` int(10) unsigned DEFAULT NULL,
+  `_patient_diagnosisID` int(10) unsigned DEFAULT NULL,
+  `_patient_insuranceID` int(10) unsigned DEFAULT NULL,
+  `_patient_pcpID` int(10) unsigned DEFAULT NULL,
+  `_patient_procedureID` int(10) unsigned DEFAULT NULL,
+  `_patient_typeID` int(10) unsigned DEFAULT NULL,
+  `_phone_numberID` int(10) unsigned DEFAULT NULL,
+  `_providerID` int(10) unsigned DEFAULT NULL,
+  `_service_areaID` int(10) unsigned DEFAULT NULL,
+  `_unitID` int(10) unsigned DEFAULT NULL,
+  `_vaccinationID` int(10) unsigned DEFAULT NULL,
+  `_vaccination_statusID` int(10) unsigned DEFAULT NULL,
+  `_vaccineID` int(10) unsigned DEFAULT NULL,
+  `_vitalsignsID` int(10) unsigned DEFAULT NULL,
+  `inCSG` bigint(20) unsigned DEFAULT NULL COMMENT 'zero if no maching MPI',
+  `processDT` datetime DEFAULT CURRENT_TIMESTAMP,
+  `accid_ref` varchar(200) CHARACTER SET utf8 DEFAULT NULL,
+  KEY `david_alerts_list` (`_medicationID`,`_mpiID`,`_patient_accountID`,`_patient_contactID`,`_patient_diagnosisID`,`_patient_insuranceID`,`_patient_pcpID`,`_patient_procedureID`,`_service_areaID`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center.filelist1 definition
+
+CREATE TABLE `filelist1` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `filelistId` bigint(20) unsigned DEFAULT NULL,
+  `filename` varchar(200) DEFAULT NULL,
+  `fileType` varchar(200) DEFAULT '0',
+  `hl7_version` varchar(10) DEFAULT NULL,
+  `message_type` varchar(10) DEFAULT NULL,
+  `event_code` varchar(10) DEFAULT NULL,
+  `inserted` datetime DEFAULT NULL,
+  `updated` datetime DEFAULT NULL,
+  `_mpi_ID` bigint(20) unsigned DEFAULT NULL,
+  `f_myName` varchar(200) DEFAULT NULL,
+  `f_state` varchar(200) DEFAULT NULL,
+  `f_facilityId` varchar(200) DEFAULT NULL,
+  `f_HL7Ptr` varchar(200) DEFAULT NULL,
+  `f_HL7PtrValue` varchar(200) DEFAULT NULL,
+  `f_dateStr` varchar(200) DEFAULT NULL,
+  `f_fileLen` bigint(20) unsigned DEFAULT NULL,
+  `processDT` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_processDT` (`processDT`),
+  KEY `idx_hl7_version` (`f_facilityId`,`hl7_version`,`message_type`,`event_code`),
+  KEY `idx_filename` (`filename`)
+) ENGINE=InnoDB AUTO_INCREMENT=2176695137 DEFAULT CHARSET=utf8;
+
+
+-- hl7_processing_center.filelist1_20250812_archive definition
+
+CREATE TABLE `filelist1_20250812_archive` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `filelistId` bigint(20) unsigned DEFAULT NULL,
+  `filename` varchar(200) DEFAULT NULL,
+  `fileType` varchar(200) DEFAULT '0',
+  `hl7_version` varchar(10) DEFAULT NULL,
+  `message_type` varchar(10) DEFAULT NULL,
+  `event_code` varchar(10) DEFAULT NULL,
+  `inserted` datetime DEFAULT NULL,
+  `updated` datetime DEFAULT NULL,
+  `_mpi_ID` bigint(20) unsigned DEFAULT NULL,
+  `f_myName` varchar(200) DEFAULT NULL,
+  `f_state` varchar(200) DEFAULT NULL,
+  `f_facilityId` varchar(200) DEFAULT NULL,
+  `f_HL7Ptr` varchar(200) DEFAULT NULL,
+  `f_HL7PtrValue` varchar(200) DEFAULT NULL,
+  `f_dateStr` varchar(200) DEFAULT NULL,
+  `f_fileLen` bigint(20) unsigned DEFAULT NULL,
+  `processDT` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_processDT` (`processDT`),
+  KEY `idx_hl7_version` (`f_facilityId`,`hl7_version`,`message_type`,`event_code`),
+  KEY `idx_filename` (`filename`)
+) ENGINE=InnoDB AUTO_INCREMENT=2160454188 DEFAULT CHARSET=utf8;
+
+
+-- hl7_processing_center.insertid definition
+
+CREATE TABLE `insertid` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `filelist1ID` bigint(20) DEFAULT NULL,
+  `_accessionID` bigint(20) DEFAULT NULL,
+  `_batteryID` bigint(20) DEFAULT NULL,
+  `_documentID` bigint(20) DEFAULT NULL,
+  `_document_subtypeID` bigint(20) DEFAULT NULL,
+  `_document_typeID` bigint(20) DEFAULT NULL,
+  `_document_versionID` bigint(20) DEFAULT NULL,
+  `_facilityID` bigint(20) DEFAULT NULL,
+  `_immunizationID` bigint(20) DEFAULT NULL,
+  `_lab_resultID` bigint(20) DEFAULT NULL,
+  `_lab_testID` bigint(20) DEFAULT NULL,
+  `_medicationID` bigint(20) DEFAULT NULL,
+  `_mpiID` bigint(20) unsigned DEFAULT NULL,
+  `_mpi_id_masterID` bigint(20) unsigned DEFAULT NULL,
+  `_patient_accountID` bigint(20) DEFAULT NULL,
+  `_patient_allergyID` bigint(20) DEFAULT NULL,
+  `_patient_contactID` bigint(20) DEFAULT NULL,
+  `_patient_diagnosisID` bigint(20) DEFAULT NULL,
+  `_patient_insuranceID` bigint(20) DEFAULT NULL,
+  `_patient_pcpID` bigint(20) DEFAULT NULL,
+  `_patient_procedureID` bigint(20) DEFAULT NULL,
+  `_patient_typeID` bigint(20) DEFAULT NULL,
+  `_phone_numberID` bigint(20) DEFAULT NULL,
+  `_providerID` bigint(20) DEFAULT NULL,
+  `_service_areaID` bigint(20) DEFAULT NULL,
+  `_unitID` bigint(20) DEFAULT NULL,
+  `_vaccinationID` bigint(20) DEFAULT NULL,
+  `_vaccination_statusID` bigint(20) DEFAULT NULL,
+  `_vaccineID` bigint(20) DEFAULT NULL,
+  `_vitalsignsID` bigint(20) DEFAULT NULL,
+  `inCSG` bigint(20) DEFAULT NULL COMMENT 'zero if no maching MPI',
+  `processDT` datetime DEFAULT CURRENT_TIMESTAMP,
+  `accid_ref` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_filelist1ID` (`filelist1ID`),
+  KEY `idx_patient_accountID` (`_patient_accountID`)
+) ENGINE=InnoDB AUTO_INCREMENT=2007166211 DEFAULT CHARSET=utf8;
+
+
+-- hl7_processing_center.insertid_repeat definition
+
+CREATE TABLE `insertid_repeat` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `filelist1ID` bigint(20) unsigned DEFAULT NULL,
+  `repeatTableName` varchar(200) DEFAULT NULL,
+  `repeatTableID` bigint(20) unsigned DEFAULT NULL,
+  `seq` bigint(20) unsigned DEFAULT NULL,
+  `processDT` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `filelist1Id` (`filelist1ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=2105000086 DEFAULT CHARSET=utf8;
+
+
+-- hl7_processing_center.insertid_repeat_20250812_archive definition
+
+CREATE TABLE `insertid_repeat_20250812_archive` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `filelist1ID` bigint(20) unsigned DEFAULT NULL,
+  `repeatTableName` varchar(200) DEFAULT NULL,
+  `repeatTableID` bigint(20) unsigned DEFAULT NULL,
+  `seq` bigint(20) unsigned DEFAULT NULL,
+  `processDT` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `filelist1Id` (`filelist1ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=1884102704 DEFAULT CHARSET=utf8;
+
+
+-- hl7_processing_center.mytestfilelist definition
+
+CREATE TABLE `mytestfilelist` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `filename` varchar(200) DEFAULT NULL,
+  `filecontent` text,
+  `processDT` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id_UNIQUE` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4064560 DEFAULT CHARSET=utf8;
+
+
+-- hl7_processing_center.processing_errors definition
+
+CREATE TABLE `processing_errors` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `parser_used` varchar(100) DEFAULT NULL,
+  `error_message` varchar(100) DEFAULT NULL,
+  `file_name` varchar(300) DEFAULT NULL,
+  `file_content` text,
+  `event_timestamp` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `all` (`id`,`parser_used`,`error_message`,`file_name`)
+) ENGINE=InnoDB AUTO_INCREMENT=79312272 DEFAULT CHARSET=latin1 COMMENT='Collects errors rather than using the error log text file.  This will grow as it becomes operationally necessary to do certain types of error research.  The source for the data is the HL7v2_handler python scripts.';
+
+
+-- hl7_processing_center.ready_list definition
+
+CREATE TABLE `ready_list` (
+  `filename` varchar(200) CHARACTER SET utf8 DEFAULT NULL,
+  `fileType` varchar(200) CHARACTER SET utf8 DEFAULT '0',
+  `id` int(10) unsigned NOT NULL DEFAULT '0',
+  `filelist1ID` int(10) unsigned DEFAULT NULL,
+  `_accessionID` int(10) unsigned DEFAULT NULL,
+  `_batteryID` int(10) unsigned DEFAULT NULL,
+  `_documentID` int(10) unsigned DEFAULT NULL,
+  `_document_subtypeID` int(10) unsigned DEFAULT NULL,
+  `_document_typeID` int(10) unsigned DEFAULT NULL,
+  `_document_versionID` int(10) unsigned DEFAULT NULL,
+  `_facilityID` int(10) unsigned DEFAULT NULL,
+  `_immunizationID` int(10) unsigned DEFAULT NULL,
+  `_lab_resultID` int(10) unsigned DEFAULT NULL,
+  `_lab_testID` int(10) unsigned DEFAULT NULL,
+  `_medicationID` int(10) unsigned DEFAULT NULL,
+  `_mpiID` bigint(20) unsigned DEFAULT NULL,
+  `_mpi_id_masterID` bigint(20) unsigned DEFAULT NULL,
+  `_patient_accountID` int(10) unsigned DEFAULT NULL,
+  `_patient_allergyID` int(10) unsigned DEFAULT NULL,
+  `_patient_contactID` int(10) unsigned DEFAULT NULL,
+  `_patient_diagnosisID` int(10) unsigned DEFAULT NULL,
+  `_patient_insuranceID` int(10) unsigned DEFAULT NULL,
+  `_patient_pcpID` int(10) unsigned DEFAULT NULL,
+  `_patient_procedureID` int(10) unsigned DEFAULT NULL,
+  `_patient_typeID` int(10) unsigned DEFAULT NULL,
+  `_phone_numberID` int(10) unsigned DEFAULT NULL,
+  `_providerID` int(10) unsigned DEFAULT NULL,
+  `_service_areaID` int(10) unsigned DEFAULT NULL,
+  `_unitID` int(10) unsigned DEFAULT NULL,
+  `_vaccinationID` int(10) unsigned DEFAULT NULL,
+  `_vaccination_statusID` int(10) unsigned DEFAULT NULL,
+  `_vaccineID` int(10) unsigned DEFAULT NULL,
+  `_vitalsignsID` int(10) unsigned DEFAULT NULL,
+  `inCSG` bigint(20) unsigned DEFAULT NULL COMMENT 'zero if no maching MPI',
+  `processDT` datetime DEFAULT CURRENT_TIMESTAMP,
+  `accid_ref` varchar(200) CHARACTER SET utf8 DEFAULT NULL,
+  KEY `david_alerts_list` (`_medicationID`,`_mpiID`,`_patient_accountID`,`_patient_contactID`,`_patient_diagnosisID`,`_patient_insuranceID`,`_patient_pcpID`,`_patient_procedureID`,`_service_areaID`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+-- hl7_processing_center.tmp_client_security_group_mpi definition
+
+CREATE TABLE `tmp_client_security_group_mpi` (
+  `mpi_Int` bigint(21) unsigned NOT NULL,
+  `MPI` varchar(200) CHARACTER SET latin1 DEFAULT NULL,
+  PRIMARY KEY (`mpi_Int`),
+  UNIQUE KEY `mpi_Int_UNIQUE` (`mpi_Int`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- hl7_processing_center.tmp_mpilookup definition
+
+CREATE TABLE `tmp_mpilookup` (
+  `firstname` varchar(100) COLLATE utf8_bin DEFAULT NULL,
+  `lastname` varchar(100) COLLATE utf8_bin DEFAULT NULL,
+  `dob` varchar(100) COLLATE utf8_bin DEFAULT NULL,
+  `sex` varchar(100) COLLATE utf8_bin DEFAULT NULL,
+  `dt` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+
+-- hl7_processing_center.z_debug_log definition
+
+CREATE TABLE `z_debug_log` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `log_bigint` bigint(20) DEFAULT NULL,
+  `log` varchar(255) DEFAULT NULL,
+  `insertDT` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=89 DEFAULT CHARSET=latin1;
+
+
+
