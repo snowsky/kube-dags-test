@@ -131,6 +131,7 @@ with DAG(
     "card_addition_dag",
     default_args=default_args,
     schedule=None,
+    max_active_runs=1,
     tags=["wekan", "card-addition", "C-165", "Canary"],
     start_date=datetime(2025, 2, 1),
     catchup=False,
@@ -184,7 +185,7 @@ with DAG(
             raise AirflowSkipException
 
     trigger_control = trigger_control_task(trigger_check_in=trigger_check.output, overlap_check_in=overlap_check.output)
-    trigger_control >> update_job_triggers
+    trigger_control #>> update_job_triggers
 
 
     def _stringify_field(field: Any) -> str:
