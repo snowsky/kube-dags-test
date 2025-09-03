@@ -31,7 +31,7 @@ default_args = {
     'retries': 1,
 }
 
-with DAG('check_mysql_connection_dag',
+with DAG('qa_check_mysql_connection_dag',
          default_args=default_args,
          schedule_interval='@daily',
          catchup=False) as dag:
