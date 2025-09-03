@@ -130,7 +130,7 @@ default_args = {
 with DAG(
     "card_addition_dag",
     default_args=default_args,
-    schedule=None,
+    schedule="@continuous",
     max_active_runs=1,
     tags=["wekan", "card-addition", "C-165", "Canary"],
     start_date=datetime(2025, 2, 1),
