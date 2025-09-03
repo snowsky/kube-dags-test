@@ -139,55 +139,6 @@ with DAG(
         "override_trigger_check": Param(False, type="boolean")
     }
 ) as dag:
-
-    trigger_check = ReturningPostgresOperator(
-        task_id="trigger_check",
-        postgres_conn_id=CONNECTIONS["OPERATIONS_LOGGER"].conn_id,
-        database=CONNECTIONS["OPERATIONS_LOGGER"].database,
-        sql="""
-        SELECT COUNT(*)
-        FROM public.restart_trigger rt
-        INNER JOIN public.schedule_jobs sj
-            ON rt.trigger_name = sj.server
-        WHERE rt.switch = 0
-            AND sj.script_name = 'Internal Ticketing';
-        """,
-    )
-
-    overlap_check = ReturningPostgresOperator(
-        task_id="overlap_check",
-        postgres_conn_id=CONNECTIONS["OPERATIONS_LOGGER"].conn_id,
-        database=CONNECTIONS["OPERATIONS_LOGGER"].database,
-        sql="""
-        SELECT COUNT(*)
-        FROM public.job_triggers
-        WHERE associated_table = 'card_addition_erta_com_konza_support_curl'
-            AND trigger_status = '0';
-        """,
-    )
-
-    update_job_triggers = ReturningPostgresOperator(
-        task_id="update_job_triggers",
-        postgres_conn_id=CONNECTIONS["OPERATIONS_LOGGER"].conn_id,
-        database=CONNECTIONS["OPERATIONS_LOGGER"].database,
-        sql="""
-        UPDATE public.job_triggers
-        SET trigger_status = '1'
-        WHERE associated_table = 'card_addition_erta_com_konza_support_curl';
-        """,
-    )
-
-    @task
-    def trigger_control_task(trigger_check_in, overlap_check_in, params):
-        override_trigger_check = params["override_trigger_check"]
-        logging.info(f"trigger check: {trigger_check_in[0][0]} - overlap check: {overlap_check_in[0][0]}")
-        if not override_trigger_check and (not trigger_check_in[0][0] or not overlap_check_in[0][0]):
-            raise AirflowSkipException
-
-    trigger_control = trigger_control_task(trigger_check_in=trigger_check.output, overlap_check_in=overlap_check.output)
-    trigger_control #>> update_job_triggers
-
-
     def _stringify_field(field: Any) -> str:
         return str(field).strip() if field else ""
 
@@ -1244,12 +1195,5 @@ with DAG(
     )
 
     process_support_tickets = process_support_tickets_task(configuration)
+    configuration >> process_support_tickets
 
-    (
-        trigger_control_task(trigger_check_in=trigger_check.output, overlap_check_in=overlap_check.output)
-        >> configuration
-        >> (
-            update_job_triggers,
-            process_support_tickets,
-        )
-    )
