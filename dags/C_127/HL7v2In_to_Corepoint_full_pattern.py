@@ -11,7 +11,6 @@ import re
 import logging
 import chardet
 import boto3
-from airflow.hooks.base import BaseHook
 
 # Constants
 DEFAULT_AZURE_CONTAINER = 'airflow'
@@ -33,9 +32,7 @@ AWS_BUCKETS = {
 def check_and_rename_filename(file_key):
     decoded_key = unquote(file_key)
     file_name = decoded_key.split('/')[-1]
-    #pattern = r"HL7v2In/domainOid=[^/]+/root=([^/]+)/extension=([^/]+)/([0-9A-F\-]+)"
     pattern = r"HL7v2In/domainOid=[^/]+/root=([^/]+)/extension=([^/]+)/([^/]+)"
-
     match = re.search(pattern, decoded_key, re.IGNORECASE)
     if match:
         root, extension, uuid = match.groups()
@@ -45,8 +42,6 @@ def check_and_rename_filename(file_key):
 def chunk_list(data, chunk_size):
     for i in range(0, len(data), chunk_size):
         yield data[i:i + chunk_size]
-
-
 
 @task
 def list_s3_keys(aws_bucket: str, aws_folder: str) -> list:
@@ -73,8 +68,6 @@ def list_s3_keys(aws_bucket: str, aws_folder: str) -> list:
                     return keys
     return keys
 
-
-
 @task
 def chunk_keys(keys: list, aws_bucket: str) -> list:
     return [{"file_keys": chunk, "aws_bucket": aws_bucket} for chunk in chunk_list(keys, CHUNK_SIZE)]
@@ -97,12 +90,16 @@ def process_key_batch(file_keys: list, aws_bucket: str):
             raw_bytes = file_obj.get()["Body"].read()
 
             detected = chardet.detect(raw_bytes)
-            encoding = detected.get("encoding", "utf-8")
+            encoding = detected.get("encoding")
 
-            try:
-                file_content = raw_bytes.decode(encoding)
-            except UnicodeDecodeError:
-                logging.warning(f"Failed to decode {file_key} with {encoding}. Uploading raw bytes.")
+            if encoding:
+                try:
+                    file_content = raw_bytes.decode(encoding)
+                except UnicodeDecodeError:
+                    logging.warning(f"Failed to decode {file_key} with {encoding}. Uploading raw bytes.")
+                    file_content = raw_bytes
+            else:
+                logging.warning(f"Encoding detection failed for {file_key}. Uploading raw bytes.")
                 file_content = raw_bytes
 
             for dest_path in [dest1_path, dest2_path]:
