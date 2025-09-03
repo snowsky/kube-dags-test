@@ -272,14 +272,14 @@ with DAG(
     drop_tmp_dim_accid_state_assignment_latest_if_exists = KonzaTrinoOperator(
         task_id='drop_tmp_dim_accid_state_assignment_latest',
         query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.tmp_dim_accid_state_assignment_latest_<DATEID>
+        DROP TABLE IF EXISTS hive.parquet_master_data."tmp_dim_accid_state_assignment_latest_<DATEID>"
         """,
     )
 
     create_tmp_dim_accid_state_assignment_latest = KonzaTrinoOperator(
         task_id='create_tmp_dim_accid_state_assignment_latest',
         query="""
-        CREATE TABLE IF NOT EXISTS hive.parquet_master_data.tmp_dim_accid_state_assignment_latest_<DATEID>
+        CREATE TABLE IF NOT EXISTS hive.parquet_master_data."tmp_dim_accid_state_assignment_latest_<DATEID>"
         AS SELECT 
           patient_id,
           MAX(index_update_dt_tm) AS latest_index_update_dt_tm,
@@ -331,14 +331,14 @@ with DAG(
           imputed_state,
           IF(latest_index_update_dt_tm = used_index_update_dt_tm, 'latest_update', 'latest_update_not_unknown') AS algorithm_used,
           '<DATEID>' AS ds
-        FROM hive.parquet_master_data.tmp_dim_accid_state_assignment_latest_<DATEID>
+        FROM hive.parquet_master_data."tmp_dim_accid_state_assignment_latest_<DATEID>"
         """
     )
 
     cleanup_tmp_dim_accid_state_assignment_latest = KonzaTrinoOperator(
         task_id='cleanup_tmp_dim_accid_state_assignment_latest',
         query="""
-        DROP TABLE IF EXISTS hive.parquet_master_data.tmp_dim_accid_state_assignment_latest_<DATEID>
+        DROP TABLE IF EXISTS hive.parquet_master_data."tmp_dim_accid_state_assignment_latest_<DATEID>"
         """,
     )
     downscale = downscale_workers()
