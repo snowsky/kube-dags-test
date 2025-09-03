@@ -364,4 +364,9 @@ TICKET_REASONS = [
         text="Alerts  Raw (Routed Raw Messages) - L-52, L-10, L-82",
         subscribers=["tlamond@konza.org"],
     ),
+    TicketReason(
+        id=67,
+        category=TicketReasonCategories.CAT_12,
+        text="DevOps Estimate -  Estimate of resources/cost and timeline",
+    ),
 ]
