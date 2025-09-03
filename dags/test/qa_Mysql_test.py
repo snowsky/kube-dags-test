@@ -20,6 +20,7 @@ def check_mysql_connection():
     except Exception as e:
         logging.error(f"Connection failed: {e}")
 
+
 def run_mysql_query():
     connection = BaseHook.get_connection('import logging
 from airflow import DAG
