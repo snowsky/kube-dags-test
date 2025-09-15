@@ -16,6 +16,16 @@ from azure.storage.blob import BlobServiceClient
 from hl7v2.msh4_oid import get_domain_oid_from_hl7v2_msh4_with_crosswalk_fallback_from_bytes
 from lib.operators.azure_connection_string import get_azure_connection_string
 
+# Option A: keep WARNINGS & ERRORS only (recommended)
+logging.getLogger().setLevel(logging.WARNING)
+# Kill Azure’s HTTP chatter (one-liner + a couple kwargs)
+logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.ERROR)
+
+
+# Quiet down noisy libraries even more
+#for name in ("azure", "boto3", "botocore", "urllib3"):
+    #logging.getLogger(name).setLevel(logging.ERROR)
+
 # Constants
 AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
 AZURE_CONNECTION_CONTAINER = 'airflow'
@@ -65,7 +75,14 @@ with DAG(
         blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
         container_client = blob_service_client.get_container_client(container_name)
         blob_list = container_client.list_blobs(name_starts_with=prefix)
-    
+
+
+        #blob_data = blob_client.download_blob(logging_enable=False).readall()
+        #archive_blob_client.start_copy_from_url(blob_client.url, logging_enable=False)
+        #copy_status = archive_blob_client.get_blob_properties(logging_enable=False).copy.status
+        #blob_client.delete_blob(logging_enable=False)
+        # (any other get_blob_properties calls in your polling loop: add logging_enable=False)
+        
         matched_blobs = []
     
         for i, blob in enumerate(islice(blob_list, MAX_FILES * 2)):
@@ -124,7 +141,7 @@ with DAG(
                 #archive_path = blob_path.replace("OB To SSI EUID", "Detected Failed Files Archived/OB To SSI EUID")
                 archive_path = blob_path.replace("OB To SSI EUID", "Missing EUID OID/OB To SSI EUID")
 
-                #archive_path = blob_path.replace("OB To SSI EUID_test", "archive_ob_to_ssi_files/OB To SSI EUID_test")
+                #archive_path = blob_path.replace("OB To SSI EUID", "archive_ob_to_ssi_files/OB To SSI EUID")
 
                 archive_blob_client = container_client.get_blob_client(archive_path)
         
@@ -186,11 +203,11 @@ with DAG(
     
             except Exception as e:
                 logging.warning(f"Failed to process blob: {blob_path} | {e}")
-                #try:
-                #    blob_client = container_client.get_blob_client(blob_path)
-                #    archive_blob(blob_client, blob_path)
-                #except Exception as archive_fallback:
-                #    logging.warning(f"Failed to move errored blob to archive: {blob_path} | {archive_fallback}")
+                try:
+                    blob_client = container_client.get_blob_client(blob_path)
+                    archive_blob(blob_client, blob_path)
+                except Exception as archive_fallback:
+                    logging.warning(f"Failed to move errored blob to archive: {blob_path} | {archive_fallback}")
     
         #logging.info(f"Batch uploaded items: {len(uploaded_items)}")
 
