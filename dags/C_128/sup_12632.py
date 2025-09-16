@@ -17,6 +17,7 @@ from airflow.utils.trigger_rule import TriggerRule
 # Define the DAG
 default_args = {
     'owner': 'airflow',
+    'execution_timeout': timedelta(hours=3),  # 3-hour limit on each task
 }
 dag = DAG(
     'HL7v3In_Critical_Data_Pipeline',
@@ -31,8 +32,9 @@ dag = DAG(
     params={
         "max_workers": Param(50, type="integer", minimum=1),
         "batch_size": Param(500, type="integer", minimum=1) #  - Warning do not set higher than 500 (testing on 2/7 around duration greater than 1 hour hitting timeout defined below)
-    }
-)
+    },
+        dagrun_timeout=timedelta(hours=3)  # 3-hour limit on the whole DAG
+    )
 ENV = 'Prod'
 BUCKET_NAME = 'konzaandssigrouppipelines'
 S3_SUBFOLDER = 'HL7v3In/'
