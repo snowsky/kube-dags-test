@@ -26,7 +26,8 @@ class TicketReasonCategories(Enum):
     CAT_12 = 12
     CAT_13 = 13
     CAT_14 = 14
-    NONE = 15
+    CAT_15 = 15
+    NONE = 16
 
 
 TICKET_REASONS = [
@@ -111,7 +112,7 @@ TICKET_REASONS = [
         text="Infrastructure - Upstream Partner Notification - Data Flow Change",
     ),
     TicketReason(
-        id=15,
+        id=,
         category=TicketReasonCategories.CAT_3,
         text="Infrastructure - Source formatting or data structure changes",
     ),
