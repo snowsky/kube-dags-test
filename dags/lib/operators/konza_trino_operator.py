@@ -10,7 +10,7 @@ class KonzaTrinoOperator(PythonOperator):
     def __init__(self, query, **kwargs):
 
         def execute_trino_query(**kwargs):
-            ds = kwargs['ds']
+            ds = kwargs['ds'].replace('-', '')
             # Retrieve the connection details
             conn = BaseHook.get_connection('trinokonza')
             host = conn.host
