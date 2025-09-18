@@ -369,4 +369,9 @@ TICKET_REASONS = [
         category=TicketReasonCategories.CAT_12,
         text="DevOps Estimate -  Estimate of resources/cost and timeline",
     ),
+    TicketReason(
+        id=68,
+        category=TicketReasonCategories.CAT_15,
+        text="Infrastructure - Rhapsody FHIR - Software Stack Change",
+    ),
 ]
