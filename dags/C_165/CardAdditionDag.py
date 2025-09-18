@@ -79,7 +79,8 @@ WEKAN_INFO = {
     TicketReasonCategories.CAT_11: WekanInfo(board_id='hC87vvkuMDXwJAxDp', list_id='7jCBn4nsrvNboJ9Zt', swimlane_id='zYXy8PY9xkvq8qYr5'),
     TicketReasonCategories.CAT_12: WekanInfo(board_id='sGyzAxaDDni7wbNF7', list_id='endRNYGKthW5AjPkF', swimlane_id='ypoPDmZbfFKFkSv7d'),
     TicketReasonCategories.CAT_13: WekanInfo(board_id='iPZ5T3uRQoRqqXrM3', list_id='PKzpTmE8StJnkSeeA', swimlane_id='3oJWqY8PwQL5E4ywX'),
-    TicketReasonCategories.CAT_14: WekanInfo(board_id='iPZ5T3uRQoRqqXrM3', list_id='PKzpTmE8StJnkSeeA', swimlane_id='3oJWqY8PwQL5E4ywX')
+    TicketReasonCategories.CAT_14: WekanInfo(board_id='iPZ5T3uRQoRqqXrM3', list_id='PKzpTmE8StJnkSeeA', swimlane_id='3oJWqY8PwQL5E4ywX'),
+    TicketReasonCategories.CAT_15: WekanInfo(board_id='vmfgcpaZ2BTApMdsf', list_id='BGgP78JbgDWFHadfb', swimlane_id='CgmExdatu2v6XEC2w')
 }
 
 ALTERNATE_DESCRIPTION = {
