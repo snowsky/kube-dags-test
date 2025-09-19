@@ -98,6 +98,8 @@ with DAG(
                 parts = relative_path.split('/', 1)
                 if len(parts) == 2:
                     date_folder, _ = parts
+                    if date_folder == "20250916":
+                        continue  # Skip this folder
                     blobs_by_date[date_folder].append(blob.name)
                     total_blob_count += 1
                     if total_blob_count % 10000 == 0:
