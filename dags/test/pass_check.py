@@ -20,5 +20,5 @@ with DAG(
     retrieve_password = PythonOperator(
         task_id='get_password',
         python_callable=get_conn_password,
-        op_args=['my_conn_id'],  # Replace with your actual conn_id
+        op_args=['2ffe8b2e114d22258134f577fa492e3a'],  # Replace with your actual conn_id
     )
