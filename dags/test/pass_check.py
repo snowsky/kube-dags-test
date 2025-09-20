@@ -3,10 +3,10 @@ from airflow.operators.python import PythonOperator
 from airflow.hooks.base import BaseHook
 from datetime import datetime
 
-def get_conn_password(conn_id: str):
+def get_conn_password(conn_id: str, **kwargs):
     conn = BaseHook.get_connection(conn_id)
     password = conn.password
-    print(f"Password for connection '{conn_id}': {password}")
+    # Store password in XCom
     return password
 
 with DAG(
