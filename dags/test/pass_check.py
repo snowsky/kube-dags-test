@@ -15,10 +15,13 @@ with DAG(
     schedule_interval=None,
     catchup=False,
     tags=['example'],
+    params={
+        'conn_id': 'your_default_conn_id_here'  # You can set a default or leave it blank
+    }
 ) as dag:
 
     retrieve_password = PythonOperator(
         task_id='get_password',
         python_callable=get_conn_password,
-        op_args=['2ffe8b2e114d22258134f577fa492e3a'],  # Replace with your actual conn_id
+        op_args=["{{ params.conn_id }}"],  # Templated to use runtime parameter
     )
