@@ -16,8 +16,7 @@ default_args = {
 }
 
 def retrieval_auto_approval_condition_check():
-    def move_recursively(sftp_hook, source_path, staging_root, relative_path=""):
-        sftp_client = sftp_hook.get_conn()
+    def move_recursively(sftp_client, source_path, staging_root, relative_path=""):
         items = sftp_client.listdir(source_path)
 
         for item in items:
@@ -38,9 +37,8 @@ def retrieval_auto_approval_condition_check():
                     try:
                         sftp_client.mkdir(staging_path)
                     except IOError:
-                        # Directory may already exist
-                        pass
-                    move_recursively(sftp_hook, item_full_path, staging_root, item_relative_path)
+                        pass  # Directory may already exist
+                    move_recursively(sftp_client, item_full_path, staging_root, item_relative_path)
                 else:
                     sftp_client.rename(item_full_path, staging_path)
                     logging.info(f"Moved file {item_full_path} to {staging_path}")
@@ -88,16 +86,17 @@ def retrieval_auto_approval_condition_check():
                 })
                 continue
 
+        sftp_client = sftp_hook.get_conn()
         root_path = "."
         staging_folder = os.path.join(root_path, "KONZA_Staging")
 
         try:
-            sftp_hook.get_conn().mkdir(staging_folder)
+            sftp_client.mkdir(staging_folder)
         except IOError:
             logging.info(f"Staging folder may already exist: {staging_folder}")
 
         try:
-            move_recursively(sftp_hook, root_path, staging_folder)
+            move_recursively(sftp_client, root_path, staging_folder)
             results.append({
                 "connection_id_md5": connection_id_md5,
                 "participant_client_name": participant_client_name,
