@@ -74,6 +74,7 @@ with DAG(
     default_args=default_args,
     description='Check and move files for auto-approved retrieval clients',
     schedule_interval='0 */6 * * *',  # Every 6 hours
+    max_active_runs=1,
     start_date=datetime(2025, 9, 21),
     catchup=False,
     tags=['C-11'],
