@@ -15,7 +15,31 @@ default_args = {
 }
 
 def retrieval_auto_approval_condition_check():
-    # Connect to PostgreSQL
+    def move_recursively(sftp_hook, source_path, staging_root, relative_path=""):
+        items = sftp_hook.list_directory(source_path)
+
+        for item in items:
+            if item in [".", ".."]:
+                continue
+
+            item_full_path = os.path.join(source_path, item)
+            item_relative_path = os.path.join(relative_path, item)
+            staging_path = os.path.join(staging_root, item_relative_path)
+
+            # Skip the staging folder itself
+            if "KONZA_Staging" in item_full_path:
+                continue
+
+            try:
+                if sftp_hook.path_isdir(item_full_path):
+                    sftp_hook.create_directory(staging_path)
+                    move_recursively(sftp_hook, item_full_path, staging_root, item_relative_path)
+                else:
+                    sftp_hook.rename(item_full_path, staging_path)
+                    logging.info(f"Moved file {item_full_path} to {staging_path}")
+            except Exception as e:
+                logging.error(f"Failed to process {item_full_path}: {e}")
+
     pg_hook = PostgresHook(postgres_conn_id="prd-az1-ops3-airflowconnection")
 
     query = """
@@ -24,7 +48,7 @@ def retrieval_auto_approval_condition_check():
         WHERE emr_client_delivery_paused = '0';
     """
     df_retrieve_auto_approved = pg_hook.get_pandas_df(query)
-    # Apply MD5 hashing in Python
+
     df_retrieve_auto_approved["connection_id_md5"] = df_retrieve_auto_approved["emr_client_name"].apply(
         lambda x: hashlib.md5(x.encode("utf-8")).hexdigest() if isinstance(x, str) else None
     )
@@ -49,33 +73,36 @@ def retrieval_auto_approval_condition_check():
                 sftp_hook = SFTPHook(sftp_conn_id=connection_id_md5)
             except Exception as e:
                 logging.error(f"Failed sftp_conn_id: {e}")
+                results.append({
+                    "connection_id_md5": connection_id_md5,
+                    "participant_client_name": participant_client_name,
+                    "status": "failed",
+                    "error": str(e)
+                })
                 continue
-
-        root_path = "."  # Default home directory on SFTP
+        root_path = "."
         staging_folder = os.path.join(root_path, "KONZA_Staging")
-        
+
         try:
             sftp_hook.create_directory(staging_folder)
         except Exception as e:
             logging.info(f"Staging folder may already exist: {e}")
-        
-        try:
-            items = sftp_hook.list_path(root_path)
-        
-            for item in items:
-                if item == "KONZA_Staging":
-                    continue  # Skip the staging folder itself
-                item_path = os.path.join(root_path, item)
-                staging_path = os.path.join(staging_folder, item)
-        
-                try:
-                    sftp_hook.rename(item_path, staging_path)
-                    logging.info(f"Moved {item_path} to {staging_path}")
-                except Exception as e:
-                    logging.error(f"Failed to move {item_path}: {e}")
 
+        try:
+            move_recursively(sftp_hook, root_path, staging_folder)
+            results.append({
+                "connection_id_md5": connection_id_md5,
+                "participant_client_name": participant_client_name,
+                "status": "success"
+            })
         except Exception as e:
-            logging.error(f"Error processing root path {root_path}: {e}")
+            logging.error(f"Error during recursive move: {e}")
+            results.append({
+                "connection_id_md5": connection_id_md5,
+                "participant_client_name": participant_client_name,
+                "status": "error",
+                "error": str(e)
+            })
 
     return results
 
