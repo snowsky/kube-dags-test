@@ -5,11 +5,13 @@
 # v1.3 - Improved error handling to continue on connection/auth failures
 # v1.4 - Added version tracking comments
 # v1.5 - Fixed syntax error: missing closing brace in results.append
+# v1.6 - Added second round to transfer files from KONZA_Staging to Azure Blob Storage destinations
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.sftp.hooks.sftp import SFTPHook
+from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
 from datetime import datetime, timedelta
 import logging
 import hashlib
@@ -23,29 +25,28 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
+AZURE_CONNECTION_NAME = "biakonzasftp-blob-core-windows-net"
+CONTAINER_NAME = "airflow"
+DESTINATIONS = ["C-126/L-69/", "C-111/L-69/"]
+
 def retrieval_auto_approval_condition_check():
     def move_recursively(sftp_client, source_path, staging_root, relative_path=""):
         items = sftp_client.listdir(source_path)
-
         for item in items:
             if item in [".", ".."]:
                 continue
-
             item_full_path = os.path.join(source_path, item)
             item_relative_path = os.path.join(relative_path, item)
             staging_path = os.path.join(staging_root, item_relative_path)
-
-            # Skip the staging folder itself
             if "KONZA_Staging" in item_full_path:
                 continue
-
             try:
                 item_stat = sftp_client.stat(item_full_path)
                 if stat.S_ISDIR(item_stat.st_mode):
                     try:
                         sftp_client.mkdir(staging_path)
                     except IOError:
-                        pass  # Directory may already exist
+                        pass
                     move_recursively(sftp_client, item_full_path, staging_root, item_relative_path)
                 else:
                     sftp_client.rename(item_full_path, staging_path)
@@ -53,15 +54,42 @@ def retrieval_auto_approval_condition_check():
             except Exception as e:
                 logging.error(f"Failed to process {item_full_path}: {e}")
 
-    pg_hook = PostgresHook(postgres_conn_id="prd-az1-ops3-airflowconnection")
+    def transfer_to_azure(sftp_client, staging_root):
+        wasb_hook = WasbHook(wasb_conn_id=AZURE_CONNECTION_NAME)
+        def upload_recursively(current_path, relative_path=""):
+            items = sftp_client.listdir(current_path)
+            for item in items:
+                if item in [".", ".."]:
+                    continue
+                item_full_path = os.path.join(current_path, item)
+                item_relative_path = os.path.join(relative_path, item)
+                try:
+                    item_stat = sftp_client.stat(item_full_path)
+                    if stat.S_ISDIR(item_stat.st_mode):
+                        upload_recursively(item_full_path, item_relative_path)
+                    else:
+                        file_data = sftp_client.open(item_full_path).read()
+                        for destination in DESTINATIONS:
+                            blob_path = os.path.join(destination, item_relative_path)
+                            wasb_hook.load_bytes(
+                                bytes_data=file_data,
+                                container_name=CONTAINER_NAME,
+                                blob_name=blob_path,
+                                overwrite=True
+                            )
+                            logging.info(f"Uploaded {item_full_path} to Azure Blob {blob_path}")
+                        sftp_client.remove(item_full_path)
+                except Exception as e:
+                    logging.error(f"Failed to upload {item_full_path} to Azure: {e}")
+        upload_recursively(staging_root)
 
+    pg_hook = PostgresHook(postgres_conn_id="prd-az1-ops3-airflowconnection")
     query = """
         SELECT emr_client_name, authorized_identifier, participant_client_name
         FROM cda_konza_sftp_retrieval__l_69
         WHERE emr_client_delivery_paused = '0';
     """
     df_retrieve_auto_approved = pg_hook.get_pandas_df(query)
-
     df_retrieve_auto_approved["connection_id_md5"] = df_retrieve_auto_approved["emr_client_name"].apply(
         lambda x: hashlib.md5(x.encode("utf-8")).hexdigest() if isinstance(x, str) else None
     )
@@ -76,9 +104,8 @@ def retrieval_auto_approval_condition_check():
         connection_id_md5 = row['connection_id_md5']
         emr_client_name = row['emr_client_name']
         participant_client_name = row['participant_client_name']
-        logging.info(f"Processing connection ID: {connection_id_md5} for participant: {participant_client_name} using SFTP configuration from {emr_client_name}")
+        logging.info(f"Processing connection ID: {connection_id_md5} for participant: {participant_client_name}")
 
-        sftp_hook = None
         try:
             sftp_hook = SFTPHook(ssh_conn_id=connection_id_md5)
         except Exception as e:
@@ -117,17 +144,18 @@ def retrieval_auto_approval_condition_check():
 
         try:
             move_recursively(sftp_client, root_path, staging_folder)
+            transfer_to_azure(sftp_client, staging_folder)
             results.append({
                 "connection_id_md5": connection_id_md5,
                 "participant_client_name": participant_client_name,
                 "status": "success"
             })
         except Exception as e:
-            logging.error(f"Error during recursive move for {connection_id_md5}: {e}")
+            logging.error(f"Error during processing for {connection_id_md5}: {e}")
             results.append({
                 "connection_id_md5": connection_id_md5,
                 "participant_client_name": participant_client_name,
-                "status": "move_failed",
+                "status": "processing_failed",
                 "error": str(e)
             })
 
@@ -136,8 +164,8 @@ def retrieval_auto_approval_condition_check():
 with DAG(
     dag_id='retrieval_auto_approval_check',
     default_args=default_args,
-    description='Check and move files for auto-approved retrieval clients',
-    schedule_interval='0 */6 * * *',  # Every 6 hours
+    description='Check and move files for auto-approved retrieval clients and deliver to Azure Blob Storage',
+    schedule_interval='0 */6 * * *',
     max_active_runs=1,
     start_date=datetime(2025, 9, 21),
     catchup=False,
