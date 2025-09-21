@@ -1,3 +1,10 @@
+# DAG Version History:
+# v1.0 - Initial DAG to move files from SFTP home directory to KONZA_Staging
+# v1.1 - Added recursive folder traversal and structure preservation
+# v1.2 - Replaced invalid `path_isdir` with `stat.S_ISDIR` using paramiko
+# v1.3 - Improved error handling to continue on connection/auth failures
+# v1.4 - Added version tracking comments
+
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
@@ -30,6 +37,7 @@ def retrieval_auto_approval_condition_check():
             # Skip the staging folder itself
             if "KONZA_Staging" in item_full_path:
                 continue
+
             try:
                 item_stat = sftp_client.stat(item_full_path)
                 if stat.S_ISDIR(item_stat.st_mode):
@@ -81,61 +89,4 @@ def retrieval_auto_approval_condition_check():
                 results.append({
                     "connection_id_md5": connection_id_md5,
                     "participant_client_name": participant_client_name,
-                    "status": "connection_failed",
-                    "error": str(e)
-                })
-                continue  # Move to next client
-
-        try:
-            sftp_client = sftp_hook.get_conn()
-        except Exception as e:
-            logging.error(f"Failed to get SFTP connection for {connection_id_md5}: {e}")
-            results.append({
-                "connection_id_md5": connection_id_md5,
-                "participant_client_name": participant_client_name,
-                "status": "auth_failed",
-                "error": str(e)
-            })
-            continue  # Move to next client
-
-        root_path = "."
-        staging_folder = os.path.join(root_path, "KONZA_Staging")
-
-        try:
-            sftp_client.mkdir(staging_folder)
-        except IOError:
-            logging.info(f"Staging folder may already exist: {staging_folder}")
-
-        try:
-            move_recursively(sftp_client, root_path, staging_folder)
-            results.append({
-                "connection_id_md5": connection_id_md5,
-                "participant_client_name": participant_client_name,
-                "status": "success"
-            })
-        except Exception as e:
-            logging.error(f"Error during recursive move for {connection_id_md5}: {e}")
-            results.append({
-                "connection_id_md5": connection_id_md5,
-                "participant_client_name": participant_client_name,
-                "status": "move_failed",
-                "error": str(e)
-            })
-
-    return results
-
-with DAG(
-    dag_id='retrieval_auto_approval_check',
-    default_args=default_args,
-    description='Check and move files for auto-approved retrieval clients',
-    schedule_interval='0 */6 * * *',  # Every 6 hours
-    max_active_runs=1,
-    start_date=datetime(2025, 9, 21),
-    catchup=False,
-    tags=['C-11'],
-) as dag:
-
-    run_check = PythonOperator(
-        task_id='run_retrieval_auto_approval_check',
-        python_callable=retrieval_auto_approval_condition_check,
-    )
+                   
