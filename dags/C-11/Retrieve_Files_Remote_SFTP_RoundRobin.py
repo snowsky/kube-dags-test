@@ -4,6 +4,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.sftp.hooks.sftp import SFTPHook
 from datetime import datetime, timedelta
 import logging
+import hashlib
 import os
 
 default_args = {
@@ -18,11 +19,15 @@ def retrieval_auto_approval_condition_check():
     pg_hook = PostgresHook(postgres_conn_id="prd-az1-ops3-airflowconnection")
 
     query = """
-        SELECT md5(emr_client_name) AS connection_id_md5, authorized_identifier, participant_client_name
+        SELECT emr_client_name, authorized_identifier, participant_client_name
         FROM cda_konza_sftp_retrieval__l_69
-        WHERE emr_client_delivery_paused = 0;
+        WHERE emr_client_delivery_paused = '0';
     """
     df_retrieve_auto_approved = pg_hook.get_pandas_df(query)
+    # Apply MD5 hashing in Python
+    df_retrieve_auto_approved["connection_id_md5"] = df_retrieve_auto_approved["emr_client_name"].apply(
+        lambda x: hashlib.md5(x.encode("utf-8")).hexdigest() if isinstance(x, str) else None
+    )
 
     if df_retrieve_auto_approved.empty:
         logging.info("No clients to process.")
