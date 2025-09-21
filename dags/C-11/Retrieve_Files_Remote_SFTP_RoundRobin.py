@@ -70,37 +70,42 @@ def retrieval_auto_approval_condition_check():
                     if stat.S_ISDIR(item_stat.st_mode):
                         upload_recursively(item_full_path, item_relative_path)
                     else:
-                        file_data = sftp_client.open(item_full_path).read()
+                        # Download file from SFTP to local temp path
+                        local_temp_path = os.path.join("/tmp", item_relative_path)
+                        os.makedirs(os.path.dirname(local_temp_path), exist_ok=True)
+                        with open(local_temp_path, "wb") as f:
+                            f.write(sftp_client.open(item_full_path).read())
+        
                         upload_success = []
-
+        
                         for destination in DESTINATIONS:
                             if destination.startswith("C-11/L-69/"):
                                 blob_path = os.path.join(destination, emr_client_name, item_relative_path)
                             else:
                                 blob_path = os.path.join(destination, item_relative_path)
-
+        
                             try:
-                                wasb_hook.load_bytes(
-                                    bytes_data=file_data,
+                                wasb_hook.load_file(
+                                    file_path=local_temp_path,
                                     container_name=CONTAINER_NAME,
                                     blob_name=blob_path,
                                     overwrite=True
                                 )
-                                logging.info(f"Uploaded {item_full_path} to Azure Blob {blob_path}")
+                                logging.info(f"Uploaded {local_temp_path} to Azure Blob Storage as {blob_path}")
                                 upload_success.append(True)
                             except Exception as e:
-                                logging.error(f"Failed to upload {item_full_path} to {blob_path}: {e}")
+                                logging.error(f"Failed to upload {local_temp_path} to {blob_path}: {e}")
                                 upload_success.append(False)
-
-
+        
                         if all(upload_success):
                             sftp_client.remove(item_full_path)
                             logging.info(f"Deleted {item_full_path} from staging after successful uploads")
                         else:
                             logging.warning(f"File {item_full_path} not deleted due to failed upload(s)")
-
+        
                 except Exception as e:
                     logging.error(f"Failed to process {item_full_path}: {e}")
+
 
         upload_recursively(staging_root)
 
