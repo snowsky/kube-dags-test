@@ -18,19 +18,19 @@ def retrieval_auto_approval_condition_check():
     pg_hook = PostgresHook(postgres_conn_id="prd-az1-ops3-airflowconnection")
 
     query = """
-        SELECT md5(emr_client_name) AS connection_id_md5, authorized_identifier, participant_client_name, folder_name
+        SELECT md5(emr_client_name) AS connection_id_md5, authorized_identifier, participant_client_name
         FROM cda_konza_sftp_retrieval__l_69
         WHERE emr_client_delivery_paused = 0;
     """
-    df_panel_auto_approved = pg_hook.get_pandas_df(query)
+    df_retrieve_auto_approved = pg_hook.get_pandas_df(query)
 
-    if df_panel_auto_approved.empty:
+    if df_retrieve_auto_approved.empty:
         logging.info("No clients to process.")
         return []
 
     results = []
 
-    for _, row in df_panel_auto_approved.iterrows():
+    for _, row in df_retrieve_auto_approved.iterrows():
         connection_id_md5 = row['connection_id_md5']
         client_reference_folder = row['folder_name']
         logging.info(f"Processing connection ID: {connection_id_md5} for folder: {client_reference_folder}")
