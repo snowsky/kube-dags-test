@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import logging
 import hashlib
 import os
+import stat
 
 default_args = {
     'owner': 'airflow',
@@ -16,7 +17,8 @@ default_args = {
 
 def retrieval_auto_approval_condition_check():
     def move_recursively(sftp_hook, source_path, staging_root, relative_path=""):
-        items = sftp_hook.list_directory(source_path)
+        sftp_client = sftp_hook.get_conn()
+        items = sftp_client.listdir(source_path)
 
         for item in items:
             if item in [".", ".."]:
@@ -31,11 +33,16 @@ def retrieval_auto_approval_condition_check():
                 continue
 
             try:
-                if sftp_hook.path_isdir(item_full_path):
-                    sftp_hook.create_directory(staging_path)
+                item_stat = sftp_client.stat(item_full_path)
+                if stat.S_ISDIR(item_stat.st_mode):
+                    try:
+                        sftp_client.mkdir(staging_path)
+                    except IOError:
+                        # Directory may already exist
+                        pass
                     move_recursively(sftp_hook, item_full_path, staging_root, item_relative_path)
                 else:
-                    sftp_hook.rename(item_full_path, staging_path)
+                    sftp_client.rename(item_full_path, staging_path)
                     logging.info(f"Moved file {item_full_path} to {staging_path}")
             except Exception as e:
                 logging.error(f"Failed to process {item_full_path}: {e}")
@@ -80,13 +87,14 @@ def retrieval_auto_approval_condition_check():
                     "error": str(e)
                 })
                 continue
+
         root_path = "."
         staging_folder = os.path.join(root_path, "KONZA_Staging")
 
         try:
-            sftp_hook.create_directory(staging_folder)
-        except Exception as e:
-            logging.info(f"Staging folder may already exist: {e}")
+            sftp_hook.get_conn().mkdir(staging_folder)
+        except IOError:
+            logging.info(f"Staging folder may already exist: {staging_folder}")
 
         try:
             move_recursively(sftp_hook, root_path, staging_folder)
