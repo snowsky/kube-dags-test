@@ -47,7 +47,7 @@ def retrieval_auto_approval_condition_check():
 
         try:
             files = sftp_hook.list_path(client_reference_folder)
-            staging_folder = os.path.join(client_reference_folder, "Staging")
+            staging_folder = os.path.join(client_reference_folder, "KONZA_Staging")
 
             try:
                 sftp_hook.create_directory(staging_folder)
