@@ -27,7 +27,7 @@ default_args = {
 
 AZURE_CONNECTION_NAME = "biakonzasftp-blob-core-windows-net"
 CONTAINER_NAME = "airflow"
-DESTINATIONS = ["C-126/L-69/", "C-111/L-69/"]
+DESTINATIONS = ["C-126/L-69/", "C-11/L-69/"]
 
 def retrieval_auto_approval_condition_check():
     def move_recursively(sftp_client, source_path, staging_root, relative_path=""):
