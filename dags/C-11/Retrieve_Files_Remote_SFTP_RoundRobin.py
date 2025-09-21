@@ -80,17 +80,17 @@ def retrieval_auto_approval_condition_check():
                                 blob_path = os.path.join(destination, item_relative_path)
 
                             try:
-                                wasb_hook.load_bytes(
-                                    bytes_data=file_data,
+                                wasb_hook.create_blob_from_bytes(
                                     container_name=CONTAINER_NAME,
                                     blob_name=blob_path,
-                                    overwrite=True
+                                    bytes_data=file_data
                                 )
                                 logging.info(f"Uploaded {item_full_path} to Azure Blob {blob_path}")
                                 upload_success.append(True)
                             except Exception as e:
                                 logging.error(f"Failed to upload {item_full_path} to {blob_path}: {e}")
                                 upload_success.append(False)
+
 
                         if all(upload_success):
                             sftp_client.remove(item_full_path)
