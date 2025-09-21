@@ -80,10 +80,11 @@ def retrieval_auto_approval_condition_check():
                                 blob_path = os.path.join(destination, item_relative_path)
 
                             try:
-                                wasb_hook.create_blob_from_bytes(
+                                wasb_hook.load_bytes(
+                                    bytes_data=file_data,
                                     container_name=CONTAINER_NAME,
                                     blob_name=blob_path,
-                                    bytes_data=file_data
+                                    overwrite=True
                                 )
                                 logging.info(f"Uploaded {item_full_path} to Azure Blob {blob_path}")
                                 upload_success.append(True)
