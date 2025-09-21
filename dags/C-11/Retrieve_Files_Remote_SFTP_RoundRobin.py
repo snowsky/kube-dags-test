@@ -6,6 +6,7 @@
 # v1.4 - Added version tracking comments
 # v1.5 - Fixed syntax error: missing closing brace in results.append
 # v1.6 - Added second round to transfer files from KONZA_Staging to Azure Blob Storage destinations
+# v1.7 - Ensured deletion only after successful uploads to both destinations; appended emr_client_name to C-11/L-69/
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -54,8 +55,9 @@ def retrieval_auto_approval_condition_check():
             except Exception as e:
                 logging.error(f"Failed to process {item_full_path}: {e}")
 
-    def transfer_to_azure(sftp_client, staging_root):
+    def transfer_to_azure(sftp_client, staging_root, emr_client_name):
         wasb_hook = WasbHook(wasb_conn_id=AZURE_CONNECTION_NAME)
+
         def upload_recursively(current_path, relative_path=""):
             items = sftp_client.listdir(current_path)
             for item in items:
@@ -69,18 +71,36 @@ def retrieval_auto_approval_condition_check():
                         upload_recursively(item_full_path, item_relative_path)
                     else:
                         file_data = sftp_client.open(item_full_path).read()
+                        upload_success = []
+
                         for destination in DESTINATIONS:
-                            blob_path = os.path.join(destination, item_relative_path)
-                            wasb_hook.load_bytes(
-                                bytes_data=file_data,
-                                container_name=CONTAINER_NAME,
-                                blob_name=blob_path,
-                                overwrite=True
-                            )
-                            logging.info(f"Uploaded {item_full_path} to Azure Blob {blob_path}")
-                        sftp_client.remove(item_full_path)
+                            if destination.startswith("C-11/L-69/"):
+                                blob_path = os.path.join(destination, emr_client_name, item_relative_path)
+                            else:
+                                blob_path = os.path.join(destination, item_relative_path)
+
+                            try:
+                                wasb_hook.load_bytes(
+                                    bytes_data=file_data,
+                                    container_name=CONTAINER_NAME,
+                                    blob_name=blob_path,
+                                    overwrite=True
+                                )
+                                logging.info(f"Uploaded {item_full_path} to Azure Blob {blob_path}")
+                                upload_success.append(True)
+                            except Exception as e:
+                                logging.error(f"Failed to upload {item_full_path} to {blob_path}: {e}")
+                                upload_success.append(False)
+
+                        if all(upload_success):
+                            sftp_client.remove(item_full_path)
+                            logging.info(f"Deleted {item_full_path} from staging after successful uploads")
+                        else:
+                            logging.warning(f"File {item_full_path} not deleted due to failed upload(s)")
+
                 except Exception as e:
-                    logging.error(f"Failed to upload {item_full_path} to Azure: {e}")
+                    logging.error(f"Failed to process {item_full_path}: {e}")
+
         upload_recursively(staging_root)
 
     pg_hook = PostgresHook(postgres_conn_id="prd-az1-ops3-airflowconnection")
@@ -144,7 +164,7 @@ def retrieval_auto_approval_condition_check():
 
         try:
             move_recursively(sftp_client, root_path, staging_folder)
-            transfer_to_azure(sftp_client, staging_folder)
+            transfer_to_azure(sftp_client, staging_folder, emr_client_name)
             results.append({
                 "connection_id_md5": connection_id_md5,
                 "participant_client_name": participant_client_name,
