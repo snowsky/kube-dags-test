@@ -37,8 +37,9 @@ def retrieval_auto_approval_condition_check():
 
     for _, row in df_retrieve_auto_approved.iterrows():
         connection_id_md5 = row['connection_id_md5']
-        client_reference_folder = row['folder_name']
-        logging.info(f"Processing connection ID: {connection_id_md5} for folder: {client_reference_folder}")
+        emr_client_name = row['emr_client_name']
+        participant_client_name = row['participant_client_name']
+        logging.info(f"Processing connection ID: {connection_id_md5} for participant: {client_reference_folder} using SFTP configuration from {emr_client_name}")
 
         try:
             sftp_hook = SFTPHook(ssh_conn_id=connection_id_md5)
