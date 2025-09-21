@@ -39,7 +39,7 @@ def retrieval_auto_approval_condition_check():
         connection_id_md5 = row['connection_id_md5']
         emr_client_name = row['emr_client_name']
         participant_client_name = row['participant_client_name']
-        logging.info(f"Processing connection ID: {connection_id_md5} for participant: {client_reference_folder} using SFTP configuration from {emr_client_name}")
+        logging.info(f"Processing connection ID: {connection_id_md5} for participant: {participant_client_name} using SFTP configuration from {emr_client_name}")
 
         try:
             sftp_hook = SFTPHook(ssh_conn_id=connection_id_md5)
@@ -51,27 +51,31 @@ def retrieval_auto_approval_condition_check():
                 logging.error(f"Failed sftp_conn_id: {e}")
                 continue
 
+        root_path = "."  # Default home directory on SFTP
+        staging_folder = os.path.join(root_path, "KONZA_Staging")
+        
         try:
-            files = sftp_hook.list_path(client_reference_folder)
-            staging_folder = os.path.join(client_reference_folder, "KONZA_Staging")
-
-            try:
-                sftp_hook.create_directory(staging_folder)
-            except Exception as e:
-                logging.info(f"Staging folder may already exist: {e}")
-
-            for file in files:
-                file_path = os.path.join(client_reference_folder, file)
-                staging_path = os.path.join(staging_folder, file)
-
+            sftp_hook.create_directory(staging_folder)
+        except Exception as e:
+            logging.info(f"Staging folder may already exist: {e}")
+        
+        try:
+            items = sftp_hook.list_path(root_path)
+        
+            for item in items:
+                if item == "KONZA_Staging":
+                    continue  # Skip the staging folder itself
+                item_path = os.path.join(root_path, item)
+                staging_path = os.path.join(staging_folder, item)
+        
                 try:
-                    sftp_hook.rename(file_path, staging_path)
-                    logging.info(f"Moved {file_path} to {staging_path}")
+                    sftp_hook.rename(item_path, staging_path)
+                    logging.info(f"Moved {item_path} to {staging_path}")
                 except Exception as e:
-                    logging.error(f"Failed to move {file_path}: {e}")
+                    logging.error(f"Failed to move {item_path}: {e}")
 
         except Exception as e:
-            logging.error(f"Error processing folder {client_reference_folder}: {e}")
+            logging.error(f"Error processing root path {root_path}: {e}")
 
     return results
 
