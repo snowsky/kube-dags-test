@@ -30,7 +30,6 @@ def retrieval_auto_approval_condition_check():
             # Skip the staging folder itself
             if "KONZA_Staging" in item_full_path:
                 continue
-
             try:
                 item_stat = sftp_client.stat(item_full_path)
                 if stat.S_ISDIR(item_stat.st_mode):
@@ -70,23 +69,35 @@ def retrieval_auto_approval_condition_check():
         participant_client_name = row['participant_client_name']
         logging.info(f"Processing connection ID: {connection_id_md5} for participant: {participant_client_name} using SFTP configuration from {emr_client_name}")
 
+        sftp_hook = None
         try:
             sftp_hook = SFTPHook(ssh_conn_id=connection_id_md5)
         except Exception as e:
-            logging.warning(f"Failed ssh_conn_id: {e}")
+            logging.warning(f"Failed ssh_conn_id for {connection_id_md5}: {e}")
             try:
                 sftp_hook = SFTPHook(sftp_conn_id=connection_id_md5)
             except Exception as e:
-                logging.error(f"Failed sftp_conn_id: {e}")
+                logging.error(f"Failed sftp_conn_id for {connection_id_md5}: {e}")
                 results.append({
                     "connection_id_md5": connection_id_md5,
                     "participant_client_name": participant_client_name,
-                    "status": "failed",
+                    "status": "connection_failed",
                     "error": str(e)
                 })
-                continue
+                continue  # Move to next client
 
-        sftp_client = sftp_hook.get_conn()
+        try:
+            sftp_client = sftp_hook.get_conn()
+        except Exception as e:
+            logging.error(f"Failed to get SFTP connection for {connection_id_md5}: {e}")
+            results.append({
+                "connection_id_md5": connection_id_md5,
+                "participant_client_name": participant_client_name,
+                "status": "auth_failed",
+                "error": str(e)
+            })
+            continue  # Move to next client
+
         root_path = "."
         staging_folder = os.path.join(root_path, "KONZA_Staging")
 
@@ -103,11 +114,11 @@ def retrieval_auto_approval_condition_check():
                 "status": "success"
             })
         except Exception as e:
-            logging.error(f"Error during recursive move: {e}")
+            logging.error(f"Error during recursive move for {connection_id_md5}: {e}")
             results.append({
                 "connection_id_md5": connection_id_md5,
                 "participant_client_name": participant_client_name,
-                "status": "error",
+                "status": "move_failed",
                 "error": str(e)
             })
 
