@@ -21,6 +21,7 @@ with DAG(
     dag_id='stream_restore_zip_remainder',
     default_args=default_args,
     schedule_interval=None,
+    tags=['C-174'],
     catchup=False,
     description='Stream restore zip files and extract files not in archive',
 ) as dag:
