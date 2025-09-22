@@ -23,6 +23,7 @@ with DAG(
     default_args=default_args,
     schedule_interval=None,
     catchup=False,
+    tags=['C-174', 'C-194'],
     description='Compare restore zip files with archive and extract unique files',
 ) as dag:
 
