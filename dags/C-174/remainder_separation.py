@@ -5,8 +5,8 @@ import zipfile
 from pathlib import Path
 
 # Define the directories
-restore_dir = Path("/data/biakonzasftp/C-194/restore_C-174/")
-archive_dir = Path("/data/biakonzasftp/C-194/archive_C-174/20250916/")
+restore_dir = Path("/source-biakonzasftp/C-194/restore_C-174/")
+archive_dir = Path("/source-biakonzasftp/C-194/archive_C-174/20250916/")
 remainder_dir = restore_dir / "remainder"
 remainder_zip_path = remainder_dir / "remainder_files.zip"
 
