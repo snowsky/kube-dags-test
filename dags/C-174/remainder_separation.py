@@ -55,7 +55,7 @@ with DAG(
     task_stream_unique_files = PythonOperator(
         task_id='stream_unique_files',
         python_callable=stream_unique_files,
-        execution_timeout=timedelta(minutes=15),
+        execution_timeout=timedelta(minutes=120),
     )
 
     task_get_archive_contents >> task_stream_unique_files
