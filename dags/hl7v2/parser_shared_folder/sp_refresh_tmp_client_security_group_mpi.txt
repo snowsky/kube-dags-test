@@ -1,0 +1,60 @@
+CREATE DEFINER=`etl_runner`@`%` PROCEDURE `hl7_processing_center`.`sp_refresh_tmp_client_security_group_mpi`()
+BEGIN
+/*
+Create an efficient loopup table for client_security_group table
+Only rebuild the table if it does not exist or the base talbe has changed.
+
+
+*/
+set @insert=0;
+set @exist_tmp_client_security_group_mpi= (SELECT count(*)  #tmp table exist?
+FROM information_schema.tables
+WHERE table_schema = 'hl7_processing_center' 
+    AND table_name = 'tmp_client_security_group_mpi');
+
+if  @exist_tmp_client_security_group_mpi =1 then	
+	begin
+    
+		set @CountNew= (select count( distinct mpi)	
+		from clientresults.client_security_groupings
+		where mpi is not null and trim(mpi)<>'' and mpi not in ('1','13'));
+
+		set @CountCurrent=( select count(*) from hl7_processing_center.tmp_client_security_group_mpi);
+
+		if @countNew <> @countCurrent then # something has changed
+			begin
+				TRUNCATE `hl7_processing_center`.`tmp_client_security_group_mpi`;
+                set @insert=1;
+			end;
+		end if;
+
+	end;
+else
+	begin
+		DROP TABLE IF EXISTS  `hl7_processing_center`.`tmp_client_security_group_mpi`;
+
+		CREATE TABLE `hl7_processing_center`.`tmp_client_security_group_mpi` (	#create the tmp table if not exist
+		  `mpi_Int` bigint(21) unsigned NOT NULL,
+		  `MPI` varchar(200) CHARACTER SET latin1 DEFAULT NULL,
+		  PRIMARY KEY (`mpi_Int`),
+		  UNIQUE KEY `mpi_Int_UNIQUE` (`mpi_Int`)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        set @insert=1;
+	end;
+end if;
+
+
+if @insert=1 then
+	begin
+		INSERT INTO `hl7_processing_center`.`tmp_client_security_group_mpi`	#insert data into tmp table
+		(`mpi_Int`,
+		`MPI`)
+		select convert(mpi,unsigned) mpi_int, mpi
+		from clientresults.client_security_groupings
+		where mpi is not null and trim(mpi)<>'' and mpi not in ('1','13')
+		group by mpi;
+    end;
+end if;
+    
+
+END
