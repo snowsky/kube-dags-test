@@ -57,6 +57,8 @@ def retrieval_auto_approval_condition_check():
 
     def transfer_to_azure(sftp_client, staging_root, emr_client_name):
         wasb_hook = WasbHook(wasb_conn_id=AZURE_CONNECTION_NAME)
+        date_prefix = datetime.utcnow().strftime("%Y-%m-%d")
+        
 
         def upload_recursively(current_path, relative_path=""):
             items = sftp_client.listdir(current_path)
@@ -80,7 +82,7 @@ def retrieval_auto_approval_condition_check():
         
                         for destination in DESTINATIONS:
                             if destination.startswith("C-11/L-69/"):
-                                blob_path = os.path.join(destination, emr_client_name, item_relative_path)
+                                blob_path = os.path.join(destination, date_prefix, emr_client_name, item_relative_path)
                             else:
                                 blob_path = os.path.join(destination, item_relative_path)
         
