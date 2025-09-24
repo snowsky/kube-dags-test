@@ -3,12 +3,17 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import zipfile
 from pathlib import Path
+import csv
+import logging
 
-# Define the directories
+# Define directories
 restore_dir = Path("/source-biakonzasftp/C-194/restore_C-174/")
-archive_dir = Path("/source-biakonzasftp/C-194/archive_C-174/20250916/")
+archive_base_dir = Path("/source-biakonzasftp/C-194/archive_C-174/")
+exclude_dir = archive_base_dir / "20250916"
 remainder_dir = restore_dir / "remainder"
 remainder_zip_path = remainder_dir / "remainder_files.zip"
+included_csv_path = remainder_dir / "included_files.csv"
+excluded_csv_path = remainder_dir / "excluded_files.csv"
 
 default_args = {
     'owner': 'airflow',
@@ -23,39 +28,67 @@ with DAG(
     schedule_interval=None,
     tags=['C-174'],
     catchup=False,
-    description='Stream restore zip files and extract files not in archive',
+    description='Stream restore zip files and extract files not in latest archive',
 ) as dag:
 
-    def get_archive_contents(**context):
+    def get_exclude_contents(**context):
         remainder_dir.mkdir(parents=True, exist_ok=True)
-        contents = set()
-        for zip_path in archive_dir.glob("*.zip"):
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                contents.update(zip_ref.namelist())
-        context['ti'].xcom_push(key='archive_contents', value=list(contents))
+        exclude_files = set()
 
-    def stream_unique_files(**context):
-        archive_contents = set(context['ti'].xcom_pull(key='archive_contents'))
+        for zip_path in exclude_dir.glob("*.zip"):
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                exclude_files.update(Path(name).name for name in zip_ref.namelist())
+
+        # Push to XCom
+        context['ti'].xcom_push(key='exclude_files', value=list(exclude_files))
+
+        # Write excluded files to CSV
+        with excluded_csv_path.open('w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['Excluded Files'])
+            for file in sorted(exclude_files):
+                writer.writerow([file])
+
+        logging.info(f"Total excluded files listed: {len(exclude_files)}")
+
+    def stream_remainder_files(**context):
+        exclude_files = set(context['ti'].xcom_pull(key='exclude_files'))
         restore_zip_files = list(restore_dir.glob("*.zip"))
 
+        included_files = []
+        excluded_count = 0
         with zipfile.ZipFile(remainder_zip_path, 'w') as zip_out:
             for zip_path in restore_zip_files:
                 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                     for file_name in zip_ref.namelist():
-                        if file_name not in archive_contents:
+                        base_name = Path(file_name).name
+                        if base_name not in exclude_files:
                             with zip_ref.open(file_name) as source_file:
                                 zip_out.writestr(file_name, source_file.read())
+                            included_files.append(base_name)
+                        else:
+                            excluded_count += 1
 
-    task_get_archive_contents = PythonOperator(
-        task_id='get_archive_contents',
-        python_callable=get_archive_contents,
+        # Write included files to CSV
+        with included_csv_path.open('w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['Included Files'])
+            for file in sorted(included_files):
+                writer.writerow([file])
+
+        logging.info(f"Total files included in remainder zip: {len(included_files)}")
+        logging.info(f"Total files excluded: {excluded_count}")
+
+    task_get_exclude_contents = PythonOperator(
+        task_id='get_exclude_contents',
+        python_callable=get_exclude_contents,
         execution_timeout=timedelta(minutes=5),
     )
 
-    task_stream_unique_files = PythonOperator(
-        task_id='stream_unique_files',
-        python_callable=stream_unique_files,
+    task_stream_remainder_files = PythonOperator(
+        task_id='stream_remainder_files',
+        python_callable=stream_remainder_files,
         execution_timeout=timedelta(minutes=120),
     )
 
-    task_get_archive_contents >> task_stream_unique_files
+    task_get_exclude_contents >> task_stream_remainder_files
