@@ -208,5 +208,5 @@ def board_move_missing_card():
 
 board_move_missing_card_dag = board_move_missing_card()
 
-if __name__ == "__main__":
-    board_move_missing_card_dag.test()
+#if __name__ == "__main__":
+#    board_move_missing_card_dag.test()
