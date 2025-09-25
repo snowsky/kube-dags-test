@@ -24,7 +24,7 @@ dag = DAG(
     default_args=default_args,
     description='Retrieve files from S3 and deliver to SFTP with OID folder structure implemented and delivered to archive folder and delete from s3 after transfer(s)',
     schedule_interval='@hourly',
-    max_active_runs=1,
+    #max_active_runs=1, #Moved out of the constructor
     concurrency=100,
     start_date=datetime(2025, 5, 30), 
     tags=['C-128'],
@@ -35,6 +35,7 @@ dag = DAG(
     },
         dagrun_timeout=timedelta(hours=3)  # 3-hour limit on the whole DAG
     )
+dag.max_active_runs = 1
 ENV = 'Prod'
 BUCKET_NAME = 'konzaandssigrouppipelines'
 S3_SUBFOLDER = 'HL7v3In/'
