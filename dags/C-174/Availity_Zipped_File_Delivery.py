@@ -118,15 +118,15 @@ with DAG(
         return file_paths
 
     @task(
-        trigger_rule=TriggerRule.NONE_FAILED,
-        executor_config={
-            "KubernetesExecutor": {
-                "resources": {
-                    "requests": {"memory": "16Gi", "cpu": "4000m"},
-                    "limits": {"memory": "16Gi", "cpu": "4000m"}
-                }
-            }
+      trigger_rule=TriggerRule.NONE_FAILED,
+      executor_config={
+        "KubernetesExecutor": {
+          "request_memory": "16Gi",
+          "limit_memory": "16Gi",
+          "request_cpu": "4000m",
+          "limit_cpu": "4000m"
         }
+      }
     )
     def copy_file_task(input_file_list, params: dict):
         max_workers = params['max_pool_workers']
@@ -172,15 +172,15 @@ with DAG(
 
     def create_upload_file_to_s3_task(bucket_name):
         @task(
-            task_id=bucket_name,
-            executor_config={
-                "KubernetesExecutor": {
-                    "resources": {
-                        "requests": {"memory": "16Gi", "cpu": "4000m"},
-                        "limits": {"memory": "16Gi", "cpu": "4000m"}
-                    }
-                }
+          task_id=bucket_name,
+          executor_config={
+            "KubernetesExecutor": {
+              "request_memory": "16Gi",
+              "limit_memory": "16Gi",
+              "request_cpu": "4000m",
+              "limit_cpu": "4000m"
             }
+          }
         )
         def upload_file_to_s3_task_def(input_file_list, aws_conn_id, aws_key_pattern, aws_bucket_name, s3_hook_kwargs,
                                    params: dict):
@@ -209,14 +209,14 @@ with DAG(
         )
         return file
 
-    @task(
+     @task(
         trigger_rule=TriggerRule.ALL_DONE,
         executor_config={
             "KubernetesExecutor": {
-                "resources": {
-                    "requests": {"memory": "16Gi", "cpu": "4000m"},
-                    "limits": {"memory": "16Gi", "cpu": "4000m"}
-                }
+                "request_memory": "16Gi",
+                "limit_memory": "16Gi",
+                "request_cpu": "4000m",
+                "limit_cpu": "4000m"
             }
         }
     )
