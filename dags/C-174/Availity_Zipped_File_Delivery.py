@@ -122,17 +122,7 @@ with DAG(
         file_paths = [f.replace(target_dir, '') for f in glob.iglob(f'{target_dir}/**/*', recursive=True) if path.isfile(f)]
         return file_paths
 
-    @task(
-        trigger_rule=TriggerRule.NONE_FAILED,
-        executor_config={
-            "KubernetesExecutor": {
-                "request_memory": "16Gi",
-                "limit_memory": "16Gi",
-                "request_cpu": "4000m",
-                "limit_cpu": "4000m"
-            }
-        }
-    )
+    @task(trigger_rule=TriggerRule.NONE_FAILED)
     def copy_file_task(input_file_list, params: dict):
         max_workers = params['max_pool_workers']
         with PoolExecutor(max_workers=max_workers) as executor:
@@ -175,17 +165,7 @@ with DAG(
         return results, exceptions
 
     def create_upload_file_to_s3_task(bucket_name):
-        @task(
-            task_id=bucket_name,
-            executor_config={
-                "KubernetesExecutor": {
-                    "request_memory": "16Gi",
-                    "limit_memory": "16Gi",
-                    "request_cpu": "4000m",
-                    "limit_cpu": "4000m"
-                }
-            }
-        )
+        @task(task_id=bucket_name)
         def upload_file_to_s3_task_def(input_file_list, aws_conn_id, aws_key_pattern, aws_bucket_name, s3_hook_kwargs,
                                        params: dict):
             max_workers = params['max_pool_workers']
@@ -212,17 +192,7 @@ with DAG(
         )
         return file
 
-    @task(
-        trigger_rule=TriggerRule.ALL_DONE,
-        executor_config={
-            "KubernetesExecutor": {
-                "request_memory": "16Gi",
-                "limit_memory": "16Gi",
-                "request_cpu": "4000m",
-                "limit_cpu": "4000m"
-            }
-        }
-    )
+    @task(trigger_rule=TriggerRule.ALL_DONE)
     def identify_successful_transfers_task(transfer_task_ids, params: dict):
         # A successful transfer is a file that was successfully transferred to ALL target s3 accounts.
         context = get_current_context()
