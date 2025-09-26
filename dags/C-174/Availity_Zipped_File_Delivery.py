@@ -209,7 +209,17 @@ with DAG(
         )
         return file
 
-    @task(trigger_rule=TriggerRule.ALL_DONE)
+    @task(
+        trigger_rule=TriggerRule.ALL_DONE,
+        executor_config={
+            "KubernetesExecutor": {
+                "resources": {
+                    "requests": {"memory": "16Gi", "cpu": "4000m"},
+                    "limits": {"memory": "16Gi", "cpu": "4000m"}
+                }
+            }
+        }
+    )
     def identify_successful_transfers_task(transfer_task_ids, params: dict):
         # A successful transfer is a file that was successfully transferred to ALL target s3 accounts.
         context = get_current_context()
@@ -225,18 +235,27 @@ with DAG(
             buckets.pop('konzaandssigrouppipelines')
         return list(buckets.keys())
 
+    # New task to wait/flatten all batches into a single list before transfers
+    @task
+    def wait_for_all_files(diff_batches):
+        # flatten all batches to one list
+        return [f for batch in diff_batches for f in batch]
+
     diff_files = diff_files_task()
+    all_files = wait_for_all_files(diff_files)
     select_buckets = select_buckets_task()
     transfer_file_to_s3_tasks = []
     for bucket in AWS_BUCKETS:
         upload_file_to_s3_task = create_upload_file_to_s3_task(bucket)
-        transfer_file_to_s3 = upload_file_to_s3_task.expand(input_file_list=diff_files,
-                                                            aws_conn_id=[AWS_BUCKETS[bucket].aws_conn_id],
-                                                            aws_key_pattern=[AWS_BUCKETS[bucket].aws_key_pattern],
-                                                            aws_bucket_name=[bucket],
-                                                            s3_hook_kwargs=[AWS_BUCKETS[bucket].s3_hook_kwargs])
+        transfer_file_to_s3 = upload_file_to_s3_task(
+            input_file_list=all_files,
+            aws_conn_id=AWS_BUCKETS[bucket].aws_conn_id,
+            aws_key_pattern=AWS_BUCKETS[bucket].aws_key_pattern,
+            aws_bucket_name=bucket,
+            s3_hook_kwargs=AWS_BUCKETS[bucket].s3_hook_kwargs
+        )
         transfer_file_to_s3_tasks.append(transfer_file_to_s3)
     identify_successful_transfers = identify_successful_transfers_task(transfer_task_ids=select_buckets)
     archive_transferred_file = copy_file_task.expand(input_file_list=identify_successful_transfers)
 
-    diff_files >> select_buckets >> transfer_file_to_s3_tasks >> identify_successful_transfers >> archive_transferred_file
+    diff_files >> all_files >> select_buckets >> transfer_file_to_s3_tasks >> identify_successful_transfers >> archive_transferred_file
