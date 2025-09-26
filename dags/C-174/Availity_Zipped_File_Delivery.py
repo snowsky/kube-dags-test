@@ -17,7 +17,7 @@ import math
 # AIRFLOW__CORE__EXECUTE_TASKS_NEW_PYTHON_INTERPRETER = true
 from concurrent.futures import as_completed, ThreadPoolExecutor as PoolExecutor
 
-DEFAULT_SOURCE_FILES_DIRECTORY = 'C-174/Zipped/'#Dev'/data/biakonzasftp/C-174/Availity/UnZipped/' 
+DEFAULT_SOURCE_FILES_DIRECTORY = 'C-174/Zipped/' #Dev'/data/biakonzasftp/C-174/Availity/UnZipped/'
 DEFAULT_DEST_FILES_DIRECTORY = 'C-194/archive_C-174/' #dev'/data/biakonzasftp/C-194/C-174/dest/'
 AZURE_CONNECTION_NAME = 'biakonzasftp-blob-core-windows-net'
 AZURE_CONNECTION_CONTAINER = 'airflow'
@@ -28,6 +28,7 @@ MAX_FILES = 10_000_000
 PARALLEL_TASK_LIMIT = 20  # Change this to large number of prod to remove parallel task limit
 AIRFLOW_SFTP_MOUNT_PATH = '/source-biakonzasftp'
 
+
 class BucketDetails:
     def __init__(self, aws_conn_id, aws_key_pattern, s3_hook_kwargs):
         self.aws_conn_id = aws_conn_id
@@ -36,21 +37,24 @@ class BucketDetails:
 
 
 AWS_BUCKETS = {
-                #'konzaandssigrouppipelines':
-                #   BucketDetails(aws_conn_id='konzaandssigrouppipelines',
-                #                 aws_key_pattern='FromAvaility/{input_file}',
-                #                 s3_hook_kwargs={}),
-               'com-ssigroup-insight-attribution-data':
-                   BucketDetails(aws_conn_id='konzaandssigrouppipelines',
-                                 aws_key_pattern='subscriberName=KONZA/subscriptionName=Historical/source=Availity/status=pending/{input_file_replaced}',
-                                 s3_hook_kwargs={'encrypt': True, 'acl_policy':'bucket-owner-full-control'})
-              }
+    # 'konzaandssigrouppipelines':
+    #   BucketDetails(aws_conn_id='konzaandssigrouppipelines',
+    #                 aws_key_pattern='FromAvaility/{input_file}',
+    #                 s3_hook_kwargs={}),
+    'com-ssigroup-insight-attribution-data':
+        BucketDetails(
+            aws_conn_id='konzaandssigrouppipelines',
+            aws_key_pattern='subscriberName=KONZA/subscriptionName=Historical/source=Availity/status=pending/{input_file_replaced}',
+            s3_hook_kwargs={'encrypt': True, 'acl_policy': 'bucket-owner-full-control'}
+        )
+}
 
 
 default_args = {
     'owner': 'airflow',
     'start_date': datetime(2025, 6, 1),
 }
+
 with DAG(
     dag_id='Availity_Identifier_Existing_Zipped_Delivery_MountFree',
     default_args=default_args,
@@ -69,6 +73,7 @@ with DAG(
         "sftp_mount_path": Param(AIRFLOW_SFTP_MOUNT_PATH, type="string"),
     },
 ) as dag:
+
     def list_blobs_in_directory(container_name, directory_path, max_files=MAX_FILES):
         blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
         container_client = blob_service_client.get_container_client(container_name)
@@ -83,19 +88,19 @@ with DAG(
         return sanitized_blob_names
 
     @task
-    def diff_files_task(params: dict):  
+    def diff_files_task(params: dict):
         source_files = list_blobs_in_directory(params['container_name'], params['source_files_dir_path'])
-        dest_files = [] #list_blobs_in_directory(params['container_name'], params['output_files_dir_path'])
-    
+        dest_files = []  # list_blobs_in_directory(params['container_name'], params['output_files_dir_path'])
+
         unique_files = [f for f in source_files if f not in dest_files]
         unique_files = [f for f in unique_files if not f.split("/")[-1][0] == "."]
-        
+
         if unique_files:
             return _split_list_into_batches(unique_files, params['max_mapped_tasks'])
         else:
-            return []  
+            return []
 
-    def _split_list_into_batches(target_list,  max_tasks):
+    def _split_list_into_batches(target_list, max_tasks):
         if target_list:
             chunk_size = math.ceil(len(target_list) / max_tasks)
             batches = [target_list[i:i + chunk_size] for i in range(0, len(target_list), chunk_size)]
@@ -118,15 +123,15 @@ with DAG(
         return file_paths
 
     @task(
-      trigger_rule=TriggerRule.NONE_FAILED,
-      executor_config={
-        "KubernetesExecutor": {
-          "request_memory": "16Gi",
-          "limit_memory": "16Gi",
-          "request_cpu": "4000m",
-          "limit_cpu": "4000m"
+        trigger_rule=TriggerRule.NONE_FAILED,
+        executor_config={
+            "KubernetesExecutor": {
+                "request_memory": "16Gi",
+                "limit_memory": "16Gi",
+                "request_cpu": "4000m",
+                "limit_cpu": "4000m"
+            }
         }
-      }
     )
     def copy_file_task(input_file_list, params: dict):
         max_workers = params['max_pool_workers']
@@ -138,19 +143,18 @@ with DAG(
 
     def _copy_file(params, file):
         input_file_path = path.join(params['sftp_mount_path'], params['source_files_dir_path'], file)
-        
+
         # Create a subfolder with the current date in YYYYMMDD format
         date_folder = datetime.now().strftime('%Y%m%d')
         dest_file_path = path.join(params['sftp_mount_path'], params['output_files_dir_path'], date_folder, file)
-        
+
         makedirs(path.dirname(dest_file_path), exist_ok=True)
         shutil.copy2(input_file_path, dest_file_path)
-        
+
         # Delete the source file after successful copy
         remove(input_file_path)
-        
-        return file
 
+        return file
 
     def _push_results_from_futures(future_file_dict):
         results, exceptions = _get_results_from_futures(future_file_dict)
@@ -172,24 +176,23 @@ with DAG(
 
     def create_upload_file_to_s3_task(bucket_name):
         @task(
-          task_id=bucket_name,
-          executor_config={
-            "KubernetesExecutor": {
-              "request_memory": "16Gi",
-              "limit_memory": "16Gi",
-              "request_cpu": "4000m",
-              "limit_cpu": "4000m"
+            task_id=bucket_name,
+            executor_config={
+                "KubernetesExecutor": {
+                    "request_memory": "16Gi",
+                    "limit_memory": "16Gi",
+                    "request_cpu": "4000m",
+                    "limit_cpu": "4000m"
+                }
             }
-          }
         )
         def upload_file_to_s3_task_def(input_file_list, aws_conn_id, aws_key_pattern, aws_bucket_name, s3_hook_kwargs,
-                                   params: dict):
-            
+                                       params: dict):
             max_workers = params['max_pool_workers']
             with PoolExecutor(max_workers=max_workers) as executor:
-                future_file_dict = {executor.submit(partial(_upload_file_to_s3, params, aws_key_pattern, aws_conn_id,
-                                                            aws_bucket_name, s3_hook_kwargs), f): f for f in
-                                    input_file_list}
+                future_file_dict = {executor.submit(
+                    partial(_upload_file_to_s3, params, aws_key_pattern, aws_conn_id, aws_bucket_name, s3_hook_kwargs), f
+                ): f for f in input_file_list}
                 _push_results_from_futures(future_file_dict)
         return upload_file_to_s3_task_def
 
@@ -197,7 +200,7 @@ with DAG(
         input_file_path = path.join(params['sftp_mount_path'], params['source_files_dir_path'], file)
         aws_key = aws_key_pattern
         # Add/edit replacements depending upon aws key pattern.
-        replacements = {"{input_file}": file, "{input_file_replaced}": file.replace('/','__')}
+        replacements = {"{input_file}": file, "{input_file_replaced}": file.replace('/', '__')}
         for r in replacements:
             aws_key = aws_key.replace(r, replacements[r])
         s3_hook = S3Hook(aws_conn_id=aws_conn_id)
@@ -209,7 +212,7 @@ with DAG(
         )
         return file
 
-     @task(
+    @task(
         trigger_rule=TriggerRule.ALL_DONE,
         executor_config={
             "KubernetesExecutor": {
@@ -230,9 +233,9 @@ with DAG(
 
     @task.branch
     def select_buckets_task(params: dict):
-        buckets = AWS_BUCKETS
+        buckets = dict(AWS_BUCKETS)
         if not params['transfer_to_konzaandssigrouppipelines_bucket']:
-            buckets.pop('konzaandssigrouppipelines')
+            buckets.pop('konzaandssigrouppipelines', None)
         return list(buckets.keys())
 
     # New task to wait/flatten all batches into a single list before transfers
