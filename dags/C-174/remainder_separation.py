@@ -19,7 +19,7 @@ default_args = {
     'owner': 'airflow',
     'start_date': datetime(2025, 9, 22),
     'retries': 1,
-    'retry_delay': timedelta(minutes=120),
+    'retry_delay': timedelta(minutes=5),
 }
 
 with DAG(
@@ -82,13 +82,13 @@ with DAG(
     task_get_exclude_contents = PythonOperator(
         task_id='get_exclude_contents',
         python_callable=get_exclude_contents,
-        execution_timeout=timedelta(minutes=5),
+        execution_timeout=timedelta(minutes=720),
     )
 
     task_stream_remainder_files = PythonOperator(
         task_id='stream_remainder_files',
         python_callable=stream_remainder_files,
-        execution_timeout=timedelta(minutes=120),
+        execution_timeout=timedelta(minutes=720),
     )
 
     task_get_exclude_contents >> task_stream_remainder_files
