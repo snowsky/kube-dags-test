@@ -1,7 +1,7 @@
 from airflow import DAG
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.models import Variable
-from airflow.hooks.mysql_hook import MySqlHook
+from airflow.providers.mysql.hooks.mysql import MySqlHook
 from airflow.decorators import task
 from datetime import datetime, timedelta
 import pandas as pd
@@ -15,7 +15,7 @@ default_args = {
     'owner': 'airflow',
     'working_dir': SOURCE_FILES_DIRECTORY,
     'mysql_conn_id': MYSQL_CONN,
-    'output_file_path': 
+    'output_file_path': "/tmp",
     'depends_on_past': False,
     'start_date': datetime(2023, 1, 1),
     'retries': 1,

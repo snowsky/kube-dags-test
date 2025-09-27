@@ -1,6 +1,9 @@
 # SLA-113 - Removal of ACCID
 # This DAG is used to erase from the Data Warehouse visits attributable to patients including those found in the storage accounts where extracts are derived and the MySQL database where the records are mapped.
 
+import sys
+sys.path.insert(0, '/opt/airflow/dags/repo/dags')
+
 from airflow import DAG
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.decorators import task

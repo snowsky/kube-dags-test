@@ -15,6 +15,9 @@ against the MPI table, using one of two methods:
 
 The DAG can be tested against synthetic MPI data (only using docker-compose!) by running the `populate_test_data` DAG first.
 """
+import sys
+sys.path.insert(0, '/opt/airflow/dags/repo/dags')
+
 from airflow import DAG
 from airflow.decorators import task
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
