@@ -31,7 +31,7 @@ dag = DAG(
     'test_basic_extract',
     default_args=default_args,
     description='test basic extract',
-    schedule_interval=None,
+    schedule=None,
     catchup=False,
 )
 
