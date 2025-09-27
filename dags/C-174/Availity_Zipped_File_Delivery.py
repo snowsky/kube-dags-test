@@ -37,16 +37,11 @@ class BucketDetails:
 
 
 AWS_BUCKETS = {
-    # 'konzaandssigrouppipelines':
-    #   BucketDetails(aws_conn_id='konzaandssigrouppipelines',
-    #                 aws_key_pattern='FromAvaility/{input_file}',
-    #                 s3_hook_kwargs={}),
-    'com-ssigroup-insight-attribution-data':
-        BucketDetails(
-            aws_conn_id='konzaandssigrouppipelines',
-            aws_key_pattern='subscriberName=KONZA/subscriptionName=Historical/source=Availity/status=pending/{input_file_replaced}',
-            s3_hook_kwargs={'encrypt': True, 'acl_policy': 'bucket-owner-full-control'}
-        )
+    'com-ssigroup-insight-attribution-data': BucketDetails(
+        aws_conn_id='konzaandssigrouppipelines',
+        aws_key_pattern='subscriberName=KONZA/subscriptionName=Historical/source=Availity/status=pending/{input_file_replaced}',
+        s3_hook_kwargs={'encrypt': True, 'acl_policy': 'bucket-owner-full-control'}
+    )
 }
 
 
@@ -81,7 +76,7 @@ with DAG(
         blob_names = [blob.name for blob in islice(blob_list, max_files)]
         sanitized_blob_names = []
         for blob_name in blob_names:
-            assert blob_name.index(directory_path) == 0, f"blob_name {blob_name} does not start with {directory_path}."
+            assert blob_name.startswith(directory_path), f"blob_name {blob_name} does not start with {directory_path}."
             sanitized_blob_name = blob_name[len(directory_path):]
             print(sanitized_blob_name)
             sanitized_blob_names.append(sanitized_blob_name)
@@ -93,34 +88,16 @@ with DAG(
         dest_files = []  # list_blobs_in_directory(params['container_name'], params['output_files_dir_path'])
 
         unique_files = [f for f in source_files if f not in dest_files]
-        unique_files = [f for f in unique_files if not f.split("/")[-1][0] == "."]
-
+        unique_files = [f for f in unique_files if not f.split("/")[-1].startswith(".")]
         if unique_files:
             return _split_list_into_batches(unique_files, params['max_mapped_tasks'])
-        else:
-            return []
+        return []
 
     def _split_list_into_batches(target_list, max_tasks):
         if target_list:
             chunk_size = math.ceil(len(target_list) / max_tasks)
-            batches = [target_list[i:i + chunk_size] for i in range(0, len(target_list), chunk_size)]
-        else:
-            batches = []
-        return batches
-
-    def _sanitise_input_directories(params):
-        params['source_files_dir_path'] = _sanitise_dir(params['source_files_dir_path'])
-        params['output_files_dir_path'] = _sanitise_dir(params['output_files_dir_path'])
-
-    def _sanitise_dir(dir):
-        prefix = "" if dir[0] == "/" else "/"
-        suffix = "" if dir[-1] == "/" else "/"
-        return f'{prefix}{dir}{suffix}'
-
-    def _get_files_from_dir(target_dir):
-        import glob
-        file_paths = [f.replace(target_dir, '') for f in glob.iglob(f'{target_dir}/**/*', recursive=True) if path.isfile(f)]
-        return file_paths
+            return [target_list[i:i + chunk_size] for i in range(0, len(target_list), chunk_size)]
+        return []
 
     @task(trigger_rule=TriggerRule.NONE_FAILED)
     def copy_file_task(input_file_list, params: dict):
@@ -154,14 +131,13 @@ with DAG(
             raise AirflowFailException(f'exceptions raised: {exceptions}')
 
     def _get_results_from_futures(future_file_dict):
-        results = []
-        exceptions = []
+        results, exceptions = [], []
         for future in as_completed(future_file_dict):
             file = future_file_dict[future]
             try:
                 results.append(future.result())
             except Exception as e:
-                exceptions.append(str(f'{file}: {str(e)})'))
+                exceptions.append(f'{file}: {str(e)})')
         return results, exceptions
 
     def create_upload_file_to_s3_task(bucket_name):
@@ -170,9 +146,12 @@ with DAG(
                                        params: dict):
             max_workers = params['max_pool_workers']
             with PoolExecutor(max_workers=max_workers) as executor:
-                future_file_dict = {executor.submit(
-                    partial(_upload_file_to_s3, params, aws_key_pattern, aws_conn_id, aws_bucket_name, s3_hook_kwargs), f
-                ): f for f in input_file_list}
+                future_file_dict = {
+                    executor.submit(
+                        partial(_upload_file_to_s3, params, aws_key_pattern, aws_conn_id, aws_bucket_name, s3_hook_kwargs),
+                        f
+                    ): f for f in input_file_list
+                }
                 _push_results_from_futures(future_file_dict)
         return upload_file_to_s3_task_def
 
@@ -193,22 +172,13 @@ with DAG(
         return file
 
     @task(trigger_rule=TriggerRule.ALL_DONE)
-    def identify_successful_transfers_task(transfer_task_ids, params: dict):
-        # A successful transfer is a file that was successfully transferred to ALL target s3 accounts.
+    def identify_successful_transfers_task(transfer_task_ids: list, params: dict):
         context = get_current_context()
         mapped_task_results = context['ti'].xcom_pull(key='result', task_ids=transfer_task_ids)
         flat_list = [b for a in mapped_task_results for b in a]
         successful_transfers = {r for r in flat_list if flat_list.count(r) == len(transfer_task_ids)}
         return _split_list_into_batches(list(successful_transfers), params['max_mapped_tasks'])
 
-    @task.branch
-    def select_buckets_task(params: dict):
-        buckets = dict(AWS_BUCKETS)
-        if not params['transfer_to_konzaandssigrouppipelines_bucket']:
-            buckets.pop('konzaandssigrouppipelines', None)
-        return list(buckets.keys())
-
-    # New task to wait/flatten all batches into a single list before transfers
     @task
     def wait_for_all_files(diff_batches):
         # flatten all batches to one list
@@ -216,7 +186,7 @@ with DAG(
 
     diff_files = diff_files_task()
     all_files = wait_for_all_files(diff_files)
-    select_buckets = select_buckets_task()
+
     transfer_file_to_s3_tasks = []
     for bucket in AWS_BUCKETS:
         upload_file_to_s3_task = create_upload_file_to_s3_task(bucket)
@@ -228,7 +198,11 @@ with DAG(
             s3_hook_kwargs=AWS_BUCKETS[bucket].s3_hook_kwargs
         )
         transfer_file_to_s3_tasks.append(transfer_file_to_s3)
-    identify_successful_transfers = identify_successful_transfers_task(transfer_task_ids=select_buckets)
+
+    identify_successful_transfers = identify_successful_transfers_task(
+        transfer_task_ids=[t.task_id for t in transfer_file_to_s3_tasks]
+    )
+
     archive_transferred_file = copy_file_task.expand(input_file_list=identify_successful_transfers)
 
-    diff_files >> all_files >> select_buckets >> transfer_file_to_s3_tasks >> identify_successful_transfers >> archive_transferred_file
+    diff_files >> all_files >> transfer_file_to_s3_tasks >> identify_successful_transfers >> archive_transferred_file
