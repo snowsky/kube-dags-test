@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, '/opt/airflow/dags/repo/dags')
+
 import trino
 import time
 import mysql.connector

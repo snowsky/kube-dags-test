@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, '/opt/airflow/dags/repo/dags')
+
 import logging
 import re
 from datetime import datetime

@@ -4,6 +4,9 @@ c111_patient_hist_info airflow DAG.
 This Airflow DAG produces the c111_patient_hist_info table,
 which consolidates certain values from historical partitions of patient_contact_parquet_pm. 
 """
+import sys
+sys.path.insert(0, '/opt/airflow/dags/repo/dags')
+
 import time
 import trino
 import logging

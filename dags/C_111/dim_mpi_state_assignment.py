@@ -9,6 +9,9 @@ The product of this pipeline is the table called dim_mpi_state_assignment. This 
 keyed on the mpi column and records one state assignment for each MPI.
 """
 
+import sys
+sys.path.insert(0, '/opt/airflow/dags/repo/dags')
+
 import time
 import trino
 import logging

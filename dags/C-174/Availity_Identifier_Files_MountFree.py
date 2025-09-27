@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, '/opt/airflow/dags/repo/dags')
+
 from airflow import DAG
 from airflow.decorators import task
 from azure.storage.blob import BlobServiceClient

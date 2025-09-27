@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, '/opt/airflow/dags/repo/dags')
+
 from airflow import DAG
 import logging
 from airflow.models.xcom_arg import XComArg

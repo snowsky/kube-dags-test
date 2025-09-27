@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, '/opt/airflow/dags/repo/dags')
+
 from airflow import DAG
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.mysql.hooks.mysql import MySqlHook

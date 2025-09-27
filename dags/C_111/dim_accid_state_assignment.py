@@ -5,6 +5,9 @@ This Airflow DAG produces the dim_accid_state_assignment_latest table,
 keyed on patient_id. This table records the latest known state assignment
 for the patient -- unknown state assignments are ignored.
 """
+import sys
+sys.path.insert(0, '/opt/airflow/dags/repo/dags')
+
 import time
 import trino
 import logging

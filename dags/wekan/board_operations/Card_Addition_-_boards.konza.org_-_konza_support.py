@@ -35,6 +35,9 @@ Notes:
 - The archived cards are not copied.
 """
 
+import sys
+sys.path.insert(0, '/opt/airflow/dags/repo/dags')
+
 import json
 from typing import TypedDict
 from datetime import timedelta, datetime

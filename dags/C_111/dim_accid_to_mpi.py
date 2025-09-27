@@ -5,6 +5,9 @@ This DAG produces the dim_accid_to_mpi. Each ds of this table contains the total
 known accid_ref's in sup_12760_c59_mpi_accid_prep_final_repartitioned at the time the pipeline
 ran. The table is keyed on accid_ref.
 """
+import sys
+sys.path.insert(0, '/opt/airflow/dags/repo/dags')
+
 import time
 import trino
 import logging

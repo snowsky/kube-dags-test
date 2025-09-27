@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, '/opt/airflow/dags/repo/dags')
+
 import logging
 from datetime import datetime
 from io import BytesIO
