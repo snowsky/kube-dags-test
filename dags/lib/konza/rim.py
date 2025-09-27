@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from pydantic_xml import BaseXmlModel, element, attr
 from lxml.etree import _Element as Element
-from .common import PYXML_KWARGS
+from .common import NSMAP, XML_CONFIG
 from .template_id import TemplateId
 from typing import Optional
 from .code import Code
@@ -11,9 +13,12 @@ from .participant import Participant
 from .specimen import Specimen
 from .performer import Performer
 from .value import Value
+from pydantic import ConfigDict
+from typing import ClassVar
 
 
-class ReferenceInformationModel(BaseXmlModel, **PYXML_KWARGS):
+class ReferenceInformationModel(BaseXmlModel):
+    xml_config: ClassVar = XML_CONFIG
     templateId: List[TemplateId] = element(default=[])
     id: Optional[TemplateId] = element(tag="id", default=None)
     
@@ -63,4 +68,4 @@ class ReferenceInformationModel(BaseXmlModel, **PYXML_KWARGS):
                 logging.error((template_id, validation_fn, is_valid))
         return False
 
-# Forward references are handled automatically by Pydantic v2
+# Note: model_rebuild() is called in __init__.py after all models are imported

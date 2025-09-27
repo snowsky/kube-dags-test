@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 from pydantic_xml import BaseXmlModel, element
 from lxml.etree import _Element as Element
-from .common import PYXML_KWARGS
-from typing import List, Optional
+from .common import XML_CONFIG
+from typing import List, Optional, ClassVar
 
 
-kwargs = {**PYXML_KWARGS}
-kwargs["search_mode"] = "unordered"
+# Note: XML_CONFIG is used directly in xml_config ClassVar
 
 
-class Addr(BaseXmlModel, tag="addr", **kwargs):
+class Addr(BaseXmlModel):
+    xml_config: ClassVar = XML_CONFIG
     streetAddressLine: List[str] = element(tag="streetAddressLine", default=[])
     city: Optional[str] = element(default=None)
     state: Optional[str] = element(default=None)

@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 from pydantic_xml import BaseXmlModel, attr
 from lxml.etree import _Element as Element
-from .common import PYXML_KWARGS
+from .common import XML_CONFIG
+from typing import ClassVar
 
-kwargs = {**PYXML_KWARGS}
-kwargs["ns"] = "sdtc"
-
-
-class DeceasedInd(BaseXmlModel, tag="deceasedInd", **kwargs):
+class DeceasedInd(BaseXmlModel):
+    xml_config: ClassVar = {**XML_CONFIG, "ns": "sdtc"}
     value: str = attr(name="value")

@@ -1,6 +1,9 @@
-from pydantic_xml import BaseXmlModel, attr
-from .common import PYXML_KWARGS
-from typing import Optional
+from __future__ import annotations
 
-class Reference(BaseXmlModel, **PYXML_KWARGS):
+from pydantic_xml import BaseXmlModel, attr
+from .common import XML_CONFIG
+from typing import Optional, ClassVar
+
+class Reference(BaseXmlModel):
+    xml_config: ClassVar = XML_CONFIG
     value: Optional[str] = attr(default=None)

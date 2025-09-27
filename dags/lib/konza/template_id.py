@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from pydantic_xml import BaseXmlModel, attr
-from .common import PYXML_KWARGS
-from typing import Optional
+from .common import XML_CONFIG
+from typing import Optional, ClassVar
 
 # POLICY_ACTIVITY_TEMPLATE_ROOT = "2.16.840.1.113883.10.20.22.4.61"
 POLICY_ACTIVITY_TEMPLATE_ROOT = "2.16.840.1.113883.10.20.22.4.60"
@@ -9,7 +11,8 @@ US_NPI_ROOT = "2.16.840.1.113883.4.6"
 LOINC_PROBLEM_OBSERVATION_ROOT = "2.16.840.1.113883.10.20.22.4.4"
 DATE_OF_DIAGNOSIS_ROOT = "2.16.840.1.113883.10.20.22.4.502"
 
-class TemplateId(BaseXmlModel, tag="templateId", **PYXML_KWARGS):
+class TemplateId(BaseXmlModel, tag="templateId"):
+    xml_config: ClassVar = XML_CONFIG
     root: Optional[str] = attr(default=None)
     extension: Optional[str] = attr(default=None)
 

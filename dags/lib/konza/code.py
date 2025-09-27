@@ -1,16 +1,19 @@
+from __future__ import annotations
+
 from pydantic_xml import BaseXmlModel, attr, element
 from lxml.etree import _Element as Element
-from .common import PYXML_KWARGS
+from .common import XML_CONFIG
 from .reference import Reference
 from .text import Text
-from typing import Optional, List, Union
+from typing import Optional, List, Union, ClassVar
 
 PHIN_VADS_CODE_SYSTEM = "2.16.840.1.113883.5.4"
-LOINC_STANDARD_CODE_SYSTEM = "2.16.840.1.113883.6.1" 
+LOINC_STANDARD_CODE_SYSTEM = "2.16.840.1.113883.6.1"
 MEDICATION_INSTRUCTIONS_LOINC_CODE = "76662-6"
 
 
-class Code(BaseXmlModel, **PYXML_KWARGS):
+class Code(BaseXmlModel):
+    xml_config: ClassVar = XML_CONFIG
     nullFlavor: Optional[str] = attr(default=None)
     code: Optional[str] = attr(name="code", default=None)
     codeSystem: Optional[str] = attr(name="codeSystem", default=None)
@@ -38,3 +41,5 @@ class Code(BaseXmlModel, **PYXML_KWARGS):
         if len(codes) == 1:
             return codes[0]
         return None
+
+# Note: model_rebuild() is called in __init__.py after all models are imported

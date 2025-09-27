@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from pydantic_xml import BaseXmlModel, attr, element
-from .common import PYXML_KWARGS
+from .common import XML_CONFIG
 from .code import Code
 from .effective_time import EffectiveTime
 from pydantic import create_model
-from typing import Optional, Type
+from typing import Optional, Type, ClassVar
 from .assigned_entity import AssignedEntity
 
 
@@ -23,10 +25,13 @@ def entity_model(
     )
     if not "functionCode" in kwargs:
         kwargs["functionCode"] = (Optional[Code], element(tag="functionCode", default=None))
-    return create_model(
-        model_name, 
+    model = create_model(
+        model_name,
         time=(Optional[EffectiveTime], element(tag="time", default=None)),
-        __cls_kwargs__=PYXML_KWARGS,
         __base__=BaseXmlModel,
         **kwargs
     )
+
+    # Add xml_config for Pydantic v2
+    model.xml_config = XML_CONFIG
+    return model

@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from pydantic_xml import BaseXmlModel, element, attr
 from lxml.etree import _Element as Element
-from .common import PYXML_KWARGS
+from .common import XML_CONFIG
 from .template_id import TemplateId
-from typing import Optional
+from typing import Optional, ClassVar
 from .code import Code
 from .act import Act
 from .encounter import Encounter
@@ -26,8 +28,9 @@ RIMType = Union[
     Supply,
 ]
 
-class Entry(BaseXmlModel, tag="entry", **PYXML_KWARGS):
+class Entry(BaseXmlModel, tag="entry"):
+    xml_config: ClassVar = XML_CONFIG
     typeCode: Optional[str] = attr(tag="typeCode", default=None)
     events: List[RIMType] = element()
 
-# Forward references are handled automatically by Pydantic v2
+# Note: model_rebuild() is called in __init__.py after all models are imported
