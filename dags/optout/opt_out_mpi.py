@@ -7,7 +7,7 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.utils.dates import days_ago
 
 from populations.common import CONNECTION_NAME, EXAMPLE_DATA_PATH
-from populations.target_population_impl import _fix_engine_if_invalid_params
+from populations.utils import _fix_engine_if_invalid_params
 
 import logging
 import os

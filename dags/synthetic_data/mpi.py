@@ -7,7 +7,7 @@ from airflow.operators.python import get_current_context
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.decorators import task
 
-from populations.target_population_impl import output_df_to_target_tbl
+from populations.utils import output_df_to_target_tbl
 MYSQL_CONN_ID = "MariaDB"
 
 default_args = {

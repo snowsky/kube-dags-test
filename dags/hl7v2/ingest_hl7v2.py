@@ -6,8 +6,8 @@ from airflow.operators.python import get_current_context
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.decorators import task
 
-from populations.target_population_impl import output_df_to_target_tbl
-from populations.target_population_impl import _fix_engine_if_invalid_params
+from populations.utils import output_df_to_target_tbl
+from populations.utils import _fix_engine_if_invalid_params
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.common.sql.operators.sql import SQLTableCheckOperator

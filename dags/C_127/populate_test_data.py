@@ -6,7 +6,7 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.models import Variable
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 
-from populations.target_population_impl import _fix_engine_if_invalid_params # Move this to common location
+from populations.utils import _fix_engine_if_invalid_params # Move this to common location
 
 CONNECTION_NAME = 'MariaDB'
 EXAMPLE_DATA_PATH = '/test/C-127/db_tables'

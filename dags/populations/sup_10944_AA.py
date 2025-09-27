@@ -7,7 +7,7 @@ import pandas as pd
 import os
 import csv
 import logging
-from populations.target_population_impl import _fix_engine_if_invalid_params
+from populations.utils import _fix_engine_if_invalid_params
 from datetime import datetime
 from populations.formoperations_connection import CONNECTION_NAME, EXAMPLE_DATA_PATH
 

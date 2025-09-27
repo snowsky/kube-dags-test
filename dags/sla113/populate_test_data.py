@@ -6,7 +6,7 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.models import Variable
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 
-from populations.target_population_impl import _fix_engine_if_invalid_params # Move this to common location
+from populations.utils import _fix_engine_if_invalid_params # Move this to common location
 from sla113.test_common import CONNECTION_NAME, EXAMPLE_DATA_PATH
 
 import os

@@ -24,13 +24,13 @@ from datetime import datetime
 from datetime import date
 from datetime import timedelta
 from populations.common import CONNECTION_NAME, EXAMPLE_DATA_PATH
-from populations.target_population_impl import _fix_engine_if_invalid_params
+from populations.utils import _fix_engine_if_invalid_params
 
 import logging
 import os
 from pathlib import Path
 
-from populations.target_population_impl import _fix_engine_if_invalid_params
+from populations.utils import _fix_engine_if_invalid_params
 import logging
 import os
 
