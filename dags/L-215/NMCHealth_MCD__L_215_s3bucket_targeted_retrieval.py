@@ -1,6 +1,6 @@
 import os
 import logging
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 import boto3
 from airflow.hooks.S3_hook import S3Hook
 from airflow.providers.standard.operators.python import PythonOperator

@@ -2,7 +2,7 @@ import logging
 import re
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 from datetime import timedelta
 
 # Set up logging

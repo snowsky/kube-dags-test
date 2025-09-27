@@ -12,7 +12,7 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.models.param import Param
 from airflow.decorators import task
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 from azure.storage.blob import BlobServiceClient
 from datetime import datetime, timedelta
 from typing import List, Tuple

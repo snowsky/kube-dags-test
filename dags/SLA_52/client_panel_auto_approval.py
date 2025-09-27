@@ -8,7 +8,7 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from datetime import datetime,timedelta
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 import logging
 import paramiko
 import hashlib

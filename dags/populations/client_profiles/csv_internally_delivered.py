@@ -4,7 +4,7 @@ from populations.utils import execute_query
 from airflow.models import Variable
 import pandas as pd 
 import logging
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 import pymysql
 
 class CsvInternallyDeliveredClientProfile(InternallyDeliveredClientProfile):

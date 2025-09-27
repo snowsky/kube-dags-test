@@ -3,7 +3,7 @@ from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.exceptions import AirflowFailException
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from azure.storage.blob import BlobServiceClient
 from datetime import datetime, timedelta

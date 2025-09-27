@@ -4,7 +4,7 @@ from airflow.providers.ssh.hooks.ssh import SSHHook
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.email import send_email
 from airflow.models import Connection
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 from datetime import datetime
 import os
 import logging

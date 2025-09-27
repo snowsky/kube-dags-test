@@ -1,4 +1,4 @@
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 
 def get_azure_connection_string(conn_id: str) -> str:
     """

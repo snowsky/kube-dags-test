@@ -3,7 +3,7 @@ from populations.utils import execute_query, _get_engine_from_conn
 from airflow.models import Variable
 import pandas as pd 
 import logging
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 import pymysql
 from abc import abstractmethod
 import datetime
