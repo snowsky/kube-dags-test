@@ -1,6 +1,9 @@
 from typing import ClassVar
 from pydantic import ConfigDict
 
+# Pydantic v2 config for arbitrary types
+PYDANTIC_CONFIG = ConfigDict(arbitrary_types_allowed=True)
+
 NSMAP = {
     "": "urn:hl7-org:v3",
     "sdtc": "urn:hl7-org:sdtc",
@@ -12,11 +15,7 @@ XML_CONFIG = {
     "nsmap": NSMAP,
     "skip_empty": True,
     "search_mode": "unordered",
-    "model_config": PYDANTIC_CONFIG,
 }
-
-# Pydantic v2 config for arbitrary types
-PYDANTIC_CONFIG = ConfigDict(arbitrary_types_allowed=True)
 
 # Custom base class for XML models with proper configuration
 from pydantic_xml import BaseXmlModel
