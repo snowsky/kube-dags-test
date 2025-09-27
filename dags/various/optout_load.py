@@ -14,7 +14,7 @@ from airflow.hooks.base import BaseHook
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from airflow.decorators import dag, task
 from airflow.operators.python import get_current_context
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from sqlalchemy import create_engine
 
 

@@ -1,7 +1,7 @@
 from airflow.decorators import dag, task
 from airflow import DAG
 import pandas as pd
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from airflow.providers.sftp.hooks.sftp import SFTPHook
 from airflow.providers.mysql.operators.mysql import MySqlOperator

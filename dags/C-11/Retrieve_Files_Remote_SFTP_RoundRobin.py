@@ -9,7 +9,7 @@
 # v1.7 - Ensured deletion only after successful uploads to both destinations; appended emr_client_name to C-11/L-69/
 
 from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.sftp.hooks.sftp import SFTPHook
 from airflow.providers.microsoft.azure.hooks.wasb import WasbHook

@@ -3,7 +3,7 @@ import logging
 from airflow.hooks.base_hook import BaseHook
 import boto3
 from airflow.hooks.S3_hook import S3Hook
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from airflow import DAG
 from datetime import datetime
 import tempfile

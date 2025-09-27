@@ -1,7 +1,7 @@
 import logging
 import time
 from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from datetime import datetime, timedelta
 from azure.storage.blob import BlobServiceClient
 from lib.operators.azure_connection_string import get_azure_connection_string

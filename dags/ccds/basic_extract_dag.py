@@ -1,6 +1,6 @@
 from datetime import datetime
 from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from lib.konza.parser import extract_demographic_info_from_xmls_to_parquet
 import pandas as pd
 import tempfile

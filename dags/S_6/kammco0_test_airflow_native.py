@@ -1,7 +1,7 @@
 import logging
 import re
 from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from airflow.hooks.base_hook import BaseHook
 from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
 from airflow.utils.dates import days_ago

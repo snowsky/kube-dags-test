@@ -1,7 +1,7 @@
 import airflow
 from airflow import DAG
 from airflow.decorators import task
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
 from airflow.providers.microsoft.mssql.hooks.mssql import MsSqlHook
 import pandas as pd

@@ -2,7 +2,7 @@ from airflow.hooks.base import BaseHook
 import trino
 import mysql.connector
 from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from datetime import datetime
 
 

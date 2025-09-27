@@ -1,7 +1,7 @@
 import logging
 import time
 import trino
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowException
 
