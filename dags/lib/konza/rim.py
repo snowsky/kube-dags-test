@@ -12,8 +12,6 @@ from .specimen import Specimen
 from .performer import Performer
 from .value import Value
 
-Entry = ForwardRef('Entry')
-
 
 class ReferenceInformationModel(BaseXmlModel, **PYXML_KWARGS):
     templateId: List[TemplateId] = element(default=[])
@@ -29,7 +27,7 @@ class ReferenceInformationModel(BaseXmlModel, **PYXML_KWARGS):
     effectiveTime: Optional[EffectiveTime] = element(tag="effectiveTime", default=None)
     
     value: Optional[Value] = element(tag="value", default=None)
-    entryRelationship: List[Entry] = element(tag="entryRelationship", default=[])
+    entryRelationship: List['Entry'] = element(tag="entryRelationship", default=[])
     
     author: Optional[Author] = element(tag="author", default=None)
     participant: List[Participant] = element(tag="participant", default=[])
