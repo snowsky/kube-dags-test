@@ -3,9 +3,7 @@ from lxml.etree import _Element as Element
 from .common import PYXML_KWARGS
 from .reference import Reference
 from .text import Text
-from typing import Optional, ForwardRef, List, Union
-
-Code = ForwardRef('Code')
+from typing import Optional, List, Union
 
 PHIN_VADS_CODE_SYSTEM = "2.16.840.1.113883.5.4"
 LOINC_STANDARD_CODE_SYSTEM = "2.16.840.1.113883.6.1" 
@@ -18,7 +16,7 @@ class Code(BaseXmlModel, **PYXML_KWARGS):
     codeSystem: Optional[str] = attr(name="codeSystem", default=None)
     displayName: Optional[str] = attr(name="displayName", default=None)
     codeSystemName: Optional[str] = attr(name="codeSystemName", default=None)
-    translation: List[Code] = element(tag="translation", default=[])
+    translation: List['Code'] = element(tag="translation", default=[])
     originalText: Optional[Text] = element(name="originalText", default=None)
 
     def is_loinc_standard_code(self):

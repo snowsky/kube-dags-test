@@ -1,6 +1,6 @@
 from pydantic_xml import BaseXmlModel, attr
 from .common import PYXML_KWARGS
-from typing import Optional, ForwardRef, List
+from typing import Optional
 
 class Reference(BaseXmlModel, **PYXML_KWARGS):
     value: Optional[str] = attr(default=None)

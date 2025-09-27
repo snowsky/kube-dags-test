@@ -30,17 +30,4 @@ class Entry(BaseXmlModel, tag="entry", **PYXML_KWARGS):
     typeCode: Optional[str] = attr(tag="typeCode", default=None)
     events: List[RIMType] = element()
 
-# Necessary due to recursive typing in ReferenceInformationModel
-Act.model_rebuild()
-Encounter.model_rebuild()
-Observation.model_rebuild()
-Procedure.model_rebuild()
-Organizer.model_rebuild()
-ServiceEvent.model_rebuild()
-SubstanceAdministration.model_rebuild()
-Supply.model_rebuild()
-OrganizerComponent.model_rebuild()
-
-# Rebuild ReferenceInformationModel to resolve Entry forward reference
-from .rim import rebuild_rim_model
-rebuild_rim_model()
+# Forward references are handled automatically by Pydantic v2

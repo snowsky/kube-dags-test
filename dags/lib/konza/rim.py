@@ -6,7 +6,7 @@ from typing import Optional
 from .code import Code
 from .author import Author
 from .effective_time import EffectiveTime
-from typing import List, ForwardRef, Callable
+from typing import List, Callable
 from .participant import Participant
 from .specimen import Specimen
 from .performer import Performer
@@ -63,7 +63,4 @@ class ReferenceInformationModel(BaseXmlModel, **PYXML_KWARGS):
                 logging.error((template_id, validation_fn, is_valid))
         return False
 
-# Rebuild model to resolve forward references
-# This will be called after Entry is defined in entry.py
-def rebuild_rim_model():
-    ReferenceInformationModel.model_rebuild()
+# Forward references are handled automatically by Pydantic v2

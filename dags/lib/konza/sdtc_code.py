@@ -3,7 +3,7 @@ from lxml.etree import _Element as Element
 from .common import PYXML_KWARGS
 from .reference import Reference
 from .text import Text
-from typing import Optional, ForwardRef, List, Union
+from typing import Optional, List, Union
 from .code import Code
 
 kwargs = {**PYXML_KWARGS}

@@ -4,7 +4,7 @@ from .common import PYXML_KWARGS
 from .template_id import TemplateId
 from typing import Optional
 from .code import Code
-from typing import List, ForwardRef
+from typing import List
 import typing
 from .common import coalesce
 from .rim import ReferenceInformationModel
@@ -13,8 +13,7 @@ from .extracts.vital_signs_observation_extract import VitalSignsObservationExtra
 from .extracts.labs_observation_extract import LabsObservationExtract
 from .extracts.allergy_observation_extract import AllergyObservationExtract
 from .extracts.allergy_reaction_extract import AllergyReactionExtract
-from .extracts.allergy_severity_observation_extract import AllergySeverityObservationExtract 
-Act = ForwardRef("Act")
+from .extracts.allergy_severity_observation_extract import AllergySeverityObservationExtract
 
 class Observation(ReferenceInformationModel, tag="observation"):
 
@@ -23,7 +22,7 @@ class Observation(ReferenceInformationModel, tag="observation"):
     def is_problem_observation(self) -> bool:
         return self.check_template_ids(TemplateId.is_problem_observation)
 
-    def get_date_of_diagnosis_act_if_any(self) -> Optional[Act]:
+    def get_date_of_diagnosis_act_if_any(self) -> Optional['Act']:
         from .act import Act
         if not self.is_problem_observation():
             raise ValueError("Observation is not problem observation")
