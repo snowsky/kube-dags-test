@@ -120,11 +120,9 @@ with DAG(
     @task(
         trigger_rule=TriggerRule.NONE_FAILED,
         executor_config={
-            "KubernetesExecutor": {
-                "resources": {
-                    "requests": {"memory": "16Gi", "cpu": "4000m"},
-                    "limits": {"memory": "16Gi", "cpu": "4000m"}
-                }
+            "resources": {
+                "requests": {"memory": "16Gi", "cpu": "4000m"},
+                "limits": {"memory": "16Gi", "cpu": "4000m"}
             }
         }
     )
@@ -174,11 +172,9 @@ with DAG(
         @task(
             task_id=bucket_name,
             executor_config={
-                "KubernetesExecutor": {
-                    "resources": {
-                        "requests": {"memory": "16Gi", "cpu": "4000m"},
-                        "limits": {"memory": "16Gi", "cpu": "4000m"}
-                    }
+                "resources": {
+                    "requests": {"memory": "16Gi", "cpu": "4000m"},
+                    "limits": {"memory": "16Gi", "cpu": "4000m"}
                 }
             }
         )
@@ -209,7 +205,13 @@ with DAG(
         )
         return file
 
-    @task(trigger_rule=TriggerRule.ALL_DONE)
+    @task(trigger_rule=TriggerRule.ALL_DONE,
+          executor_config={
+              "resources": {
+                  "requests": {"memory": "4Gi", "cpu": "2000m"},
+                  "limits": {"memory": "4Gi", "cpu": "2000m"}
+              }
+          })
     def identify_successful_transfers_task(transfer_task_ids, params: dict):
         # A successful transfer is a file that was successfully transferred to ALL target s3 accounts.
         context = get_current_context()
