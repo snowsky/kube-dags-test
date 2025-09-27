@@ -3,7 +3,7 @@ import re
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.hooks.base import BaseHook
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 # Set up logging
 logger = logging.getLogger('azcopy_dag')

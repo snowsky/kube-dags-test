@@ -21,7 +21,6 @@ sys.path.insert(0, '/opt/airflow/dags/repo/dags')
 from airflow import DAG
 from airflow.decorators import task
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
-from airflow.utils.dates import days_ago
 
 from populations.common import CONNECTION_NAME, EXAMPLE_DATA_PATH
 from populations.utils import _fix_engine_if_invalid_params

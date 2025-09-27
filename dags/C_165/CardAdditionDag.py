@@ -4,13 +4,11 @@ sys.path.insert(0, '/opt/airflow/dags/repo/dags')
 from airflow import DAG
 import logging
 from airflow.models.xcom_arg import XComArg
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.microsoft.mssql.hooks.mssql import MsSqlHook
 from airflow.decorators import task
-from airflow.exceptions import AirflowSkipException
 from airflow.hooks.base import BaseHook
-from airflow.exceptions import AirflowSkipException, AirflowException
+from airflow.exceptions import AirflowException
 from airflow.models.param import Param
 
 from psycopg2.extras import RealDictCursor
@@ -45,7 +43,7 @@ class ConnectionInfo:
 CONNECTIONS = {
     "OPERATIONS_LOGGER": ConnectionInfo(
         conn_id="prd-az1-ops3-airflowconnection",
-        hook=PostgresHook,
+        hook=SQLExecuteQueryOperator,
         database="sourceoftruth",
         cursor_args={"cursor_factory": RealDictCursor}
     ),
@@ -117,14 +115,16 @@ class Ticket:
     raw_row: dict
     custom_priority: Optional[CustomPriority] = None
 
-class ReturningPostgresOperator(PostgresOperator):
+class ReturningSQLExecuteQueryOperator(SQLExecuteQueryOperator):
     def __init__(self, *args, database=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.database = database
 
     def execute(self, context):
         self.log.info("Executing: %s", self.sql)
-        hook = PostgresHook(postgres_conn_id=self.conn_id, schema=self.database)
+        # Use the parent execute method but modify to return records
+        from airflow.providers.common.sql.hooks.sql import DbApiHook
+        hook = DbApiHook.get_hook(conn_id=self.conn_id)
         return hook.get_records(self.sql, parameters=self.parameters)
 
 default_args = {

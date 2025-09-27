@@ -17,7 +17,6 @@ sys.path.insert(0, '/opt/airflow/dags/repo/dags')
 
 from airflow import DAG
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
-from airflow.utils.dates import days_ago
 from airflow.decorators import task
 import datetime
 from datetime import datetime

@@ -1,17 +1,9 @@
 from airflow.decorators import dag, task
-from airflow import DAG
 import pandas as pd
-from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from airflow.providers.sftp.hooks.sftp import SFTPHook
-from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
 from datetime import datetime,timedelta
-from airflow.hooks.base import BaseHook
 import logging
-import paramiko
-import hashlib
 
 
 @task
