@@ -4,7 +4,7 @@ import pandas as pd
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from airflow.providers.sftp.hooks.sftp import SFTPHook
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from datetime import datetime,timedelta
@@ -16,8 +16,8 @@ import hashlib
 
 @task
 def csga_panel_auto_approval_condition_check():
-    sql_hook = MySqlHook(mysql_conn_id="prd-az1-sqlw3-mysql-airflowconnection")
-    sql_hook_old = MySqlHook(mysql_conn_id="prd-az1-sqlw2-airflowconnection")
+    sql_hook = MySqlHook(conn_id="prd-az1-sqlw3-mysql-airflowconnection")
+    sql_hook_old = MySqlHook(conn_id="prd-az1-sqlw2-airflowconnection")
     
     query = "SELECT md5(folder_name) as ConnectionID_md5, folder_name FROM _dashboard_requests.clients_to_process WHERE production_auto_approval = 1 and frequency <> 'Approved';"
     dfPanelAutoApproved = sql_hook.get_pandas_df(query)
@@ -94,7 +94,7 @@ def auto_approval_update_ctp_task(data: dict):
     sql=f"""
         UPDATE `_dashboard_requests`.`clients_to_process` SET `frequency`='Approved' WHERE `folder_name`='{data['folder_name']}';
     """
-    hook = MySqlHook(mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection')
+    hook = MySqlHook(conn_id='prd-az1-sqlw3-mysql-airflowconnection')
     hook.run(sql)
     logging.info(f'Ran: {sql}')
 @task
@@ -105,7 +105,7 @@ def auto_approval_update_ch_task(data: dict):
     sql=f"""
         UPDATE `_dashboard_requests`.`clients_to_process_panel_audit` SET `most_recent_filename`='{latestfile}', `most_recent_file_timestamp`='{latest_time}' WHERE `folder_name`='{data['folder_name']}';
     """
-    hook = MySqlHook(mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection')
+    hook = MySqlHook(conn_id='prd-az1-sqlw3-mysql-airflowconnection')
     hook.run(sql)
     logging.info(f'Ran: {sql}')
 @task
@@ -116,7 +116,7 @@ def auto_approval_update_ctp_panel_task(data: dict):
     sql=f"""
         UPDATE `_dashboard_requests`.`clients_to_process_panel_audit` SET `most_recent_filename`='{latestfile}', `most_recent_file_timestamp`='{latest_time}' WHERE `folder_name`='{data['folder_name']}';
     """
-    hook = MySqlHook(mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection')
+    hook = MySqlHook(conn_id='prd-az1-sqlw3-mysql-airflowconnection')
     hook.run(sql)
     logging.info(f'Ran: {sql}')
     
@@ -128,7 +128,7 @@ def auto_approval_update_ctp_task_old(data: dict):
     sql=f"""
         UPDATE `_dashboard_requests`.`clients_to_process` SET `frequency`='Approved' WHERE `folder_name`='{data['folder_name']}';
     """
-    hook = MySqlHook(mysql_conn_id='prd-az1-sqlw2-airflowconnection')
+    hook = MySqlHook(conn_id='prd-az1-sqlw2-airflowconnection')
     hook.run(sql)
     logging.info(f'Ran: {sql}')
 @task
@@ -139,7 +139,7 @@ def auto_approval_update_ch_task_old(data: dict):
     sql=f"""
         UPDATE `clientresults`.`client_hierarchy` SET `frequency`='Approved' WHERE `folder_name`='{data['folder_name']}';
     """
-    hook = MySqlHook(mysql_conn_id='prd-az1-sqlw2-airflowconnection')
+    hook = MySqlHook(conn_id='prd-az1-sqlw2-airflowconnection')
     hook.run(sql)
     logging.info(f'Ran: {sql}')
 @task
@@ -150,7 +150,7 @@ def auto_approval_update_ctp_panel_task_old(data: dict):
     sql=f"""
         UPDATE `_dashboard_requests`.`clients_to_process_panel_audit` SET `most_recent_filename`='{latestfile}', `most_recent_file_timestamp`='{latest_time}' WHERE `folder_name`='{data['folder_name']}';
     """
-    hook = MySqlHook(mysql_conn_id='prd-az1-sqlw2-airflowconnection')
+    hook = MySqlHook(conn_id='prd-az1-sqlw2-airflowconnection')
     hook.run(sql)
     logging.info(f'Ran: {sql}')
 

@@ -1,9 +1,9 @@
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 import logging
 
 
-class MySqlToFileOperator(MySqlOperator):
+class MySqlToFileOperator(SQLExecuteQueryOperator):
     """
     Executes sql code in a specific MySQL database and downloads the results to a file.
 
@@ -15,8 +15,8 @@ class MySqlToFileOperator(MySqlOperator):
             will be written to a file.
         output_file_path (str): the file path to which the results of running the SQL statement will
             be written. 
-        *args: other positional args to be passed to [MySqlOperator](https://airflow.apache.org/docs/apache-airflow-providers-mysql/stable/_api/airflow/providers/mysql/operators/mysql/index.html#airflow.providers.mysql.operators.mysql.MySqlOperator)
-        **kwargs: other positional args to be passed to MySqlOperator
+        *args: other positional args to be passed to SQLExecuteQueryOperator
+        **kwargs: other positional args to be passed to SQLExecuteQueryOperator
 
     See `dags/examples/example_mysql_to_file.py` for an example DAG using this operator. 
 
@@ -41,7 +41,7 @@ class MySqlToFileOperator(MySqlOperator):
         **kwargs: str,
     ):
         super(MySqlToFileOperator, self).__init__(
-            sql=sql, mysql_conn_id=mysql_conn_id, task_id=task_id, 
+            sql=sql, conn_id=mysql_conn_id, task_id=task_id,
             *args, **kwargs
         )
         self.output_file_path = output_file_path

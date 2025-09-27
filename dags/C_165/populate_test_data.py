@@ -1,6 +1,6 @@
 from airflow import DAG
 from airflow.decorators import task
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.utils.dates import days_ago
 
 import logging
@@ -45,9 +45,9 @@ with DAG(
         import logging
 
         logging.info(f"Creating schema: {schema_name}")
-        create_schema_op = MySqlOperator(
+        create_schema_op = SQLExecuteQueryOperator(
             task_id=f"create_schema_{schema_name}",
-            mysql_conn_id=conn_id,
+            conn_id=conn_id,
             sql=f"""
             CREATE SCHEMA IF NOT EXISTS {schema_name};
             """,

@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.models import Variable
 from airflow.hooks.mysql_hook import MySqlHook
 from airflow.decorators import task
@@ -25,10 +25,10 @@ else:
 MAX_DELETE_ROWS = None #was 3 for testing
 
 
-class ReturningMySqlOperator(MySqlOperator):
+class ReturningSQLExecuteQueryOperator(SQLExecuteQueryOperator):
     def execute(self, context):
         self.log.info('Executing: %s', self.sql)
-        hook = MySqlHook(mysql_conn_id=self.conn_id)
+        hook = MySqlHook(conn_id=self.conn_id)
         result = hook.get_records(self.sql, parameters=self.parameters)
         self.log.info(f"Query result: {result}")
         return result  # Will be pushed to XCom if do_xcom_push=True
@@ -66,7 +66,7 @@ with DAG(
     def get_ids_to_delete_from_file(input_file_path, max_id, output_file_path):
 
         def fetch_rows(start_id, end_id):
-            mysql_hook = MySqlHook(mysql_conn_id=CONNECTION_NAME)
+            mysql_hook = MySqlHook(conn_id=CONNECTION_NAME)
             sql = f"SELECT * FROM {TARGET_TABLE} WHERE id BETWEEN {start_id} AND {end_id}"
             df = mysql_hook.get_pandas_df(sql)
             return df
@@ -102,10 +102,10 @@ with DAG(
         with open(output_file_path, "w") as f:
             json.dump(ids_to_delete,f)
 
-    max_id = ReturningMySqlOperator(
+    max_id = ReturningSQLExecuteQueryOperator(
         task_id='get_max_id',
         sql=f"SELECT MAX(id) FROM {TARGET_TABLE}",
-        mysql_conn_id=CONNECTION_NAME,
+        conn_id=CONNECTION_NAME,
         do_xcom_push=True  # ✅ Required for XCom
     )
 
@@ -156,7 +156,7 @@ with DAG(
             for i in range(0, len(ids_to_delete), batch_size):
                 batch = ids_to_delete[i:i + batch_size]
                 delete_statement = f"DELETE FROM {TARGET_TABLE} WHERE id IN ({','.join(map(str, batch))})"
-                mysql_hook = MySqlHook(mysql_conn_id=CONNECTION_NAME)
+                mysql_hook = MySqlHook(conn_id=CONNECTION_NAME)
                 mysql_hook.run(delete_statement)
                 logging.info(f'Deleted ids: {batch}')
         delete_ids_in_batches(ids_to_delete)

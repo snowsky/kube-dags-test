@@ -2,7 +2,7 @@ import sys
 sys.path.append("/opt/airflow/dags/repo/dags")
 from airflow import DAG
 from airflow.operators.python import get_current_context
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
 from airflow.utils.trigger_rule import TriggerRule
@@ -41,9 +41,9 @@ with DAG(
         client_frequency = kwargs['dag_run'].conf.get('frequency')
         if client_frequency == 'Approved' or 'Revised':
 
-            mysql_op = MySqlOperator(
+            mysql_op = SQLExecuteQueryOperator(
                 task_id='reset_client_frequency',
-                mysql_conn_id=client_profile.conn_id,
+                conn_id=client_profile.conn_id,
                 sql=f"""
                 update _dashboard_requests.clients_to_process
                 set frequency = ''
@@ -63,9 +63,9 @@ with DAG(
         #client_frequency = client_profile.frequency
         if client_frequency == 'Approved' or 'Revised':
 
-            mysql_op = MySqlOperator(
+            mysql_op = SQLExecuteQueryOperator(
                 task_id='reset_client_frequency_hierarchy',
-                mysql_conn_id=client_profile.conn_id,
+                conn_id=client_profile.conn_id,
                 sql=f"""
                 update clientresults.client_hierarchy
                 set frequency = ''
@@ -91,9 +91,9 @@ with DAG(
         #client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'), approved_suffix)
         client_profile = _get_client_profile(kwargs['dag_run'].conf)
         if not _skip_task(csg_table, client_profile):
-            mysql_op = MySqlOperator(
+            mysql_op = SQLExecuteQueryOperator(
                 task_id='extract_client_security_groupings',
-                mysql_conn_id=client_profile.conn_id,
+                conn_id=client_profile.conn_id,
                 sql=f"""
                 insert into clientresults.client_security_groupings{approved_suffix} (`Client`, MPI, server_id)
                 select '{client_profile.client_name}', TP.`MPI`,'{client_profile.ending_db}' from {client_profile.schema}.{client_profile.target_table} TP
@@ -107,9 +107,9 @@ with DAG(
     def c_60_clear_client_security_groupings_task(approved_suffix, **kwargs):
         client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'), approved_suffix)
         if not _skip_task(csg_table, client_profile):
-            mysql_op = MySqlOperator(
+            mysql_op = SQLExecuteQueryOperator(
                 task_id='c_60_clear_client_security_groupings',
-                mysql_conn_id=client_profile.conn_id,
+                conn_id=client_profile.conn_id,
                 sql=f"""
                 delete from clientresults.client_security_groupings{approved_suffix}_running_counts 
                 where `Client` = '{client_profile.client_name}'
@@ -123,9 +123,9 @@ with DAG(
     def c_60_insert_client_security_groupings_task(approved_suffix, **kwargs):
         client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'), approved_suffix)
         if not _skip_task(csg_table, client_profile):
-            mysql_op = MySqlOperator(
+            mysql_op = SQLExecuteQueryOperator(
                 task_id='c_60_clear_client_security_groupings',
-                mysql_conn_id=client_profile.conn_id,
+                conn_id=client_profile.conn_id,
                 sql=f"""
                 insert into clientresults.client_security_groupings{approved_suffix}_running_counts  (`Client`, count_distinct_mpi, server_id)
                 select '{client_profile.client_name}', COUNT(DISTINCT(TP.`MPI`)), '{client_profile.ending_db}' from {client_profile.schema}.{client_profile.target_table} TP
@@ -138,9 +138,9 @@ with DAG(
     def c_60_clear_client_security_groupings_task(approved_suffix, **kwargs):
         client_profile = _get_client_profile(kwargs['dag_run'].conf)
         if not _skip_task(csg_table, client_profile):
-            mysql_op = MySqlOperator(
+            mysql_op = SQLExecuteQueryOperator(
                 task_id='c_60_clear_client_security_groupings',
-                mysql_conn_id=client_profile.conn_id,
+                conn_id=client_profile.conn_id,
                 sql=f"""
                 delete from clientresults.client_security_groupings{approved_suffix}_running_counts 
                 where `Client` = '{client_profile.client_name}'
@@ -154,9 +154,9 @@ with DAG(
     def c_60_insert_client_security_groupings_task(approved_suffix, **kwargs):
         client_profile = _get_client_profile(kwargs['dag_run'].conf)
         if not _skip_task(csg_table, client_profile):
-            mysql_op = MySqlOperator(
+            mysql_op = SQLExecuteQueryOperator(
                 task_id='c_60_insert_client_security_groupings',
-                mysql_conn_id=client_profile.conn_id,
+                conn_id=client_profile.conn_id,
                 sql=f"""
                 insert into clientresults.client_security_groupings{approved_suffix}_running_counts  (`Client`, count_distinct_mpi, server_id)
                 select '{client_profile.client_name}', COUNT(DISTINCT(CSG.`MPI`)), '{client_profile.ending_db}' from clientresults.client_security_groupings{approved_suffix} CSG where Client =  '{client_profile.client_name}'
@@ -170,9 +170,9 @@ with DAG(
         #client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'))
         client_profile = _get_client_profile(kwargs['dag_run'].conf)
         if not _skip_task(mpi_table, client_profile):
-            mysql_op = MySqlOperator(
+            mysql_op = SQLExecuteQueryOperator(
                 task_id='extract_mpi_crosswalk',
-                mysql_conn_id=client_profile.conn_id,
+                conn_id=client_profile.conn_id,
                 sql=f"""
                 insert into clientresults.client_extract_mpi_crosswalk (`Client`, MPI, server_id,36_month_visit_reference_accid,ins_member_id,client_identifier,client_identifier_2)
                 select '{client_profile.client_name}', TP.`MPI`,'{client_profile.ending_db}', '', ins_member_id,client_identifier,client_identifier_2 from {client_profile.schema}.{client_profile.target_table} TP
@@ -186,9 +186,9 @@ with DAG(
         #client_profile = _get_client_profile_and_map_index(kwargs['dag_run'].conf.get('client_name'), approved_suffix)
         client_profile = _get_client_profile(kwargs['dag_run'].conf)
         if not _skip_task(table_name, client_profile):
-            mysql_op = MySqlOperator(
+            mysql_op = SQLExecuteQueryOperator(
                 task_id='clear_results_table',
-                mysql_conn_id=client_profile.conn_id,
+                conn_id=client_profile.conn_id,
                 sql=f"""
                 delete from clientresults.{table_name}{approved_suffix}
                 where `Client` = '{client_profile.client_name}'

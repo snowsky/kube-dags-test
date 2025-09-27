@@ -2,7 +2,7 @@ import pathlib
 import logging
 from datetime import datetime
 from airflow import DAG
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.mysql.operators.mysql import SQLExecuteQueryOperator
 from airflow.decorators import task
 
 CCDA_DIR = "/data/biakonzasftp/C-128/archive/XCAIn"
@@ -63,10 +63,10 @@ with DAG(
             logging.info(f'EUID to SQL should be {euid}')
             logging.info(f'mrn to SQL should be {mrn}')
             logging.info(f'event_timestamp to SQL should be {event_timestamp}')
-            mysql_op = MySqlOperator(
+            mysql_op = SQLExecuteQueryOperator(
                 task_id='parse_ccd_to_sql',
-                #mysql_conn_id='qa-az1-sqlw3-airflowconnection',
-                mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection',
+                #conn_id='qa-az1-sqlw3-airflowconnection',
+                conn_id='prd-az1-sqlw3-mysql-airflowconnection',
                 sql=f"""
                 insert into person_master._mpi (mrn, firstname, middlename, lastname, event_timestamp, euid)
                 VALUES ('{mrn}', '{firstname}', '{middlename}', '{lastname}', '{event_timestamp}', '{euid}') ;

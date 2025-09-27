@@ -1,6 +1,6 @@
 from airflow import DAG
 from airflow.decorators import task
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.microsoft.mssql.hooks.mssql import MsSqlHook
 from datetime import datetime, timedelta
 import pandas as pd

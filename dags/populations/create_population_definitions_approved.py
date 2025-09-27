@@ -3,7 +3,7 @@ sys.path.insert(0, '/opt/airflow/dags/repo/dags')
 
 from airflow import DAG
 from airflow.operators.python import get_current_context
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from airflow.utils.dates import days_ago
 from airflow.decorators import task
@@ -14,10 +14,10 @@ import logging
 
 from populations.common import CONNECTION_NAME
 
-class ReturningMySqlOperator(MySqlOperator):
+class ReturningSQLExecuteQueryOperator(SQLExecuteQueryOperator):
     def execute(self, context):
         self.log.info('Executing: %s', self.sql)
-        hook = MySqlHook(mysql_conn_id=self.conn_id)
+        hook = MySqlHook(conn_id=self.conn_id)
         return hook.get_records(
             self.sql,
             parameters=self.parameters
@@ -52,9 +52,9 @@ with DAG(
         trigger.execute(context=kwargs)
 
 
-    clients_to_process = ReturningMySqlOperator(
+    clients_to_process = ReturningSQLExecuteQueryOperator(
         task_id='clients_to_process',
-        mysql_conn_id=CONNECTION_NAME,
+        conn_id=CONNECTION_NAME,
         sql=f"""
         SELECT folder_name, ending_db, frequency, facility_ids, airflow_client_profile
         FROM _dashboard_requests.clients_to_process

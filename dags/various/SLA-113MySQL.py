@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.models import Variable
 from airflow.hooks.mysql_hook import MySqlHook
 from airflow.decorators import task
@@ -39,7 +39,7 @@ with DAG(
     def get_ids_to_delete_from_file(input_file_path, max_id, output_file_path):
 
         def fetch_rows(start_id, end_id):
-            mysql_hook = MySqlHook(mysql_conn_id=MYSQL_CONN)
+            mysql_hook = MySqlHook(conn_id=MYSQL_CONN)
             sql = f"SELECT * FROM {TARGET_TABLE} WHERE id BETWEEN {start_id} AND {end_id}"
             df = mysql_hook.get_pandas_df(sql)
             return df
@@ -70,10 +70,10 @@ with DAG(
             json.dump(f, ids_to_delete)
         return output_file_path
 
-    max_id = MySqlOperator(
+    max_id = SQLExecuteQueryOperator(
         task_id='get_max_id',
         sql="SELECT MAX(id) FROM {TARGET_TABLE}",
-        mysql_conn_id=MYSQL_CONN
+        conn_id=MYSQL_CONN
     )
     path_to_files_containing_ids_to_delete = []
     files_to_process = find_files_to_process()

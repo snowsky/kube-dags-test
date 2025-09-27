@@ -1,13 +1,13 @@
 from airflow import DAG
 from airflow.utils.dates import days_ago
 from airflow.operators.python import get_current_context
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.decorators import task
 
 from populations.target_population_impl import output_df_to_target_tbl
 from populations.target_population_impl import _fix_engine_if_invalid_params
 from airflow.providers.mysql.hooks.mysql import MySqlHook
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.common.sql.operators.sql import SQLTableCheckOperator
 
 from datetime import datetime
@@ -37,7 +37,7 @@ with DAG(
         table: str,
     ):
         
-        hook = MySqlHook(mysql_conn_id=mysql_conn_id)
+        hook = MySqlHook(conn_id=mysql_conn_id)
         engine = _fix_engine_if_invalid_params(hook.get_sqlalchemy_engine())
         rows = [
             {"batch_id": batch_id, "file_path": file_path} 
@@ -51,7 +51,7 @@ with DAG(
         message_directory, 
         mysql_tmp_batch_table,
         mysql_tmp_schema,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
         batch_size=100,
      ):
         batch_paths = []
@@ -66,7 +66,7 @@ with DAG(
                 write_batch_to_mysql(
                     batch=batch_paths, 
                     batch_id=batch_id,
-                    mysql_conn_id=mysql_conn_id,
+                    conn_id=mysql_conn_id,
                     schema=mysql_tmp_schema,
                     table=mysql_tmp_batch_table,
                 )
@@ -77,7 +77,7 @@ with DAG(
             write_batch_to_mysql(
                 batch=batch_paths, 
                 batch_id=batch_id,
-                mysql_conn_id=mysql_conn_id,
+                conn_id=mysql_conn_id,
                 schema=mysql_tmp_schema,
                 table=mysql_tmp_batch_table,
             )
@@ -98,9 +98,9 @@ with DAG(
         batch_schema: str,
         mpi_new_records_table: str,
         mpi_new_records_schema: str,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     ):
-        hook = MySqlHook(mysql_conn_id=mysql_conn_id)
+        hook = MySqlHook(conn_id=mysql_conn_id)
         engine = _fix_engine_if_invalid_params(hook.get_sqlalchemy_engine())
         dt = pd.read_sql(f"""
             SELECT message_id, file_path 
@@ -146,23 +146,23 @@ with DAG(
             if_exists='append',
         )
 
-    create_tmp_database = MySqlOperator(
+    create_tmp_database = SQLExecuteQueryOperator(
         task_id="create_tmp_database",
         sql="""
         CREATE DATABASE IF NOT EXISTS tmp_hl7_processing_{{ ds_nodash }};
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
     
-    drop_batch_table = MySqlOperator(
+    drop_batch_table = SQLExecuteQueryOperator(
         task_id="drop_batch_table",
         sql="""
         DROP TABLE IF EXISTS tmp_hl7_processing_{{ ds_nodash }}.batches
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
 
-    create_batch_table = MySqlOperator(
+    create_batch_table = SQLExecuteQueryOperator(
         task_id="create_batch_table",
         sql="""
         CREATE TABLE IF NOT EXISTS tmp_hl7_processing_{{ ds_nodash }}.batches (
@@ -173,10 +173,10 @@ with DAG(
             KEY (batch_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
     
-    create_new_mpi_records_table = MySqlOperator(
+    create_new_mpi_records_table = SQLExecuteQueryOperator(
         task_id="create_new_mpi_records_table",
         sql="""
         CREATE TABLE IF NOT EXISTS tmp_hl7_processing_{{ ds_nodash }}.new_mpi_records (
@@ -192,15 +192,15 @@ with DAG(
             KEY (batch_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
     
-    drop_new_mpi_records_table = MySqlOperator(
+    drop_new_mpi_records_table = SQLExecuteQueryOperator(
         task_id="drop_new_mpi_records_table",
         sql="""
         DROP TABLE IF EXISTS tmp_hl7_processing_{{ ds_nodash }}.new_mpi_records
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
     
     batches = create_batches(
@@ -217,15 +217,15 @@ with DAG(
         mpi_new_records_schema="tmp_hl7_processing_{{ ds_nodash }}",
     ).expand(batch_id=batches)
     
-    drop_matched_mpi_records = MySqlOperator(
+    drop_matched_mpi_records = SQLExecuteQueryOperator(
         task_id="drop_matched_records_table",
         sql="""
         DROP TABLE IF EXISTS tmp_hl7_processing_{{ ds_nodash }}.matched_mpi_records
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
 
-    try_match_mpi_records = MySqlOperator(
+    try_match_mpi_records = SQLExecuteQueryOperator(
         task_id="try_match_mpi_records",
         sql="""
         CREATE TABLE IF NOT EXISTS 
@@ -246,17 +246,17 @@ with DAG(
             new_mpi_records.lastname, new_mpi_records.firstname,
             new_mpi_records.dob, new_mpi_records.sex
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
 
-    drop_new_mpi_identifiers = MySqlOperator(
+    drop_new_mpi_identifiers = SQLExecuteQueryOperator(
         task_id="drop_new_mpi_identifiers_table",
         sql="""
         DROP TABLE IF EXISTS tmp_hl7_processing_{{ ds_nodash }}.mpi_ids_to_be_created
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
-    find_new_mpi_identifiers = MySqlOperator(
+    find_new_mpi_identifiers = SQLExecuteQueryOperator(
         task_id="find_new_mpi_identifiers",
         sql="""
         CREATE TABLE IF NOT EXISTS 
@@ -270,10 +270,10 @@ with DAG(
         FROM tmp_hl7_processing_{{ ds_nodash }}.matched_mpi_records
         WHERE max_mpi_id IS NULL
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
     
-    add_new_mpi_identifiers = MySqlOperator(
+    add_new_mpi_identifiers = SQLExecuteQueryOperator(
         task_id="add_new_mpi_identifiers",
         sql="""
         INSERT INTO hl7_processing_center._mpi_id_master (
@@ -287,18 +287,18 @@ with DAG(
             ssn
         FROM tmp_hl7_processing_{{ ds_nodash }}.mpi_ids_to_be_created
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
     
-    drop_matched_mpi_records_before_recreating = MySqlOperator(
+    drop_matched_mpi_records_before_recreating = SQLExecuteQueryOperator(
         task_id="drop_matched_records_before_recreating",
         sql="""
         DROP TABLE IF EXISTS tmp_hl7_processing_{{ ds_nodash }}.matched_mpi_records
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
     
-    match_mpi_records_again = MySqlOperator(
+    match_mpi_records_again = SQLExecuteQueryOperator(
         task_id="match_mpi_records_again",
         sql="""
         CREATE TABLE IF NOT EXISTS 
@@ -319,15 +319,15 @@ with DAG(
             new_mpi_records.lastname, new_mpi_records.firstname,
             new_mpi_records.dob, new_mpi_records.sex
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
-    matched_mpi_records = MySqlOperator(
+    matched_mpi_records = SQLExecuteQueryOperator(
         task_id="matched_mpi_records",
         sql="""
         SELECT * FROM tmp_hl7_processing_{{ ds_nodash }}.matched_mpi_records
         WHERE max_mpi_id IS NULL
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
     check_no_unmatched_records = SQLTableCheckOperator(
         task_id="check_no_unmatched_records",

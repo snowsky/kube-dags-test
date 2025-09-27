@@ -1,6 +1,6 @@
 from airflow import DAG
 from airflow.decorators import task
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.utils.dates import days_ago
 
 from populations.common import CONNECTION_NAME, EXAMPLE_DATA_PATH
@@ -40,7 +40,7 @@ with DAG(
         import logging
         import os
 
-        hook = MySqlHook(mysql_conn_id=mysql_conn_id)
+        hook = MySqlHook(conn_id=mysql_conn_id)
         engine = _fix_engine_if_invalid_params(hook.get_sqlalchemy_engine())
         session=sessionmaker(bind= engine)()
         cursorInstance=session.connection().connection.cursor()
@@ -80,5 +80,5 @@ with DAG(
     processed_patients_with_new_mpis_path_in_blob_storage = add_mpis_to_database_for_patients_without_mpis(
         working_dir=WORKING_DIR,
         source_file_name=SOURCE_FILE_NAME,
-        mysql_conn_id=MYSQL_CONNECTION_ID,
+        conn_id=MYSQL_CONNECTION_ID,
     )

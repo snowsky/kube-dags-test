@@ -3,7 +3,7 @@ import logging
 import re
 from datetime import datetime
 from airflow import DAG
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.decorators import task
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 
@@ -252,7 +252,7 @@ with DAG(
 
                 
                 # Execute the first insert for _patient_insurance
-                mysql_hook = MySqlHook(mysql_conn_id=DEFAULT_DB_CONN_ID)
+                mysql_hook = MySqlHook(conn_id=DEFAULT_DB_CONN_ID)
                 conn = mysql_hook.get_conn()
                 cursor = conn.cursor()
                 cursor.execute(sql_insurance, safe_values_insurance)

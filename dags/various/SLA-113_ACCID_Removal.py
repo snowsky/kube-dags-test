@@ -2,7 +2,7 @@
 # This DAG is used to erase from the Data Warehouse visits attributable to patients including those found in the storage accounts where extracts are derived and the MySQL database where the records are mapped.
 
 from airflow import DAG
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.utils.dates import days_ago
 from airflow.decorators import task
 import datetime
@@ -59,7 +59,7 @@ with DAG(
         import logging
         import os
 
-        hook = MySqlHook(mysql_conn_id=mysql_conn_id)
+        hook = MySqlHook(conn_id=mysql_conn_id)
         engine = _fix_engine_if_invalid_params(hook.get_sqlalchemy_engine())
         session=sessionmaker(bind= engine)()
         cursorInstance=session.connection().connection.cursor()

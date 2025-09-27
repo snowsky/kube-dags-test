@@ -14,7 +14,7 @@ from airflow.models.param import Param
 import pathlib
 from lib.konza.parser import read_clinical_document_from_xml_path
 from lib.konza.extracts.extract import KonzaExtract
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.mysql.operators.mysql import SQLExecuteQueryOperator
 
 
 # Define the DAG
@@ -234,9 +234,9 @@ def parse_local_xml(xml_files: List[str]):
 
             mrn = '999999999'
             event_timestamp = '2023-02-08 10:34:00'
-            mysql_op = MySqlOperator(
+            mysql_op = SQLExecuteQueryOperator(
                 task_id=f'parse_ccd_to_sql_{euid}',  # Unique task ID for each file
-                mysql_conn_id='prd-az1-sqlw3-mysql-airflowconnection',
+                conn_id='prd-az1-sqlw3-mysql-airflowconnection',
                 sql=f"""
                 INSERT INTO person_master._mpi (mrn, firstname, middlename, lastname, event_timestamp, euid)
                 VALUES ('{mrn}', '{firstname}', '{middlename}', '{lastname}', '{event_timestamp}', '{euid}');

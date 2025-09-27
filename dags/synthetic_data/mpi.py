@@ -1,7 +1,7 @@
 from airflow import DAG
 import pendulum
 from airflow.operators.python import get_current_context
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.decorators import task
 
 from populations.target_population_impl import output_df_to_target_tbl
@@ -17,15 +17,15 @@ with DAG(
     tags=['synthetic', 'mpi'],
 ) as dag:
     
-    create_test_database = MySqlOperator(
+    create_test_database = SQLExecuteQueryOperator(
         task_id="create_test_database",
         sql="""
         CREATE DATABASE IF NOT EXISTS hl7_processing_center;
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
 
-    create_mpi_table = MySqlOperator(
+    create_mpi_table = SQLExecuteQueryOperator(
         task_id="create_mpi_table",
         sql="""
         CREATE TABLE hl7_processing_center._mpi_id_master (
@@ -45,6 +45,6 @@ with DAG(
             KEY mpi_combo (firstname,lastname,dob,sex)
         ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
         """,
-        mysql_conn_id=MYSQL_CONN_ID,
+        conn_id=MYSQL_CONN_ID,
     )
     create_test_database >> create_mpi_table

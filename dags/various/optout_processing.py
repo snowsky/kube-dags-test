@@ -13,7 +13,7 @@ against the MPI table, using one of two methods:
 The DAG can be tested against synthetic MPI data (only using docker-compose!) by running the `populate_test_data` DAG first.
 """
 from airflow import DAG
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.utils.dates import days_ago
 from airflow.decorators import task
 import datetime
@@ -171,20 +171,23 @@ with DAG(
                   # the query will fail. This is expected. See PRIMARY KEY on opt-out table to relax this restriction.
                   if_exists='append', 
                )
-    create_opt_out_schema = MySqlOperator(
+    create_opt_out_schema = SQLExecuteQueryOperator(
         task_id="create_opt_out_schema",
+        conn_id=MYSQL_CONNECTION_ID,
         sql=f"""
         CREATE SCHEMA IF NOT EXISTS {OPT_OUT_SCHEMA_NAME};
         """
     )
-    drop_opt_out_load_table_if_exists = MySqlOperator(
+    drop_opt_out_load_table_if_exists = SQLExecuteQueryOperator(
         task_id="drop_opt_out_load_table_if_exists",
+        conn_id=MYSQL_CONNECTION_ID,
         sql=f"""
         DROP TABLE IF EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_LOAD_TABLE_NAME}
         """
     )
-    create_opt_out_load_table = MySqlOperator(
+    create_opt_out_load_table = SQLExecuteQueryOperator(
         task_id="create_opt_out_load_table",
+        conn_id=MYSQL_CONNECTION_ID,
         sql=f"""
         CREATE TABLE IF NOT EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_LOAD_TABLE_NAME} (
             id VARCHAR(255),

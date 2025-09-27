@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.models import Variable
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 
@@ -43,9 +43,9 @@ with DAG(
     def _create_schema(schema_name, conn_id=CONNECTION_NAME):
         import logging
         logging.info(f'Creating schema: {schema_name}')
-        create_schema_op = MySqlOperator(
+        create_schema_op = SQLExecuteQueryOperator(
             task_id=f'create_schema_{schema_name}',
-            mysql_conn_id=conn_id,
+            conn_id=conn_id,
             sql=f"""
             CREATE SCHEMA IF NOT EXISTS {schema_name};
             """,
@@ -67,7 +67,7 @@ with DAG(
 
         logging.info(f'Creating table: {table_name}, in schema: {schema_name}')
 
-        hook = MySqlHook(mysql_conn_id=CONNECTION_NAME)
+        hook = MySqlHook(conn_id=CONNECTION_NAME)
         engine = _fix_engine_if_invalid_params(hook.get_sqlalchemy_engine())
 
         df = pd.read_csv(csv_local_file_path)

@@ -17,7 +17,7 @@ The DAG can be tested against synthetic MPI data (only using docker-compose!) by
 """
 from airflow import DAG
 from airflow.decorators import task
-from airflow.providers.mysql.operators.mysql import MySqlOperator
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.utils.dates import days_ago
 
 from populations.common import CONNECTION_NAME, EXAMPLE_DATA_PATH
@@ -75,7 +75,7 @@ with DAG(
         import logging
         from populations.common import CSV_HEADER
 
-        hook = MySqlHook(mysql_conn_id=mysql_conn_id)
+        hook = MySqlHook(conn_id=mysql_conn_id)
         engine = _fix_engine_if_invalid_params(hook.get_sqlalchemy_engine())
 
         for file_path in Path(source_dir).glob("*"):
@@ -97,19 +97,19 @@ with DAG(
 
 
 
-    create_opt_out_schema = MySqlOperator(
+    create_opt_out_schema = SQLExecuteQueryOperator(
         task_id="create_opt_out_schema",
         sql=f"""
         CREATE SCHEMA IF NOT EXISTS {OPT_OUT_SCHEMA_NAME};
         """
     )
-    drop_opt_out_load_table_if_exists = MySqlOperator(
+    drop_opt_out_load_table_if_exists = SQLExecuteQueryOperator(
         task_id="drop_opt_out_load_table_if_exists",
         sql=f"""
         DROP TABLE IF EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_LOAD_TABLE_NAME}
         """
     )
-    create_opt_out_load_table = MySqlOperator(
+    create_opt_out_load_table = SQLExecuteQueryOperator(
         task_id="create_opt_out_load_table",
         sql=f"""
         CREATE TABLE IF NOT EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_LOAD_TABLE_NAME} (
@@ -138,13 +138,13 @@ with DAG(
         target_schema=OPT_OUT_SCHEMA_NAME,
         target_table=OPT_OUT_LOAD_TABLE_NAME,
     )
-    drop_sanitized_table_if_exists = MySqlOperator(
+    drop_sanitized_table_if_exists = SQLExecuteQueryOperator(
         task_id="drop_sanitized_table_if_exists",
         sql=f"""
         DROP TABLE IF EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_SANITIZED_TABLE_NAME}
         """
     )
-    create_sanitized_opt_out_table = MySqlOperator(
+    create_sanitized_opt_out_table = SQLExecuteQueryOperator(
         task_id="create_sanitized_opt_out_table",
         sql=f"""
         CREATE TABLE IF NOT EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_SANITIZED_TABLE_NAME}
@@ -196,13 +196,13 @@ with DAG(
         ) t
         """,
     )
-    drop_indexed_mpi_table_if_exists = MySqlOperator(
+    drop_indexed_mpi_table_if_exists = SQLExecuteQueryOperator(
         task_id="drop_indexed_mpi_table_if_exists",
         sql=f"""
         DROP TABLE IF EXISTS {OPT_OUT_SCHEMA_NAME}.{INDEXED_MPI_TABLE_NAME}
         """
     )
-    create_indexed_mpi_table = MySqlOperator(
+    create_indexed_mpi_table = SQLExecuteQueryOperator(
         task_id="create_indexed_mpi_table",
         sql=f"""
         CREATE TABLE IF NOT EXISTS {OPT_OUT_SCHEMA_NAME}.{INDEXED_MPI_TABLE_NAME}
@@ -220,13 +220,13 @@ with DAG(
            FROM {MPI_SCHEMA_NAME}.{MPI_TABLE_NAME}
         """,
     )
-    drop_with_mpi_std_table_if_exists = MySqlOperator(
+    drop_with_mpi_std_table_if_exists = SQLExecuteQueryOperator(
         task_id="drop_with_mpi_std_table_if_exists",
         sql=f"""
         DROP TABLE IF EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_WITH_MPI_STD_TABLE_NAME}
         """
     )
-    create_opt_out_table_with_mpi_std = MySqlOperator(
+    create_opt_out_table_with_mpi_std = SQLExecuteQueryOperator(
         task_id="create_opt_out_table_with_mpi_std",
         sql=f"""
         CREATE TABLE IF NOT EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_WITH_MPI_STD_TABLE_NAME}
@@ -271,13 +271,13 @@ with DAG(
         """,
     )
     
-    drop_with_mpi_special1_table_if_exists = MySqlOperator(
+    drop_with_mpi_special1_table_if_exists = SQLExecuteQueryOperator(
         task_id="drop_with_mpi_special1_table_if_exists",
         sql=f"""
         DROP TABLE IF EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_WITH_MPI_SPECIAL1_TABLE_NAME}
         """
     )
-    create_opt_out_table_with_mpi_special1 = MySqlOperator(
+    create_opt_out_table_with_mpi_special1 = SQLExecuteQueryOperator(
         task_id="create_opt_out_table_with_mpi_special1",
         sql=f"""
         CREATE TABLE IF NOT EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_WITH_MPI_SPECIAL1_TABLE_NAME}
@@ -321,13 +321,13 @@ with DAG(
         """,
     )
     
-    drop_opt_out_list_raw_if_exists = MySqlOperator(
+    drop_opt_out_list_raw_if_exists = SQLExecuteQueryOperator(
         task_id="drop_opt_out_list_raw_if_exists",
         sql=f"""
         DROP TABLE IF EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_LIST_RAW_TABLE_NAME}
         """
     )
-    create_opt_out_list_raw = MySqlOperator(
+    create_opt_out_list_raw = SQLExecuteQueryOperator(
         task_id="create_opt_out_list_raw",
         sql=f"""
         CREATE TABLE IF NOT EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_LIST_RAW_TABLE_NAME}
@@ -381,13 +381,13 @@ with DAG(
         """,
     )
     
-    drop_opt_out_list_if_exists = MySqlOperator(
+    drop_opt_out_list_if_exists = SQLExecuteQueryOperator(
         task_id="drop_opt_out_list_if_exists",
         sql=f"""
         DROP TABLE IF EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_LIST_TABLE_NAME}
         """
     )
-    create_opt_out_list = MySqlOperator(
+    create_opt_out_list = SQLExecuteQueryOperator(
         task_id="create_opt_out_list",
         sql=f"""
         CREATE TABLE IF NOT EXISTS {OPT_OUT_SCHEMA_NAME}.{OPT_OUT_LIST_TABLE_NAME}
