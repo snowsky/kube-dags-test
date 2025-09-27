@@ -1,10 +1,16 @@
+import sys
+import os
 from datetime import datetime
 from airflow import DAG
 from airflow.providers.standard.operators.python import PythonOperator
+
+# Add the dags directory to Python path so we can import from lib.konza
+dags_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, dags_dir)
+
 from lib.konza.parser import extract_demographic_info_from_xmls_to_parquet
 import pandas as pd
 import tempfile
-import os
 import logging
 
 def basic_extract_print():
