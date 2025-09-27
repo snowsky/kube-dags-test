@@ -6,6 +6,7 @@ from typing import Optional
 
 
 class DemographicExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     date_of_birth: str
     sex: Optional[str]
     race: Optional[str]

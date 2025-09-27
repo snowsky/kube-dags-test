@@ -4,6 +4,7 @@ from ..addr import Addr
 
 
 class AddressExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     street1: str
     street2: str
     city: Optional[str] = element(default=None)

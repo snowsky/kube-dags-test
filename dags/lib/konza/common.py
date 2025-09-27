@@ -12,6 +12,7 @@ XML_CONFIG = {
     "nsmap": NSMAP,
     "skip_empty": True,
     "search_mode": "unordered",
+    "model_config": PYDANTIC_CONFIG,
 }
 
 # Pydantic v2 config for arbitrary types

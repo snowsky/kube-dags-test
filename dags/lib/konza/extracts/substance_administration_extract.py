@@ -2,6 +2,7 @@ from pydantic_xml import BaseXmlModel, element, attr
 from typing import List, Optional
 
 class SubstanceAdministrationExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     normalized_code: Optional[str] = element()
     normalized_codesystem: Optional[str] = element()
     name: Optional[str] = element()

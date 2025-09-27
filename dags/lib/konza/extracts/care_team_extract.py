@@ -3,6 +3,7 @@ from typing import Optional
 
 
 class CareTeamExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     attributed_npi: Optional[str] = element()
     fname: Optional[str] = element()
     lname: Optional[str] = element()

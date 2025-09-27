@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic_xml import BaseXmlModel, element
 from lxml.etree import _Element as Element
-from .common import KonzaBaseXmlModel
+from .common import KonzaBaseXmlModel, PYDANTIC_CONFIG
 from .component import Component
 from .component_of import ComponentOf
 from .record_target import RecordTarget

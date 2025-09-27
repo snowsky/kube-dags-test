@@ -3,6 +3,7 @@ from typing import Optional
 
 
 class LabsObservationExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     source: Optional[str] = element()
     source_type: Optional[str] = element()
     laboratory_id: Optional[str] = element()

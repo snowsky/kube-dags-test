@@ -3,6 +3,7 @@ from typing import Optional
 
 
 class VitalSignsObservationExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     source: Optional[str] = element()
     code: Optional[str] = element()
     codesystem: Optional[str] = element()

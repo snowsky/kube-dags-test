@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic_xml import BaseXmlModel, element
 from lxml.etree import _Element as Element
-from .common import XML_CONFIG
+from .common import XML_CONFIG, PYDANTIC_CONFIG
 from typing import List, Optional, ClassVar
 from .token import Token
 
@@ -11,6 +11,7 @@ def concat_tokens_no_qualifiers(tokens: List[Token]) -> str:
 
 class Name(BaseXmlModel):
     xml_config: ClassVar = XML_CONFIG
+    model_config = PYDANTIC_CONFIG
     prefix: List[Token] = element(tag="prefix", default=[])
     given: List[Token] = element(tag="given", default=[])
     middle: List[Token] = element(tag="given", default=[])

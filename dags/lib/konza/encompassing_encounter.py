@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic_xml import BaseXmlModel, element
 from lxml.etree import _Element as Element
-from .common import XML_CONFIG
+from .common import XML_CONFIG, PYDANTIC_CONFIG
 from .template_id import TemplateId
 from .effective_time import EffectiveTime
 from .code import Code

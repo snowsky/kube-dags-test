@@ -4,5 +4,6 @@ from typing import Optional, List
 
 
 class AllergyReactionExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     severity: List[AllergySeverityObservationExtract] = element()
     reaction: Optional[str] = element()

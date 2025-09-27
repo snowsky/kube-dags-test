@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pydantic_xml import BaseXmlModel, attr
-from .common import XML_CONFIG
+from .common import XML_CONFIG, PYDANTIC_CONFIG
 from typing import Optional, ClassVar
 
 # POLICY_ACTIVITY_TEMPLATE_ROOT = "2.16.840.1.113883.10.20.22.4.61"

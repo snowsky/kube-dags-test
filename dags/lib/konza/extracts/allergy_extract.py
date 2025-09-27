@@ -3,4 +3,5 @@ from typing import List
 from ..extracts.allergy_observation_extract import AllergyObservationExtract
 
 class AllergyExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     observations: List[AllergyObservationExtract] = element()

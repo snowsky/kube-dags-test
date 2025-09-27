@@ -19,6 +19,7 @@ from typing import ClassVar
 
 class ReferenceInformationModel(BaseXmlModel):
     xml_config: ClassVar = XML_CONFIG
+    model_config = PYDANTIC_CONFIG
     templateId: List[TemplateId] = element(default=[])
     id: Optional[TemplateId] = element(tag="id", default=None)
     

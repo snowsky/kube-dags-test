@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic_xml import BaseXmlModel, attr, element
 from lxml.etree import _Element as Element
-from .common import XML_CONFIG
+from .common import XML_CONFIG, PYDANTIC_CONFIG
 from .reference import Reference
 from .text import Text
 from typing import Optional, List, Union, ClassVar
@@ -14,6 +14,7 @@ MEDICATION_INSTRUCTIONS_LOINC_CODE = "76662-6"
 
 class Code(BaseXmlModel):
     xml_config: ClassVar = XML_CONFIG
+    model_config = PYDANTIC_CONFIG
     nullFlavor: Optional[str] = attr(default=None)
     code: Optional[str] = attr(name="code", default=None)
     codeSystem: Optional[str] = attr(name="codeSystem", default=None)

@@ -9,6 +9,7 @@ def concat_tokens(tokens, empty_string=False):
     return " ".join([x.value for x in tokens])
 
 class NameExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     name_prefix: Optional[str]
     given_name: str
     middle_names: str

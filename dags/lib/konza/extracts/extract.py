@@ -2,7 +2,7 @@ import collections
 from pydantic import field_serializer
 from pydantic_xml import BaseXmlModel, element
 from lxml.etree import _Element as Element
-from ..common import KonzaBaseXmlModel
+from ..common import KonzaBaseXmlModel, PYDANTIC_CONFIG
 from ..clinical_document import ClinicalDocument
 from typing import List, Optional, ClassVar
 from ..extracts.name_extract import NameExtract

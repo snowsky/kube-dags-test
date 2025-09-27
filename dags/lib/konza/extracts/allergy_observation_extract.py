@@ -4,6 +4,7 @@ from ..extracts.allergy_reaction_extract import AllergyReactionExtract
 
 
 class AllergyObservationExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     description: Optional[str] = element()
     code: Optional[str] = element()
     description_type: Optional[str] = element()
