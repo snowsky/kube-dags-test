@@ -175,7 +175,7 @@ def write_to_mysql():
 
 with DAG(
     dag_id='thirty_six_month_lookback',
-    schedule_interval='@once',
+    schedule='@once',
     tags=['C-35'],
     start_date=datetime(2023, 1, 1),
     catchup=False,

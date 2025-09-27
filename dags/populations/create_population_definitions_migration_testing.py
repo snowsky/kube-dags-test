@@ -28,7 +28,7 @@ with DAG(
     'create_population_definitions_migration_testing',
     default_args=default_args,
     schedule=None,
-    #schedule_interval='@monthly',
+    #schedule='@monthly',
     #start_date=datetime(2025, 2, 1),
     tags=['example', 'population-definitions'],
 ) as dag:

@@ -25,7 +25,7 @@ dag = DAG(
     'XCAIn_s3_to_sftp_copy_to_archive_ccd_parser_delete_from_s3',
     default_args=default_args,
     description='Retrieve files from S3 and deliver to SFTP with OID folder structure implemented and delivered to archive folder and delete from s3 after transfer(s), Parse CCD',
-    schedule_interval='@hourly',
+    schedule='@hourly',
     start_date=datetime(2024, 12, 19), 
     tags=['C-128'],
     catchup=False,

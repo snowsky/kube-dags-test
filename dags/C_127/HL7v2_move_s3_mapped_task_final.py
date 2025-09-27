@@ -37,7 +37,7 @@ default_args = {'owner': 'airflow'}
 with DAG(
     dag_id='HL7v2_move_s3_mapped_task_final',
     default_args=default_args,
-    schedule_interval=timedelta(minutes=1),
+    schedule=timedelta(minutes=1),
     start_date=datetime(2025, 1, 1),
     tags=['C-127', 'Canary', 'Staging_in_Prod'],
     concurrency=PARALLEL_TASK_LIMIT,

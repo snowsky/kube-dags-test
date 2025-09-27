@@ -24,7 +24,7 @@ dag = DAG(
     'nj_file_move_from_zip_folder_20240115',
     default_args=default_args,
     description='A simple DAG to move the NJ files the HL7In Zipped Dated folders to the L-248',
-    #schedule_interval='@hourly',  # Set to run hourly
+    #schedule='@hourly',  # Set to run hourly
     #start_date=datetime(2024,9,20),
     tags=['L-248'],
 )

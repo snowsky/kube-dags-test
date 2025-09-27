@@ -215,7 +215,7 @@ default_args = {
 with DAG(
     dag_id="upload_latest_mc_and_csga_parquet",
     default_args=default_args,
-    schedule_interval=None,
+    schedule=None,
     tags=['C-171']
 ) as dag:
     

@@ -57,7 +57,7 @@ default_args = {
 with DAG(
     dag_id='Zip_Dated_Subfolders_Locally',
     default_args=default_args,
-    schedule_interval='@daily',
+    schedule='@daily',
     catchup=False,
     max_active_runs=1,
     tags=['C-174', 'C-194', 'Batch_Zip', 'Local', 'Recursive'],

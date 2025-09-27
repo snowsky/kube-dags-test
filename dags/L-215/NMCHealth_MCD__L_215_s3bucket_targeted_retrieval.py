@@ -22,7 +22,7 @@ dag = DAG(
     default_args=default_args,
     max_active_runs=1,
     description='A simple DAG to move files from an S3 subfolder to a mounted drive location',
-    schedule_interval='@hourly',  # Set to run hourly
+    schedule='@hourly',  # Set to run hourly
     tags=['L-215'],
     start_date=datetime(2024,8,5),
 )

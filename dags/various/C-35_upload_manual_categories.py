@@ -11,7 +11,7 @@ default_args = {
 dag = DAG(
     'example_wasb_dag',
     default_args=default_args,
-    schedule_interval=None,
+    schedule=None,
 )
 
 def list_blobs():

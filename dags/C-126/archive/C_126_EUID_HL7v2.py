@@ -21,7 +21,7 @@ dag = DAG(
     'C_126_EUID_HL7v2',
     default_args=default_args,
     description='A simple DAG to move files from an S3 subfolder to a mounted drive location',
-    schedule_interval='@hourly',  # Set to run hourly
+    schedule='@hourly',  # Set to run hourly
     start_date=datetime(2024,8,5),
     tags=['example'],
 )

@@ -27,7 +27,7 @@ dag = DAG(
     default_args=default_args,
     tags=['testing'],
     description='A simple DAG to print package licenses',
-    schedule_interval=timedelta(days=1),
+    schedule=timedelta(days=1),
 )
 
 print_licenses_task = PythonOperator(

@@ -8,7 +8,7 @@ import logging
 @dag(
     dag_id='HDInsights_person_master_retrieval_with_ReportWriter',
     start_date=days_ago(1),  # Set a fixed start date
-    schedule_interval='@daily',
+    schedule='@daily',
     catchup=False,
     tags=['hoang', 'azure_blob_conn', 'uri_string'],
 )

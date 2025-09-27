@@ -86,7 +86,7 @@ default_args = {
 with DAG(
     dag_id="pull_mc_sql_data",
     default_args=default_args,
-    schedule_interval='@daily',  
+    schedule='@daily',  
     catchup=False,              
     tags=['c-35']
 ) as dag:

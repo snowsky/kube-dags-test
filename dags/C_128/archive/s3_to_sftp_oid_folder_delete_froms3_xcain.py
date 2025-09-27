@@ -18,7 +18,7 @@ dag = DAG(
     'XCAIn_s3_to_sftp_with_oid_folder_delete_from_s3',
     default_args=default_args,
     description='Retrieve files from S3 and deliver to SFTP, delete from S3. For testing purpose, referencing S3_SUBFOLDER as HL7v3In(change done on 12/9)',
-    schedule_interval=None,
+    schedule=None,
     tags=['C-128'],
     catchup=False
 )

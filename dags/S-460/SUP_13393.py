@@ -47,7 +47,7 @@ dag = DAG(
     'process_log_files',
     default_args=default_args,
     description='A DAG to process events, usage, and sessions log files and create consolidated DataFrames',
-    schedule_interval='@daily',
+    schedule='@daily',
     start_date=datetime(2025, 1, 22),
     catchup=False,
     max_active_runs=1,

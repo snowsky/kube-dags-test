@@ -34,7 +34,7 @@ dag = DAG(
     'XCAIn_s3_to_sftp',
     default_args=default_args,
     description='Retrieve files from SFTP, deliver to network path and S3',
-    schedule_interval=None,
+    schedule=None,
     tags=['C-128'],
     catchup=False
 )

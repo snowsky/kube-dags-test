@@ -28,7 +28,7 @@ with DAG(
     'create_population_definitions_approved',
     default_args=default_args,
     schedule=None,
-    #schedule_interval='@hourly',  # Set to run hourly in production airflow
+    #schedule='@hourly',  # Set to run hourly in production airflow
     #start_date=datetime(2025, 4, 23),  # Set to today
     catchup=False,  # Disable catchup
     tags=['example', 'population-definitions'],

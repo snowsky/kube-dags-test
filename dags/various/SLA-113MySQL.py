@@ -25,7 +25,7 @@ default_args = {
 with DAG(
     'SLA-113MySQL',
     default_args=default_args,
-    schedule_interval=None,#'@daily'
+    schedule=None,#'@daily'
     tags=['example'],
 ) as dag:
     def find_files_to_process():

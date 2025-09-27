@@ -139,7 +139,7 @@ dag = DAG(
     'SFTP_sqllite_to_trino',
     default_args=default_args,
     description='Convert SQLite DBs from SFTP subfolders to Parquet, upload to Azure Blob, and archive originals',
-    schedule_interval='@daily',
+    schedule='@daily',
     catchup=False,
     tags=['S-6'],
 )

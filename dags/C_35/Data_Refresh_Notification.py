@@ -38,7 +38,7 @@ dag = DAG(
     'Data_Refresh_Notification',
     default_args=default_args,
     description='This DAG Sends emails to a group tracking the Data Refresh for HQ Insights and updating the SLA',
-    schedule_interval='@daily',
+    schedule='@daily',
     catchup=False,
     tags=['C-35'],
 )

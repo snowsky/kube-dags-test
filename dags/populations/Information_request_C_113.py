@@ -121,7 +121,7 @@ with DAG(
     'C_113_Information_Request_SUP_10944',
     default_args=default_args,
     description='Pipeline for ingestion of RCE reporting data',
-    schedule_interval='@daily', 
+    schedule='@daily', 
     tags=['C-113', 'Information Request'],
 ) as dag:
 

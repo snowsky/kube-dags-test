@@ -20,7 +20,7 @@ with DAG(
     params={
         "ccda_dir": CCDA_DIR
     },
-    schedule_interval=None,
+    schedule=None,
     tags=['C-128'],
     concurrency=5,
     catchup=False,

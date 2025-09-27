@@ -22,7 +22,7 @@ dag = DAG(
     'hl7v3_l69_checksum',
     default_args=default_args,
     description='A simple DAG to check the file counts of the HL7InV3_CDA_KONZA_SFTP_Retrieval__L_69 folders',
-    #schedule_interval='@hourly',  # Set to run hourly
+    #schedule='@hourly',  # Set to run hourly
     #start_date=datetime(2024,9,20),
     tags=['hl7v3_checksums'],
 )

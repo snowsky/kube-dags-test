@@ -9,7 +9,7 @@ import pendulum
 
 
 @dag(
-    schedule_interval=None,
+    schedule=None,
     start_date=pendulum.datetime(2024, 1, 1, tz="UTC"),
     catchup=False,
     dagrun_timeout=timedelta(minutes=60),

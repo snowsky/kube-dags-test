@@ -38,7 +38,7 @@ dag = DAG(
     'RapidAlerts_Automated_Notification',
     default_args=default_args,
     description='This DAG Sends emails to a group tracking the Rapid Alerts clients to indicate new panels are available on the corresponding SFTPs',
-    schedule_interval='@hourly',
+    schedule='@hourly',
     catchup=False,
     tags=['C-181'],
 )

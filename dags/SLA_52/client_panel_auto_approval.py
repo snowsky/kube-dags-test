@@ -157,7 +157,7 @@ def auto_approval_update_ctp_panel_task_old(data: dict):
 @dag(
     dag_id="csga_panel_auto_approval",
     start_date=datetime(2024,11,6),
-    schedule_interval='@hourly',
+    schedule='@hourly',
     tags=['csga_approval','sla_52'],
     catchup=False,
 ) 

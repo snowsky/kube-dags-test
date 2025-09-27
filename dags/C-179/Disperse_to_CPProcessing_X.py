@@ -78,7 +78,7 @@ with DAG(
     'Disperse_to_CPProcessing_X',
     default_args=default_args,
     description='Move 40M Azure blobs in 49 parallel batches',
-    schedule_interval="*/30 * * * *",
+    schedule="*/30 * * * *",
     max_active_runs=1,
     start_date=datetime(2024, 1, 1),
     catchup=False,

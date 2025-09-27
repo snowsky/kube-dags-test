@@ -18,7 +18,7 @@ dag = DAG(
     'PROD_XCAIn_s3_to_sftp_with_oid_folder',
     default_args=default_args,
     description='Retrieve files from S3 and deliver to SFTP',
-    schedule_interval=None,
+    schedule=None,
     tags=['C-126' , 'C-172'],
     catchup=False
 )

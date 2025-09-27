@@ -193,7 +193,7 @@ with DAG(
     dag_id='retrieval_auto_approval_check',
     default_args=default_args,
     description='Check and move files for auto-approved retrieval clients and deliver to Azure Blob Storage',
-    schedule_interval='0 */6 * * *',
+    schedule='0 */6 * * *',
     max_active_runs=1,
     start_date=datetime(2025, 9, 21),
     catchup=False,

@@ -26,7 +26,7 @@ default_args = {
 
 with DAG(
     dag_id='dim_accid_state_assignment',
-    schedule_interval='@monthly',
+    schedule='@monthly',
     tags=['C-111'],
     start_date=datetime(2025, 3, 1),
     catchup=True,

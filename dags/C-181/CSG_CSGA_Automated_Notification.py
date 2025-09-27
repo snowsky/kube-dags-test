@@ -38,7 +38,7 @@ dag = DAG(
     'CSG_CSGA_Automated_Notification',
     default_args=default_args,
     description='',
-    schedule_interval='@daily',
+    schedule='@daily',
     catchup=False,
     tags=['C-181'],
 )

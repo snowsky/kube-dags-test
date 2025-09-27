@@ -103,7 +103,7 @@ with DAG(
     description="Airflow migration of L-69 SFTP retrieval from legacy OPS1 script",
     default_args=default_args,
     start_date=days_ago(1),
-    schedule_interval=None,
+    schedule=None,
     catchup=False,
     tags=["L-69"],
 ) as dag:

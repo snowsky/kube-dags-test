@@ -73,7 +73,7 @@ default_args = {
 
 with DAG(
     dag_id='dim_acc_id_to_mpi',
-    schedule_interval='@monthly',
+    schedule='@monthly',
     tags=['C-111'],
     start_date=datetime(2025, 3, 1),
     catchup=True,

@@ -34,7 +34,7 @@ dag = DAG(
     'AA_s3_HL7v3In_to_sftp',
     default_args=default_args,
     description='Retrieve files from SFTP, deliver to network path and S3',
-    schedule_interval=None,
+    schedule=None,
     catchup=False
 )
 BUCKET_NAME = 'konzaandssigrouppipelines'

@@ -39,7 +39,7 @@ dag = DAG(
     'HL7v3In_s3_to_sftp_delete_from_s3',
     default_args=default_args,
     description='Retrieve files from SFTP, deliver to network path and S3 and deletes the files from S3',
-    schedule_interval=None,
+    schedule=None,
     catchup=False,
     tags=['C-128']
 

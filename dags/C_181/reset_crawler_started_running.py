@@ -21,7 +21,7 @@ dag = DAG(
     dag_id='reset_crawler_started_running',
     default_args=default_args,
     description='Update started_running=0 for rows running > 2 hours and email if anything changed',
-    schedule_interval='@hourly',
+    schedule='@hourly',
     catchup=False,
     tags=['C-181'],
 )

@@ -28,7 +28,7 @@ dag = DAG(
     'fetch_production_failure',
     default_args=default_args,
     description='Fetch data from dbo.production_failure and alert if new production failure is logged',
-    schedule_interval='0 */4 * * *',  # Runs every 4 hours
+    schedule='0 */4 * * *',  # Runs every 4 hours
     tags=['SLA-33'],
 )
 

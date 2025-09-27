@@ -47,7 +47,7 @@ default_args = {
     'retries': 1,
 }
 
-with DAG('copy_table_dag', default_args=default_args, schedule_interval='@daily') as dag:
+with DAG('copy_table_dag', default_args=default_args, schedule='@daily') as dag:
     create_table_task = PythonOperator(
         task_id='create_table_if_not_exists',
         python_callable=create_table_if_not_exists

@@ -21,7 +21,7 @@ with DAG(
     params={
         "ccda_dir": CCDA_DIR
     },
-    schedule_interval=None,
+    schedule=None,
     tags=['C-128'],
     concurrency=5,  # Set the maximum number of tasks that can run concurrently
 ) as dag:

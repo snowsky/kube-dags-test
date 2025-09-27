@@ -22,7 +22,7 @@ dag = DAG(
     'ssi_khin_oid_distribution_checksum',
     default_args=default_args,
     description='A simple DAG to check the file counts of the HL7In Dated folders',
-    #schedule_interval='@hourly',  # Set to run hourly
+    #schedule='@hourly',  # Set to run hourly
     #start_date=datetime(2024,9,20),
     tags=['hl7v3_checksums'],
 )

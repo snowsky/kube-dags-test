@@ -23,7 +23,7 @@ dag = DAG(
     'HL7v3In_Critical_Data_Pipeline',
     default_args=default_args,
     description='Retrieve files from S3 and deliver to SFTP with OID folder structure implemented and delivered to archive folder and delete from s3 after transfer(s)',
-    schedule_interval='@hourly',
+    schedule='@hourly',
     #max_active_runs=1, #Moved out of the constructor
     concurrency=100,
     start_date=datetime(2025, 5, 30), 

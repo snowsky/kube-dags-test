@@ -27,7 +27,7 @@ with DAG(
     "download_neiss_codes",
     default_args=default_args,
     description="Download NEISS product codes",
-    schedule_interval="@yearly",
+    schedule="@yearly",
     catchup=False,
     tags=['L-250'],
 ) as dag:

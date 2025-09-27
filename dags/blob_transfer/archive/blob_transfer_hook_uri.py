@@ -16,7 +16,7 @@ TARGET_FILES_DIRECTORY = 'target'
 with DAG(
     dag_id='blob_transfer_hook_uri',
     start_date=days_ago(1),  # Set a fixed start date
-    schedule_interval='@daily',
+    schedule='@daily',
     catchup=False,
     tags=['konza', 'azure_blob_conn', 'uri_string'],
     params={

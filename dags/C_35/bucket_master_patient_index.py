@@ -113,7 +113,7 @@ def execute_trino_queries(**kwargs):
 
 with DAG(
     dag_id='bucket_master_patient_index',
-    schedule_interval='@monthly',
+    schedule='@monthly',
     max_active_runs=1,
     tags=['C-35'],
     start_date=datetime(2023, 3, 1),

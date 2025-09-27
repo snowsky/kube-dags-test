@@ -33,7 +33,7 @@ default_args = {
 
 with DAG('qa_check_mysql_connection_dag',
          default_args=default_args,
-         schedule_interval='@daily',
+         schedule='@daily',
          catchup=False) as dag:
 
     check_connection_task = PythonOperator(

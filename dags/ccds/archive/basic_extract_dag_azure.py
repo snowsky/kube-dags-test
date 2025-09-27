@@ -47,7 +47,7 @@ dag = DAG(
     'test_basic_extract_azure',
     default_args=default_args,
     description='test basic extract with data from azure storage account',
-    schedule_interval=None,
+    schedule=None,
     catchup=False,
 )
 

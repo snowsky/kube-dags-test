@@ -44,7 +44,7 @@ default_args = {
 with DAG(
     'SLA-113MySQL',
     default_args=default_args,
-    schedule_interval=None,#'@daily'
+    schedule=None,#'@daily'
     tags=['SLA-113', 'sla113'],
     params={
     "source_files_dir_path": Param(SOURCE_FILES_DIRECTORY, type="string"),

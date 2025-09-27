@@ -68,7 +68,7 @@ with DAG(
     default_args=default_args,
     catchup=False,
     max_active_runs=1,
-    schedule_interval=None,
+    schedule=None,
     tags=['C-174', 'C-194', 'AzureBlob', 'DateFolders', 'Expand'],
 ) as dag:
 

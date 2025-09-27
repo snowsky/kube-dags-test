@@ -26,7 +26,7 @@ dag = DAG(
     'azcopy_containers_airflow_native',
     default_args=default_args,
     description='Copy containers from source to destination storage account',
-    schedule_interval=None,
+    schedule=None,
     tags=['S-6'],
     start_date=days_ago(1),
 )

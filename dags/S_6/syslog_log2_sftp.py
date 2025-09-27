@@ -84,7 +84,7 @@ dag = DAG(
     'prd-az1-log2_syslog_to_local_sftp',
     default_args=default_args,
     description='This DAG retrieves the syslog file from a VM where it is collected and stores it for future audits with HITRUST implications',
-    schedule_interval='@daily',
+    schedule='@daily',
     catchup=False,
     tags=['S-6'],
 )

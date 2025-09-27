@@ -25,7 +25,7 @@ default_args = {
 
 with DAG(
     dag_id='c111_patient_hist_info',
-    schedule_interval=None,
+    schedule=None,
     start_date=datetime(2024, 1, 1),
     tags=['C-111'],
     max_active_runs=1,

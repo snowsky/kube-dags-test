@@ -132,7 +132,7 @@ with DAG(
     'C_113_Information_Request_SUP_10944',
     default_args=default_args,
     description='Pipeline for the ingestion of data related to SUP-9850 : QHIN reporting – RCE Directory and QHIN transactions.Two manual reporting efforts have outgrown an excel based approach and need to be moved to a DB structure',
-    schedule_interval=None, 
+    schedule=None, 
     start_date=days_ago(2),
     tags=['AA_DAG'],
 ) as dag:

@@ -92,7 +92,7 @@ default_args = {
 with DAG(
     dag_id='Availity_Zip_Retrieval_Final',
     default_args=default_args,
-    schedule_interval='@hourly',
+    schedule='@hourly',
     catchup=False,
     max_active_runs=1,
     tags=['C-174', 'Canary', 'Staging_in_Prod'],
