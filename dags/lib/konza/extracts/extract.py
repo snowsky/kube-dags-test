@@ -2,7 +2,7 @@ import collections
 from pydantic import field_serializer
 from pydantic_xml import BaseXmlModel, element
 from lxml.etree import _Element as Element
-from ..common import XML_CONFIG
+from ..common import KonzaBaseXmlModel
 from ..clinical_document import ClinicalDocument
 from typing import List, Optional, ClassVar
 from ..extracts.name_extract import NameExtract
@@ -21,8 +21,7 @@ from ..extracts.immunization_extract import ImmunizationExtract
 from ..extracts.vital_signs_observation_extract import VitalSignsObservationExtract
 from ..extracts.labs_observation_extract import LabsObservationExtract
 
-class KonzaExtractBase(BaseXmlModel):
-    xml_config: ClassVar = XML_CONFIG
+class KonzaExtractBase(KonzaBaseXmlModel):
     patient_name_extract: NameExtract
     patient_address_extract: AddressExtract
     patient_demographic_extract: DemographicExtract

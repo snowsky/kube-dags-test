@@ -5,6 +5,7 @@ from .common import XML_CONFIG
 from .code import Code
 from .effective_time import EffectiveTime
 from pydantic import create_model
+from .common import KonzaBaseXmlModel
 from typing import Optional, Type, ClassVar
 from .assigned_entity import AssignedEntity
 
@@ -28,7 +29,7 @@ def entity_model(
     model = create_model(
         model_name,
         time=(Optional[EffectiveTime], element(tag="time", default=None)),
-        __base__=BaseXmlModel,
+        __base__=KonzaBaseXmlModel,
         **kwargs
     )
 

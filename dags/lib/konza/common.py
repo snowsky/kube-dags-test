@@ -1,4 +1,5 @@
 from typing import ClassVar
+from pydantic import ConfigDict
 
 NSMAP = {
     "": "urn:hl7-org:v3",
@@ -12,6 +13,17 @@ XML_CONFIG = {
     "skip_empty": True,
     "search_mode": "unordered",
 }
+
+# Pydantic v2 config for arbitrary types
+PYDANTIC_CONFIG = ConfigDict(arbitrary_types_allowed=True)
+
+# Custom base class for XML models with proper configuration
+from pydantic_xml import BaseXmlModel
+from typing import ClassVar
+
+class KonzaBaseXmlModel(BaseXmlModel):
+    xml_config: ClassVar = XML_CONFIG
+    model_config = PYDANTIC_CONFIG
 
 def coalesce(*args):
     for arg in args:

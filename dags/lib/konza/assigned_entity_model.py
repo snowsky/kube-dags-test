@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic_xml import BaseXmlModel, attr, element
 from pydantic import create_model
-from .common import XML_CONFIG
+from .common import XML_CONFIG, PYDANTIC_CONFIG
 from .entity import Entity
 from .organization import Organization
 from .person import Person
@@ -22,6 +22,7 @@ def assigned_entity_model(
         model_name,
         assignedPerson=(Optional[Person], element(tag="assignedPerson", default=None)),
         __base__=Entity,
+        __config__=PYDANTIC_CONFIG,
         **kwargs
     )
 
