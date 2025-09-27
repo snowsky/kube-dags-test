@@ -1,6 +1,7 @@
 from pydantic_xml import BaseXmlModel, element
 from typing import List, Optional
 from ..addr import Addr
+from ..common import PYDANTIC_CONFIG
 
 
 class AddressExtract(BaseXmlModel):

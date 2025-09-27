@@ -1,6 +1,7 @@
 from pydantic_xml import BaseXmlModel
 from typing import List, Optional
 from ..name import Name
+from ..common import PYDANTIC_CONFIG
 
 
 def concat_tokens(tokens, empty_string=False):

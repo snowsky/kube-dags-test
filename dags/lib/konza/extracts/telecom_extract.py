@@ -2,6 +2,7 @@ from pydantic_xml import BaseXmlModel
 from typing import List, Optional
 from ..telecom import Telecom
 import collections
+from ..common import PYDANTIC_CONFIG
 
 
 class TelecomExtract(BaseXmlModel):

@@ -1,5 +1,6 @@
 from pydantic_xml import BaseXmlModel, element, attr
 from typing import List, Optional
+from ..common import PYDANTIC_CONFIG
 
 class ImmunizationExtract(BaseXmlModel):
     model_config = PYDANTIC_CONFIG

@@ -3,6 +3,7 @@ from typing import List, Optional
 from ..patient import Patient
 import collections
 from typing import Optional
+from ..common import PYDANTIC_CONFIG
 
 
 class DemographicExtract(BaseXmlModel):

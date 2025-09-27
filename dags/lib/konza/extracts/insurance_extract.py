@@ -1,5 +1,6 @@
 from pydantic_xml import BaseXmlModel, element, attr
 from typing import Optional
+from ..common import PYDANTIC_CONFIG
 
 
 class InsuranceExtract(BaseXmlModel):
