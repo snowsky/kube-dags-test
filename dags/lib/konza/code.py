@@ -28,7 +28,7 @@ class Code(BaseXmlModel, **PYXML_KWARGS):
     def is_phin_vads_code(self):
         return self.codeSystem == PHIN_VADS_CODE_SYSTEM
 
-    def best_effort_phin_vads_code(self) -> Optional[Code]:
+    def best_effort_phin_vads_code(self) -> Optional['Code']:
         
         if self.is_phin_vads_code():
             return self
