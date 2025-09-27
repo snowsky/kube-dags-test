@@ -1,5 +1,4 @@
 from airflow import DAG
-from airflow.utils.dates import days_ago
 from airflow.operators.python import get_current_context
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.decorators import task
@@ -25,7 +24,7 @@ default_args = {
 with DAG(
     'ingest_hl7v2_new',
     default_args=default_args,
-    start_date=days_ago(1),
+    start_date=datetime(2024, 1, 1),
     tags=['mpi', 'hl7v2'],
 ) as dag:
 

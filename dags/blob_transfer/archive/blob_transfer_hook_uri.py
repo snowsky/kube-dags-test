@@ -2,7 +2,6 @@ from datetime import datetime
 from airflow import DAG
 from airflow.decorators import task, dag
 from airflow.hooks.base import BaseHook
-from airflow.utils.dates import days_ago
 from airflow.models import Param
 from azure.storage.blob import BlobServiceClient
 import logging
@@ -15,7 +14,7 @@ TARGET_FILES_DIRECTORY = 'target'
 
 with DAG(
     dag_id='blob_transfer_hook_uri',
-    start_date=days_ago(1),  # Set a fixed start date
+    start_date=datetime(2024, 1, 1),  # Set a fixed start date
     schedule='@daily',
     catchup=False,
     tags=['konza', 'azure_blob_conn', 'uri_string'],

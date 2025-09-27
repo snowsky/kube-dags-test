@@ -2,7 +2,6 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.utils.trigger_rule import TriggerRule
-from airflow.utils.dates import days_ago
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.operators.python import get_current_context
 from airflow.exceptions import AirflowFailException, AirflowSkipException
@@ -57,7 +56,7 @@ with DAG(
     default_args=default_args,
     schedule='@hourly',
     max_active_runs=1,
-    start_date=days_ago(1),
+    start_date=datetime(2024, 1, 1),
     catchup=False,
     tags=['example', 'C-126', 'L-69'],
     concurrency=PARALLEL_TASK_LIMIT,

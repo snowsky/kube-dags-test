@@ -2,7 +2,6 @@ import airflow
 from airflow import DAG
 from airflow.decorators import task
 from airflow.providers.standard.operators.python import PythonOperator
-from airflow.utils.dates import days_ago
 from airflow.providers.microsoft.mssql.hooks.mssql import MsSqlHook
 import pandas as pd
 import os
@@ -133,7 +132,7 @@ with DAG(
     default_args=default_args,
     description='Pipeline for the ingestion of data related to SUP-9850 : QHIN reporting – RCE Directory and QHIN transactions.Two manual reporting efforts have outgrown an excel based approach and need to be moved to a DB structure',
     schedule=None, 
-    start_date=days_ago(2),
+    start_date=datetime(2024, 1, 1),
     tags=['AA_DAG'],
 ) as dag:
     @task 

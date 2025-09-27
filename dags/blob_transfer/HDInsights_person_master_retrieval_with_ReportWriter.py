@@ -1,13 +1,12 @@
 from datetime import datetime
 from airflow.decorators import task, dag
 from airflow.hooks.base import BaseHook
-from airflow.utils.dates import days_ago
 from azure.storage.blob import BlobServiceClient
 import logging
 
 @dag(
     dag_id='HDInsights_person_master_retrieval_with_ReportWriter',
-    start_date=days_ago(1),  # Set a fixed start date
+    start_date=datetime(2024, 1, 1),  # Set a fixed start date
     schedule='@daily',
     catchup=False,
     tags=['hoang', 'azure_blob_conn', 'uri_string'],

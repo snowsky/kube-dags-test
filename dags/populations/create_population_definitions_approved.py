@@ -5,7 +5,6 @@ from airflow import DAG
 from airflow.operators.python import get_current_context
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.mysql.hooks.mysql import MySqlHook
-from airflow.utils.dates import days_ago
 from airflow.decorators import task
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from datetime import datetime

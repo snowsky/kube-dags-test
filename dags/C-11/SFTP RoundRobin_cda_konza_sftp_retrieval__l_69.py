@@ -13,7 +13,6 @@ from pyunpack import Archive
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.utils.dates import days_ago
 from airflow.exceptions import AirflowFailException, AirflowSkipException
 from airflow.utils.trigger_rule import TriggerRule
 
@@ -102,7 +101,7 @@ with DAG(
     dag_id=SCRIPT_NAME,
     description="Airflow migration of L-69 SFTP retrieval from legacy OPS1 script",
     default_args=default_args,
-    start_date=days_ago(1),
+    start_date=datetime(2024, 1, 1),
     schedule=None,
     catchup=False,
     tags=["L-69"],

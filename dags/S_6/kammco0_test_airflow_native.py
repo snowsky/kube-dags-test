@@ -4,7 +4,6 @@ from airflow import DAG
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.hooks.base_hook import BaseHook
 from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
-from airflow.utils.dates import days_ago
 from datetime import timedelta
 
 # Set up logging
@@ -28,7 +27,7 @@ dag = DAG(
     description='Copy containers from source to destination storage account',
     schedule=None,
     tags=['S-6'],
-    start_date=days_ago(1),
+    start_date=datetime(2024, 1, 1),
 )
 
 # Variables
