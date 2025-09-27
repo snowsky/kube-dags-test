@@ -40,3 +40,7 @@ ServiceEvent.model_rebuild()
 SubstanceAdministration.model_rebuild()
 Supply.model_rebuild()
 OrganizerComponent.model_rebuild()
+
+# Rebuild ReferenceInformationModel to resolve Entry forward reference
+from .rim import rebuild_rim_model
+rebuild_rim_model()

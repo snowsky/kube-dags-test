@@ -64,3 +64,8 @@ class ReferenceInformationModel(BaseXmlModel, **PYXML_KWARGS):
                 import logging
                 logging.error((template_id, validation_fn, is_valid))
         return False
+
+# Rebuild model to resolve forward references
+# This will be called after Entry is defined in entry.py
+def rebuild_rim_model():
+    ReferenceInformationModel.model_rebuild()

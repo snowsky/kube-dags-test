@@ -1,11 +1,15 @@
-import datetime
 import pathlib
 import logging
+import sys
+import os
 
 from airflow import DAG
-from airflow.operators.empty import EmptyOperator
 
-from airflow.decorators import dag, task
+from airflow.decorators import task
+
+# Add the dags directory to Python path so we can import from lib.konza
+dags_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, dags_dir)
 
 CCDA_DIR = "/opt/airflow/dags/utils/parsing/ccda"
 
@@ -17,7 +21,7 @@ with DAG(
     schedule=None,
     tags=['ccd-parsing'],
 ) as dag:
-   
+
     from lib.konza.parser import read_clinical_document_from_xml_path
     from lib.konza.extracts.extract import KonzaExtract
 
