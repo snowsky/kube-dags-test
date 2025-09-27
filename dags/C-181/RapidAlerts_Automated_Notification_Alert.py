@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from datetime import datetime, timedelta
 from airflow.utils.email import send_email
 from airflow.providers.sftp.hooks.sftp import SFTPHook

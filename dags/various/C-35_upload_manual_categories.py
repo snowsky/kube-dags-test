@@ -1,6 +1,6 @@
 from airflow import DAG
 from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
-from airflow.operators.python_operator import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from datetime import datetime
 import logging
 default_args = {

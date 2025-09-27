@@ -1,6 +1,6 @@
 import logging
 from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 from airflow.hooks.base import BaseHook
 from datetime import datetime
 
