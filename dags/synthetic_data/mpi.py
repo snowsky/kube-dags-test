@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.utils.dates import days_ago
+import pendulum
 from airflow.operators.python import get_current_context
 from airflow.providers.mysql.operators.mysql import MySqlOperator
 from airflow.decorators import task
@@ -13,7 +13,7 @@ default_args = {
 with DAG(
     'mpi',
     default_args=default_args,
-    start_date=days_ago(2),
+    start_date=pendulum.now().subtract(days=2),
     tags=['synthetic', 'mpi'],
 ) as dag:
     
