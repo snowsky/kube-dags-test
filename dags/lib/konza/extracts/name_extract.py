@@ -1,6 +1,7 @@
 from pydantic_xml import BaseXmlModel
 from typing import List, Optional
 from ..name import Name
+from ..common import PYDANTIC_CONFIG
 
 
 def concat_tokens(tokens, empty_string=False):
@@ -9,6 +10,7 @@ def concat_tokens(tokens, empty_string=False):
     return " ".join([x.value for x in tokens])
 
 class NameExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     name_prefix: Optional[str]
     given_name: str
     middle_names: str

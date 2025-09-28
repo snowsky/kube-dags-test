@@ -2,9 +2,11 @@ from pydantic_xml import BaseXmlModel
 from typing import List, Optional
 from ..telecom import Telecom
 import collections
+from ..common import PYDANTIC_CONFIG
 
 
 class TelecomExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     emails: str
     home_phone_number_id: Optional[str]
     business_phone_number_id: Optional[str]

@@ -1,15 +1,17 @@
+from __future__ import annotations
+
 from pydantic_xml import BaseXmlModel, attr, element
 from lxml.etree import _Element as Element
-from .common import PYXML_KWARGS
+from .common import KonzaBaseXmlModel, PYDANTIC_CONFIG
 from .template_id import TemplateId
 from .addr import Addr
 from .patient import Patient
 from .telecom import Telecom
-from typing import List, Optional
+from typing import List, Optional, ClassVar
 from .code import Code
 
 
-class Entity(BaseXmlModel, **PYXML_KWARGS):
+class Entity(KonzaBaseXmlModel):
     id: List[TemplateId] = element(tag="id", default=None)
     code: Optional[Code] = element(tag="code", default=None)
     addr: Optional[Addr] = element(tag="addr", default=None)

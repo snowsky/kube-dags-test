@@ -3,9 +3,11 @@ from typing import List, Optional
 from ..patient import Patient
 import collections
 from typing import Optional
+from ..common import PYDANTIC_CONFIG
 
 
 class DemographicExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     date_of_birth: str
     sex: Optional[str]
     race: Optional[str]

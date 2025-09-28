@@ -1,21 +1,25 @@
+from __future__ import annotations
+
 from pydantic_xml import BaseXmlModel, element, attr
 from lxml.etree import _Element as Element
-from .common import PYXML_KWARGS
+from .common import NSMAP, XML_CONFIG, PYDANTIC_CONFIG
 from .template_id import TemplateId
 from typing import Optional
 from .code import Code
 from .author import Author
 from .effective_time import EffectiveTime
-from typing import List, ForwardRef, Callable
+from typing import List, Callable
 from .participant import Participant
 from .specimen import Specimen
 from .performer import Performer
 from .value import Value
+from pydantic import ConfigDict
+from typing import ClassVar
 
-Entry = ForwardRef('Entry')
 
-
-class ReferenceInformationModel(BaseXmlModel, **PYXML_KWARGS):
+class ReferenceInformationModel(BaseXmlModel):
+    xml_config: ClassVar = XML_CONFIG
+    model_config = PYDANTIC_CONFIG
     templateId: List[TemplateId] = element(default=[])
     id: Optional[TemplateId] = element(tag="id", default=None)
     
@@ -29,7 +33,7 @@ class ReferenceInformationModel(BaseXmlModel, **PYXML_KWARGS):
     effectiveTime: Optional[EffectiveTime] = element(tag="effectiveTime", default=None)
     
     value: Optional[Value] = element(tag="value", default=None)
-    entryRelationship: List[Entry] = element(tag="entryRelationship", default=[])
+    entryRelationship: List['Entry'] = element(tag="entryRelationship", default=[])
     
     author: Optional[Author] = element(tag="author", default=None)
     participant: List[Participant] = element(tag="participant", default=[])
@@ -64,3 +68,5 @@ class ReferenceInformationModel(BaseXmlModel, **PYXML_KWARGS):
                 import logging
                 logging.error((template_id, validation_fn, is_valid))
         return False
+
+# Note: model_rebuild() is called in __init__.py after all models are imported

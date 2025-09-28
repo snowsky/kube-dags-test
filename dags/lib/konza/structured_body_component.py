@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 from pydantic_xml import BaseXmlModel, element
 from lxml.etree import _Element as Element
-from .common import PYXML_KWARGS
+from .common import XML_CONFIG, PYDANTIC_CONFIG
 from .section import Section
-from typing import List
+from typing import List, ClassVar
 
 
-class StructuredBodyComponent(
-    BaseXmlModel, tag="component", **PYXML_KWARGS
-):
+class StructuredBodyComponent(BaseXmlModel, tag="component"):
+    xml_config: ClassVar = XML_CONFIG
     section: List[Section]

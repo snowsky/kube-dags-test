@@ -1,8 +1,10 @@
 from pydantic_xml import BaseXmlModel, element, attr
 from typing import Optional
+from ..common import PYDANTIC_CONFIG
 
 
 class EncounterExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     service_datetime_start: Optional[str] = element()
     service_datetime_end: Optional[str] = element()
     encounter_code: Optional[str] = element()

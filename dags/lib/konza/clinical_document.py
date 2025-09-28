@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from pydantic_xml import BaseXmlModel, element
 from lxml.etree import _Element as Element
-from .common import PYXML_KWARGS
+from .common import KonzaBaseXmlModel, PYDANTIC_CONFIG
 from .component import Component
 from .component_of import ComponentOf
 from .record_target import RecordTarget
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, ClassVar
 from .code import Code
 from .template_id import TemplateId
 from .text import Text
@@ -21,7 +23,7 @@ from .documentation_of import DocumentationOf
 from .section import Section
 
 
-class ClinicalDocumentBase(BaseXmlModel, tag="ClinicalDocument", **PYXML_KWARGS):
+class ClinicalDocumentBase(KonzaBaseXmlModel):
     realmCode: Optional[Code] = element(tag="realmCode", default=None)
     typeId: Optional[TemplateId] = element(tag="typeId", default=None)
     templateId: Optional[TemplateId] = element(tag="templateId", default=None)

@@ -1,8 +1,10 @@
 from pydantic_xml import BaseXmlModel, element, attr
 from typing import Optional
+from ..common import PYDANTIC_CONFIG
 
 
 class LabsObservationExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     source: Optional[str] = element()
     source_type: Optional[str] = element()
     laboratory_id: Optional[str] = element()

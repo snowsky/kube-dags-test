@@ -1,9 +1,11 @@
 from pydantic_xml import BaseXmlModel, element
 from typing import List, Optional
 from ..addr import Addr
+from ..common import PYDANTIC_CONFIG
 
 
 class AddressExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     street1: str
     street2: str
     city: Optional[str] = element(default=None)

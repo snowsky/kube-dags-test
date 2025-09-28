@@ -1,7 +1,9 @@
 from pydantic_xml import BaseXmlModel, element, attr
 from typing import List, Optional
+from ..common import PYDANTIC_CONFIG
 
 class ImmunizationExtract(BaseXmlModel):
+    model_config = PYDANTIC_CONFIG
     source: Optional[str] = element()
     vault_based_id: Optional[str] = element()
     performing_provider_id: Optional[str] = element()

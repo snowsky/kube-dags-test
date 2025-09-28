@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 from pydantic_xml import BaseXmlModel, element
 from lxml.etree import _Element as Element
-from .common import PYXML_KWARGS
+from .common import XML_CONFIG
 from .name import Name
 from .birth_time import BirthTime
 from .deceased_ind import DeceasedInd
 from .code import Code
 from .language_communication import LanguageCommunication
-from typing import Optional
+from typing import Optional, ClassVar
 from .person import Person
 
 
