@@ -1,3 +1,8 @@
+import sys
+import os
+# Add the dags directory to Python path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+
 from lib.konza.structured_body_component import StructuredBodyComponent
 from lib.konza.section import Section
 

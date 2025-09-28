@@ -1,11 +1,16 @@
 import pathlib
 import logging
 import re
+import sys
+import os
 from datetime import datetime
 from airflow import DAG
 from airflow.providers.mysql.operators.mysql import MySqlOperator
 from airflow.decorators import task
 from airflow.providers.mysql.hooks.mysql import MySqlHook
+
+# Add the dags directory to Python path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 #CCDA_DIR = "/data/biakonzasftp/C-128/archive/XCAIn/"
 CCDA_DIR = "/source-biakonzasftp/C-128/archive/XCAIn/"

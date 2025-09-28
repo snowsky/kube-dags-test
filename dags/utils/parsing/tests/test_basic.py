@@ -1,5 +1,10 @@
+import sys
+import os
+# Add the dags directory to Python path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+
 from lib.konza.parser import (
-    read_clinical_document_from_xml_path, 
+    read_clinical_document_from_xml_path,
     read_clinical_document_base_from_xml_path,
     extract_demographic_info_from_xmls_to_parquet,
 )
@@ -7,7 +12,6 @@ from lib.konza.extracts.extract import KonzaExtract, KonzaExtractBase
 from lib.konza.extracts.problem_extract import ProblemExtract
 from lib.konza.extracts.problem_observation_extract import ProblemObservationExtract
 from lib.konza.extracts.procedure_extract import ProcedureExtract
-import os
 import tempfile
 import pandas as pd
 from pathlib import Path
