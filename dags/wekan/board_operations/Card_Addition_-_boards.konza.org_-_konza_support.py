@@ -57,6 +57,7 @@ class WekanConfigurations(TypedDict):
 
 
 @dag(
+    dag_id="card_addition_boards_konza_org_konza_support",
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
