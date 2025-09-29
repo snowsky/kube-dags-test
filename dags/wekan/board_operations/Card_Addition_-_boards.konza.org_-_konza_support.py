@@ -73,7 +73,7 @@ class WekanConfigurations(TypedDict):
         "target_board_id": "target_board_id",
     },
 )
-def board_shallow_copy():
+def card_addition_boards_konza_org_konza_support():
     """
     This DAG copies a wekan board from one server to another.
     """
