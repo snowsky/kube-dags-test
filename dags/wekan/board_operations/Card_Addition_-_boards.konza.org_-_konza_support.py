@@ -34,6 +34,10 @@ Notes:
 - The users are not copied.
 - The archived cards are not copied.
 """
+import sys
+import os
+# Add the dags directory to Python path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import json
 from typing import TypedDict
