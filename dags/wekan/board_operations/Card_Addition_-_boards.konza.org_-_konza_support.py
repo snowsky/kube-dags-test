@@ -45,7 +45,7 @@ from datetime import timedelta, datetime
 import typing
 from airflow import XComArg
 
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task  # Updated for Airflow 3.0 compatibility
 from airflow.exceptions import AirflowException
 
 from lib.wekan.controllers.boards import WekanConfiguration
