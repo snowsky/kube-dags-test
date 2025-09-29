@@ -185,7 +185,7 @@ def board_shallow_copy():
         source_config=source_config,
     )
 
-    result = shallow_copy_board(
+    shallow_copy_board(
         source_hostname="{{params.source_hostname}}",
         target_hostname="{{params.target_hostname}}",
         source_board_id="{{params.source_board_id}}",
@@ -194,5 +194,3 @@ def board_shallow_copy():
         target_config=target_config,
         populated_board=populated_board,
     )
-
-    return result
