@@ -33,179 +33,182 @@ Notes:
 - The attachments are not copied.
 - The users are not copied.
 - The archived cards are not copied.
+
+TEMPORARILY DISABLED: This DAG has serialization issues with Airflow 3.0.
+The complex XComArg and TypedDict usage causes database write failures.
+Re-enable after upgrading to a stable Airflow 3.0 version with better compatibility.
 """
 
-import json
-from typing import TypedDict
-from datetime import timedelta, datetime
-import typing
-from airflow import XComArg
+# Temporarily commented out due to Airflow 3.0 serialization issues
+# Uncomment when Airflow 3.0 compatibility is improved
 
-from airflow.sdk import dag, task
-from airflow.exceptions import AirflowException
+# import json
+# from typing import TypedDict
+# from datetime import timedelta, datetime
+# import typing
+# from airflow import XComArg
+#
+# from airflow.sdk import dag, task
+# from airflow.exceptions import AirflowException
+#
+# from lib.wekan.controllers.boards import WekanConfiguration
+#
+#
+# class WekanConfigurations(TypedDict):
+#     source_configuration: WekanConfiguration
+#     target_configuration: WekanConfiguration
+#
+#
+# @dag(
+#     dag_id="board_shallow_copy",
+#     schedule=None,
+#     start_date=datetime(2024, 1, 1),
+#     catchup=False,
+#     dagrun_timeout=timedelta(minutes=240),
+#     params={
+#         "source_hostname": "https://boards.ertanalytics.com",
+#         "target_hostname": "http://wekan.wekan.svc:8080",
+#         "source_username": "erta_robot",
+#         "source_password": "source_password",
+#         "target_username": "erta_robot",
+#         "target_password": "target_password",
+#         "source_board_id": "source_board_id",
+#         "target_board_id": "target_board_id",
+#     },
+# )
+# def board_shallow_copy():
+#     """
+#     This DAG copies a wekan board from one server to another.
+#     """
+#
+#     @task
+#     def login_users(
+#         source_hostname: str,
+#         target_hostname: str,
+#         source_username: str,
+#         source_password: str,
+#         target_username: str,
+#         target_password: str,
+#     ):
+#         """
+#         This function logs in the users to the source and target servers.
+#         """
+#
+#         from lib.wekan.controllers.login import login
+#
+#         source_response = login(
+#             hostname=source_hostname, username=source_username, password=source_password
+#         )
+#
+#         target_response = login(
+#             hostname=target_hostname, username=target_username, password=target_password
+#         )
+#
+#         error = (
+#             source_response.get("error")
+#             if isinstance(source_response, dict)
+#             else (
+#                 target_response.get("error")
+#                 if isinstance(target_response, dict)
+#                 else None
+#             )
+#         )
+#
+#         if error:
+#             print(f"error: {error}")
+#             print(f"source_response: {source_response} {type(source_response)}")
+#             print(f"target_response: {target_response} {type(target_response)}")
+#             error_dict = {
+#                 "status_code": error,
+#                 "detail": {
+#                     "source_response": json.dumps(source_response),
+#                     "target_response": json.dumps(target_response),
+#                 },
+#             }
+#             raise AirflowException(error_dict)
+#
+#         output = {
+#             "source_configuration": source_response,
+#             "target_configuration": target_response,
+#         }
+#
+#         return output
+#
+#     @task
+#     def get_populated_board(hostname: str, board_id: str, configuration):
+#         """
+#         Function to get a populated board.
+#         """
+#
+#         from lib.wekan.controllers.boards import get_populated_board
+#
+#         parsed_configurations = configuration
+#
+#         parsed_configuration = parsed_configurations.get("source_configuration")
+#
+#         board = get_populated_board(
+#             hostname, board_id, configuration=parsed_configuration
+#         )
+#
+#         return board
+#
+#     @task
+#     def shallow_copy_board(
+#         source_hostname: str,
+#         target_hostname: str,
+#         source_board_id: str,
+#         target_board_id: str,
+#         configurations,
+#         populated_board,
+#     ):
+#         """
+#         Function to shallow copy a board.
+#         """
+#
+#         from lib.wekan.controllers.boards import copy_populated_board
+#
+#         parsed_configurations = configurations
+#
+#         source_configuration = parsed_configurations.get("source_configuration")
+#         target_configuration = parsed_configurations.get("target_configuration")
+#
+#         copy_response = copy_populated_board(
+#             source_hostname,
+#             target_hostname,
+#             source_board_id,
+#             target_board_id,
+#             source_configuration,
+#             target_configuration,
+#             raw_populated_board=populated_board,
+#         )
+#
+#         return copy_response
+#
+#     configurations = login_users(
+#         source_hostname="{{params.source_hostname}}",
+#         target_hostname="{{params.target_hostname}}",
+#         source_username="{{params.source_username}}",
+#         source_password="{{params.source_password}}",
+#         target_username="{{params.target_username}}",
+#         target_password="{{params.target_password}}",
+#     )
+#
+#     populated_board = get_populated_board(
+#         hostname="{{params.source_hostname}}",
+#         board_id="{{params.source_board_id}}",
+#         configuration=configurations,
+#     )
+#
+#     shallow_copy_board(
+#         source_hostname="{{params.source_hostname}}",
+#         target_hostname="{{params.target_hostname}}",
+#         source_board_id="{{params.source_board_id}}",
+#         target_board_id="{{params.target_board_id}}",
+#         configurations=configurations,
+#         populated_board=populated_board,
+#     )
 
-from lib.wekan.controllers.boards import WekanConfiguration
 
-
-class WekanConfigurations(TypedDict):
-    source_configuration: WekanConfiguration
-    target_configuration: WekanConfiguration
-
-
-@dag(
-    dag_id="board_shallow_copy",
-    schedule=None,
-    start_date=datetime(2024, 1, 1),
-    catchup=False,
-    dagrun_timeout=timedelta(minutes=240),
-    params={
-        "source_hostname": "https://boards.ertanalytics.com",
-        "target_hostname": "http://wekan.wekan.svc:8080",
-        "source_username": "erta_robot",
-        "source_password": "source_password",
-        "target_username": "erta_robot",
-        "target_password": "target_password",
-        "source_board_id": "source_board_id",
-        "target_board_id": "target_board_id",
-    },
-)
-def board_shallow_copy():
-    """
-    This DAG copies a wekan board from one server to another.
-    """
-
-    @task
-    def login_users(
-        source_hostname: str,
-        target_hostname: str,
-        source_username: str,
-        source_password: str,
-        target_username: str,
-        target_password: str,
-    ):
-        """
-        This function logs in the users to the source and target servers.
-        """
-
-        from lib.wekan.controllers.login import login
-
-        source_response = login(
-            hostname=source_hostname, username=source_username, password=source_password
-        )
-
-        target_response = login(
-            hostname=target_hostname, username=target_username, password=target_password
-        )
-
-        error = (
-            source_response.get("error")
-            if isinstance(source_response, dict)
-            else (
-                target_response.get("error")
-                if isinstance(target_response, dict)
-                else None
-            )
-        )
-
-        if error:
-            print(f"error: {error}")
-            print(f"source_response: {source_response} {type(source_response)}")
-            print(f"target_response: {target_response} {type(target_response)}")
-            error_dict = {
-                "status_code": error,
-                "detail": {
-                    "source_response": json.dumps(source_response),
-                    "target_response": json.dumps(target_response),
-                },
-            }
-            raise AirflowException(error_dict)
-
-        output = {
-            "source_configuration": source_response,
-            "target_configuration": target_response,
-        }
-
-        return output
-
-    @task
-    def get_populated_board(hostname: str, board_id: str, configuration: XComArg):
-        """
-        Function to get a populated board.
-        """
-
-        from lib.wekan.controllers.boards import get_populated_board
-
-        parsed_configurations = typing.cast(WekanConfigurations, configuration)
-
-        parsed_configuration = parsed_configurations.get("source_configuration")
-
-        board = get_populated_board(
-            hostname, board_id, configuration=parsed_configuration
-        )
-
-        return board
-
-    @task
-    def shallow_copy_board(
-        source_hostname: str,
-        target_hostname: str,
-        source_board_id: str,
-        target_board_id: str,
-        configurations: XComArg,
-        populated_board: XComArg,
-    ):
-        """
-        Function to shallow copy a board.
-        """
-
-        from lib.wekan.controllers.boards import copy_populated_board
-
-        parsed_configurations = typing.cast(WekanConfigurations, configurations)
-
-        source_configuration = parsed_configurations.get("source_configuration")
-        target_configuration = parsed_configurations.get("target_configuration")
-
-        copy_response = copy_populated_board(
-            source_hostname,
-            target_hostname,
-            source_board_id,
-            target_board_id,
-            source_configuration,
-            target_configuration,
-            raw_populated_board=populated_board,
-        )
-
-        return copy_response
-
-    configurations = login_users(
-        source_hostname="{{params.source_hostname}}",
-        target_hostname="{{params.target_hostname}}",
-        source_username="{{params.source_username}}",
-        source_password="{{params.source_password}}",
-        target_username="{{params.target_username}}",
-        target_password="{{params.target_password}}",
-    )
-
-    populated_board = get_populated_board(
-        hostname="{{params.source_hostname}}",
-        board_id="{{params.source_board_id}}",
-        configuration=configurations,
-    )
-
-    shallow_copy_board(
-        source_hostname="{{params.source_hostname}}",
-        target_hostname="{{params.target_hostname}}",
-        source_board_id="{{params.source_board_id}}",
-        target_board_id="{{params.target_board_id}}",
-        configurations=configurations,
-        populated_board=populated_board,
-    )
-
-
-# In Airflow 3.0, the @dag decorator automatically registers the DAG
-# No need to create a module-level variable - this can cause serialization issues
-
-if __name__ == "__main__":
-    # For testing, create a temporary instance
-    dag_instance = board_shallow_copy()
-    dag_instance.test()
+# Placeholder - this DAG is temporarily disabled due to Airflow 3.0 compatibility issues
+print("board_shallow_copy DAG is temporarily disabled due to Airflow 3.0 serialization issues")
+print("Re-enable after upgrading to a stable Airflow 3.0 version")
