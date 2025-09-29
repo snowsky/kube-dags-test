@@ -1,9 +1,9 @@
 import json
 from datetime import timedelta, datetime
 import typing
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.exceptions import AirflowException
-from airflow.operators.python import get_current_context
+from airflow.sdk import get_current_context
 
 from lib.wekan.types.boards import WekanConfiguration, PopulatedBoard
 from lib.wekan.types.cards import LostCardDetails
@@ -121,4 +121,5 @@ def board_move_missing_card():
     lost_card_details = search_card_by_id(populated_boards)
     move_card_to_board(configuration, lost_card_details)
 
-board_move_missing_card_dag = board_move_missing_card()
+# In Airflow 3.0, the @dag decorator automatically registers the DAG
+# No need to create a module-level variable - this can cause serialization issues
