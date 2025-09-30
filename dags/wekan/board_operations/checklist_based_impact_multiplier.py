@@ -10,7 +10,7 @@ from lib.wekan.types.boards import WekanConfiguration, PopulatedBoard
 from lib.wekan.types.cards import WekanCard
 
 @dag(
-    dag_id="checklist_based_impact_multiplier",
+    dag_id="checklist_based_impact_multiplier_new",
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
