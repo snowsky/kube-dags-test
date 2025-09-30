@@ -183,25 +183,25 @@ with DAG(
         return copy_response
 
     configurations = login_users(
-        source_hostname="{{params.source_hostname}}",
-        target_hostname="{{params.target_hostname}}",
-        source_username="{{params.source_username}}",
-        source_password="{{params.source_password}}",
-        target_username="{{params.target_username}}",
-        target_password="{{params.target_password}}",
+        source_hostname="https://boards.ertanalytics.com",
+        target_hostname="http://wekan.wekan.svc:8080",
+        source_username="erta_robot",
+        source_password="source_password",
+        target_username="erta_robot",
+        target_password="target_password",
     )
 
     populated_board = get_populated_board(
-        hostname="{{params.source_hostname}}",
-        board_id="{{params.source_board_id}}",
+        hostname="https://boards.ertanalytics.com",
+        board_id="source_board_id",
         configuration=configurations,
     )
 
     shallow_copy_board(
-        source_hostname="{{params.source_hostname}}",
-        target_hostname="{{params.target_hostname}}",
-        source_board_id="{{params.source_board_id}}",
-        target_board_id="{{params.target_board_id}}",
+        source_hostname="https://boards.ertanalytics.com",
+        target_hostname="http://wekan.wekan.svc:8080",
+        source_board_id="source_board_id",
+        target_board_id="target_board_id",
         configurations=configurations,
         populated_board=populated_board,
     )
