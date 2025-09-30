@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
 from airflow import DAG
-from airflow.operators.python import PythonOperator
-from airflow.operators.bash import BashOperator
-from airflow.operators.dummy import DummyOperator
+from airflow.sdk import dag, task
+from airflow.providers.standard.operators.python import PythonOperator
+from airflow.providers.standard.operators.bash import BashOperator
+from airflow.providers.standard.operators.empty import EmptyOperator
 
 # Define default arguments for the DAG
 default_args = {
@@ -30,27 +31,27 @@ with DAG(
 ) as dag:
     
     # Define tasks
-    start_task = DummyOperator(
+    start_task = EmptyOperator(
         task_id='start_workflow'
     )
-    
+
     extract_task = PythonOperator(
         task_id='extract_data',
         python_callable=extract_data
     )
-    
+
     transform_task = BashOperator(
         task_id='transform_data',
         bash_command='echo "Transforming data..."'
     )
-    
-    load_task = DummyOperator(
+
+    load_task = EmptyOperator(
         task_id='load_data'
     )
-    
-    end_task = DummyOperator(
+
+    end_task = EmptyOperator(
         task_id='end_workflow'
     )
-    
+
     # Set task dependencies
     start_task >> extract_task >> transform_task >> load_task >> end_task
