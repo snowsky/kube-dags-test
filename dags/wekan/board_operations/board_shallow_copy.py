@@ -38,6 +38,7 @@ SIMPLIFIED FOR AIRFLOW 3.0 COMPATIBILITY: Removed XComArg and TypedDict usage.
 """
 
 from datetime import timedelta, datetime
+from airflow import XComArg
 from airflow.sdk import dag, task
 from airflow.exceptions import AirflowException
 
@@ -106,10 +107,10 @@ def board_shallow_copy():
         }
 
     @task
-    def get_populated_board(hostname: str, board_id: str, source_config: dict):
+    def get_populated_board(hostname: str, board_id: str, source_config: XComArg):
         """
         Function to get a populated board.
-        Simplified to avoid XComArg issues.
+        Using XComArg like the working checklist_based_impact_multiplier DAG.
         """
         # Extract source config from the full configs dict
         parsed_config = source_config.get("source_configuration", source_config)
@@ -128,13 +129,13 @@ def board_shallow_copy():
         target_hostname: str,
         source_board_id: str,
         target_board_id: str,
-        source_config: dict,
-        target_config: dict,
-        populated_board: dict,
+        source_config: XComArg,
+        target_config: XComArg,
+        populated_board: XComArg,
     ):
         """
         Function to shallow copy a board.
-        Simplified to avoid XComArg and complex parameter passing.
+        Using XComArg like the working checklist_based_impact_multiplier DAG.
         """
         # Extract configs from the full configs dicts
         parsed_source_config = source_config.get("source_configuration", source_config)
