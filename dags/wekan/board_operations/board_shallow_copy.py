@@ -194,3 +194,6 @@ def board_shallow_copy():
         target_config=target_config,
         populated_board=populated_board,
     )
+
+# Register the DAG in Airflow 3.0
+board_shallow_copy_dag = board_shallow_copy()
