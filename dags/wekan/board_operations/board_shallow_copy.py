@@ -51,6 +51,10 @@ def board_shallow_copy():
     result = shallow_copy_board(populated_boards=boards)
 
 
+# In Airflow 3.0, the @dag decorator automatically registers the DAG
+# But we need explicit registration for some cases
+board_shallow_copy_dag = board_shallow_copy()
+
 if __name__ == "__main__":
     dag_instance = board_shallow_copy()
     dag_instance.test()
