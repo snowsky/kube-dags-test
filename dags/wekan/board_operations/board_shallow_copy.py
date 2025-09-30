@@ -187,27 +187,28 @@ with DAG(
         print(f"Mock board copy completed: {source_board_id} -> {target_board_id}")
         return mock_copy_response
 
-    configurations = login_users(
+    # Create task instances
+    login_task = login_users(
         source_hostname="https://boards.ertanalytics.com",
         target_hostname="http://wekan.wekan.svc:8080",
         source_username="erta_robot",
         target_username="erta_robot",
     )
 
-    populated_board = get_populated_board(
+    board_task = get_populated_board(
         hostname="https://boards.ertanalytics.com",
         board_id="source_board_id",
-        configuration=configurations,
+        configuration=login_task,
     )
 
-    shallow_copy_board(
+    copy_task = shallow_copy_board(
         source_hostname="https://boards.ertanalytics.com",
         target_hostname="http://wekan.wekan.svc:8080",
         source_board_id="source_board_id",
         target_board_id="target_board_id",
-        configurations=configurations,
-        populated_board=populated_board,
+        configurations=login_task,
+        populated_board=board_task,
     )
 
     # Set task dependencies
-    configurations >> populated_board >> shallow_copy_board
+    login_task >> board_task >> copy_task
