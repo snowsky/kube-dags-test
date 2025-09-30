@@ -111,10 +111,12 @@ def board_shallow_copy():
         Function to get a populated board.
         Simplified to avoid XComArg issues.
         """
+        # Extract source config from the full configs dict
+        parsed_config = source_config.get("source_configuration", source_config)
 
         try:
             from lib.wekan.controllers.boards import get_populated_board
-            board = get_populated_board(hostname, board_id, configuration=source_config)
+            board = get_populated_board(hostname, board_id, configuration=parsed_config)
             return board
         except ImportError:
             # Mock response for testing - remove when lib is available
@@ -134,6 +136,9 @@ def board_shallow_copy():
         Function to shallow copy a board.
         Simplified to avoid XComArg and complex parameter passing.
         """
+        # Extract configs from the full configs dicts
+        parsed_source_config = source_config.get("source_configuration", source_config)
+        parsed_target_config = target_config.get("target_configuration", target_config)
 
         try:
             from lib.wekan.controllers.boards import copy_populated_board
@@ -142,8 +147,8 @@ def board_shallow_copy():
                 target_hostname,
                 source_board_id,
                 target_board_id,
-                source_config,
-                target_config,
+                parsed_source_config,
+                parsed_target_config,
                 raw_populated_board=populated_board,
             )
             return copy_response
@@ -157,7 +162,7 @@ def board_shallow_copy():
                 "status": "success"
             }
 
-    # Simplified task flow without XComArg
+    # Direct task dependencies like the working checklist_based_impact_multiplier DAG
     configs = login_users(
         source_hostname="{{params.source_hostname}}",
         target_hostname="{{params.target_hostname}}",
@@ -167,22 +172,10 @@ def board_shallow_copy():
         target_password="{{params.target_password}}",
     )
 
-    # Extract configurations for individual tasks
-    @task
-    def extract_source_config(configs: dict) -> dict:
-        return configs["source_configuration"]
-
-    @task
-    def extract_target_config(configs: dict) -> dict:
-        return configs["target_configuration"]
-
-    source_config = extract_source_config(configs)
-    target_config = extract_target_config(configs)
-
     populated_board = get_populated_board(
         hostname="{{params.source_hostname}}",
         board_id="{{params.source_board_id}}",
-        source_config=source_config,
+        source_config=configs,
     )
 
     shallow_copy_board(
@@ -190,8 +183,8 @@ def board_shallow_copy():
         target_hostname="{{params.target_hostname}}",
         source_board_id="{{params.source_board_id}}",
         target_board_id="{{params.target_board_id}}",
-        source_config=source_config,
-        target_config=target_config,
+        source_config=configs,
+        target_config=configs,
         populated_board=populated_board,
     )
 
