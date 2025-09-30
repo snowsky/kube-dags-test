@@ -34,10 +34,6 @@ Notes:
 - The users are not copied.
 - The archived cards are not copied.
 """
-import sys
-import os
-# Add the dags directory to Python path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import json
 from typing import TypedDict
@@ -45,7 +41,7 @@ from datetime import timedelta, datetime
 import typing
 from airflow import XComArg
 
-from airflow.sdk import dag, task  # Updated for Airflow 3.0 compatibility
+from airflow.decorators import dag, task
 from airflow.exceptions import AirflowException
 
 from lib.wekan.controllers.boards import WekanConfiguration
@@ -57,7 +53,7 @@ class WekanConfigurations(TypedDict):
 
 
 @dag(
-    dag_id="card_addition_boards_konza_org_konza_support",
+    dag_id="card_addition_dag",
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
@@ -73,7 +69,7 @@ class WekanConfigurations(TypedDict):
         "target_board_id": "target_board_id",
     },
 )
-def card_addition_boards_konza_org_konza_support():
+def board_shallow_copy():
     """
     This DAG copies a wekan board from one server to another.
     """
@@ -206,10 +202,7 @@ def card_addition_boards_konza_org_konza_support():
     )
 
 
-# In Airflow 3.0, the @dag decorator automatically registers the DAG
-# No need to create a module-level variable - this can cause serialization issues
+board_shallow_copy_dag = board_shallow_copy()
 
 if __name__ == "__main__":
-    # For testing, create a temporary instance
-    dag_instance = board_shallow_copy()
-    dag_instance.test()
+    board_shallow_copy_dag.test()
