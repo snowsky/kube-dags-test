@@ -25,7 +25,7 @@ with DAG(
     'sample_etl_dag',
     default_args=default_args,
     description='A sample ETL DAG for Airflow 3',
-    schedule_interval=timedelta(days=1),
+    schedule=timedelta(days=1),
     start_date=datetime(2025, 9, 29),
     catchup=False,
 ) as dag:
