@@ -39,7 +39,7 @@ import json
 from typing import TypedDict
 from datetime import timedelta, datetime
 import typing
-from airflow import DAG, XComArg
+from airflow import DAG
 from airflow.sdk import task
 from airflow.exceptions import AirflowException
 
@@ -115,7 +115,7 @@ with DAG(
         return output
 
     @task
-    def get_populated_board(hostname: str, board_id: str, configuration: XComArg):
+    def get_populated_board(hostname: str, board_id: str, configuration):
         """
         Function to get a populated board.
         Using mock data for testing.
@@ -165,8 +165,8 @@ with DAG(
         target_hostname: str,
         source_board_id: str,
         target_board_id: str,
-        configurations: XComArg,
-        populated_board: XComArg,
+        configurations,
+        populated_board,
     ):
         """
         Function to shallow copy a board.
