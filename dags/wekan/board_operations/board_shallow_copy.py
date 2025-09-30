@@ -195,5 +195,10 @@ def board_shallow_copy():
         populated_board=populated_board,
     )
 
-# Register the DAG in Airflow 3.0
-board_shallow_copy_dag = board_shallow_copy()
+# In Airflow 3.0, the @dag decorator automatically registers the DAG
+# No need to create a module-level variable - this can cause serialization issues
+
+if __name__ == "__main__":
+    # For testing, create a temporary instance
+    dag_instance = board_shallow_copy()
+    dag_instance.test()
